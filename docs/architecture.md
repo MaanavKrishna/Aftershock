@@ -18,17 +18,17 @@ One Next.js 16 (App Router) application. Pure decision logic is separated from I
 1. Resolve the fix commit and its parent (`lib/git/source.ts`: the GitHub REST API for GitHub repositories, the git CLI for local paths). A root commit or unknown SHA leaves the incident in *Awaiting fix* with a reason.
 2. Read context: the fix diff, the changed files at the parent, test setup files, the nearest tests.
 3. Draft a test (`lib/model/draft.ts`). Output is validated: one file, under the test folder, the right framework, a real test, balanced code.
-4. Run it three times on the parent. Anything but three failures stops here: passing means *rejected* and feeds back into the next draft; errors mean *unproven* and end the run.
+4. Run it three times on the parent. Model timeouts and rate limits are retried with back-off (`lib/model/retry.ts`). Anything but three failures stops here: passing means *rejected* and feeds back into the next draft; errors mean *unproven* and end the run.
 5. Run it three times on the fix. `lib/domain/admission.ts` decides.
 6. On *proven*: store the memory test, open a bot PR, then start Epicenter and the retro-check.
 
 **Pull request check** (`lib/workflows/prCheck.ts`)
 1. Select memory tests: every test whose watched files the PR changes, plus any the model triage adds (`lib/domain/relevance.ts`).
 2. Pick the runner (`lib/runner/select.ts`): sandbox, the team's GitHub Actions, or *unavailable* when the sandbox allowance is spent.
-3. Run each test three times on the head commit; `lib/domain/verdict.ts` decides per test and overall.
+3. Run each test three times on GitHub's test merge commit (the PR merged into its base, as CI does), or on the head when the PR conflicts; `lib/domain/verdict.ts` decides per test and overall.
 4. Update the GitHub check run and the single PR comment.
 
-**Epicenter** (`lib/workflows/epicenter.ts`) gallops back through first-parent history until the test passes, then binary-searches the boundary (`lib/domain/epicenter.ts`, capped at 12 runs).
+**Epicenter** (`lib/workflows/epicenter.ts`) gallops back through first-parent history until the test passes, or until the code it tests does not exist yet, then binary-searches the boundary (`lib/domain/epicenter.ts`, capped at 12 runs). It can be re-run from the incident page.
 
 **Nightly** (`lib/workflows/nightly.ts`) runs each memory test once on the default branch and keeps 14 nights of health.
 
