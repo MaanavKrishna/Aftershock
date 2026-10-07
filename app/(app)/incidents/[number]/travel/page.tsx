@@ -85,7 +85,8 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <AutoRefresh active={run.status === "running" || inc.status === "traveling"} />
+      {/* A proven run still stores the test and opens the bot PR; keep refreshing until every step settles. */}
+      <AutoRefresh active={run.status === "running" || inc.status === "traveling" || (run.status === "proven" && run.steps.some((st) => st.state === "running" || st.state === "pending"))} />
       <TopBar crumbs={[{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }]}>
         <a href={`/api/v1/runs/${run.id}/evidence`} className="inline-flex min-h-[38px] items-center rounded-lg border border-line-strong bg-white px-3 text-[13px] font-semibold text-ink no-underline">Download evidence.json</a>
       </TopBar>
