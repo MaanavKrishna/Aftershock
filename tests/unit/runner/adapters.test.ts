@@ -15,7 +15,10 @@ test("paths are shell-quoted so a hostile path cannot inject commands", () => {
 test("images and setup per framework", () => {
   expect(imageFor("pytest")).toMatch(/^python:3\.12/);
   expect(imageFor("jest")).toMatch(/^node:22/);
-  expect(setupFor("pytest", "pip install -r requirements.txt")).toContain("python -m venv .venv");
+  const py = setupFor("pytest", "pip install -r requirements.txt");
+  // Vercel's python3.13 sandbox cannot run ensurepip; uv seeds pip there. Docker images fall back to venv.
+  expect(py).toMatch(/^\(command -v uv >\/dev\/null 2>&1 && uv venv --seed -q \.venv \|\| python -m venv \.venv\) && /);
+  expect(py).toContain("pip install -r requirements.txt");
   expect(setupFor("jest", "npm ci")).toContain("jest-junit");
 });
 test("pickRunner honours the repo choice and the sandbox allowance", () => {

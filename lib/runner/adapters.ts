@@ -8,7 +8,7 @@ export function imageFor(f: Framework): string {
 
 /** Install phase (network allowed). */
 export function setupFor(f: Framework, install: string): string {
-  if (f === "pytest") return `python -m venv .venv && . .venv/bin/activate && ${install} && pip install -q pytest`;
+  if (f === "pytest") return `(command -v uv >/dev/null 2>&1 && uv venv --seed -q .venv || python -m venv .venv) && . .venv/bin/activate && ${install} && pip install -q pytest`;
   if (f === "jest") return `${install} && npm install --no-save --no-audit --no-fund jest-junit`;
   return install;
 }
