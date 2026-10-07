@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aftershock — incidents become proven tests</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F4F1}
+a{color:#0E141B}a:hover{color:#1D4ED8}
+</style>
+</helmet>
+<div style="width: 100%; background: #F4F4F1; color: #0E141B; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased">
+
+<!-- NAV -->
+<header style="border-bottom: 1px solid #DCDDD8; background: #F4F4F1">
+<div style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #0E141B; font-weight: 700; font-size: 19px; letter-spacing: -0.02em; min-height: 44px">
+<span style="width: 30px; height: 30px; border-radius: 7px; background: #0E141B; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4F4F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13h3.5l2-5 3 10 3-13 2.5 8H22"></path></svg></span>
+Aftershock
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 500">
+<a href="#how" style="text-decoration: none; color: #3E4855; padding: 10px 0">How it works</a>
+<a href="#pr" style="text-decoration: none; color: #3E4855; padding: 10px 0">Pull requests</a>
+<a href="Security.dc.html" style="text-decoration: none; color: #3E4855; padding: 10px 0">Security</a>
+<a href="Pricing.dc.html" style="text-decoration: none; color: #3E4855; padding: 10px 0">Pricing</a>
+<a href="Docs.dc.html" style="text-decoration: none; color: #3E4855; padding: 10px 0">Docs</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 8px"><a href="SignIn.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; color: #0E141B; text-decoration: none; font-size: 14px; font-weight: 600">Sign in</a><a href="SignIn.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 8px; background: #0E141B; color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="9" r="2.5"></circle><path d="M6 8.5v7"></path><path d="M18 11.5c0 3-3 3.5-6 4.5"></path></svg>Connect GitHub</a></div>
+</div>
+</header>
+
+<!-- HERO -->
+<section id="top" style="max-width: 1200px; margin: 0 auto; padding: 72px 24px 88px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
+<div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 10px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: {{fail}}"></span>
+Incident to test, proven by git history
+</div>
+<h1 style="margin: 0; font-size: clamp(40px, 5vw, 64px); line-height: 1.04; letter-spacing: -0.035em; font-weight: 600; text-wrap: balance">Every incident becomes a test. Git history proves it.</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.6; color: #3E4855; max-width: 560px">Aftershock reads the incident and the commit that fixed it, writes a reproduction test, and keeps it only if it fails before the fix and passes after. Then it runs on every pull request, so the same outage can’t ship twice.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="SignIn.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 8px; background: #0E141B; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 15px">Connect GitHub — free
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+</a>
+<a href="TimeTravel.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 8px; border: 1px solid #C9CBC4; color: #0E141B; text-decoration: none; font-weight: 600; font-size: 15px; background: #FFFFFF">Watch a time-travel run</a>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 20px; padding-top: 20px; border-top: 1px solid #DCDDD8; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">
+<span>AI drafts</span><span style="color: #A0A5AC">→</span><span style="color: #0E141B; font-weight: 600">Git history proves</span><span style="color: #A0A5AC">→</span><span>Humans merge</span>
+</div>
+</div>
+
+<!-- Time-travel card -->
+<div style="flex: 1 1 500px; min-width: 0; background: #0E141B; color: #E6EAEE; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 60px -30px rgba(14,20,27,0.45)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #26313D">
+<div style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #A3AEBB">INC-12 / <span style="color: #E6EAEE">payment retry charged twice</span></div>
+<div role="group" aria-label="Pull request under check" style="display: flex; padding: 3px; background: #161E28; border: 1px solid #26313D; border-radius: 8px">
+<button type="button" onClick="{{showKeep}}" aria-pressed="{{isKeep}}" style="{{keepBtn}}">PR keeps guard</button>
+<button type="button" onClick="{{showDrop}}" aria-pressed="{{isDrop}}" style="{{dropBtn}}">PR drops guard</button>
+</div>
+</div>
+<div style="padding: 22px 18px 6px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px">
+<div style="display: flex; gap: 14px; padding-bottom: 14px">
+<span style="display: flex; flex-direction: column; align-items: center; flex: none; width: 16px"><span style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid {{failDark}}; margin-top: 3px"></span><span style="width: 2px; flex: 1; min-height: 28px; background: #26313D"></span></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><span><span style="color: #7D8896">3f2a1c9</span> before the fix</span><span style="color: {{failDark}}; font-weight: 600">test fails ✕</span></div>
+<span style="color: #8792A0">retry → 201 · 2 payment rows · reproduces the incident</span>
+</div>
+</div>
+<div style="display: flex; gap: 14px; padding-bottom: 14px">
+<span style="display: flex; flex-direction: column; align-items: center; flex: none; width: 16px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #7AA7FF; margin-top: 3px"></span><span style="width: 2px; flex: 1; min-height: 28px; background: #26313D"></span></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><span><span style="color: #7D8896">aa86f56</span> fix: reject duplicate pending payment</span><span style="color: #7AA7FF; font-weight: 600">test passes ✓</span></div>
+<span style="color: #8792A0">retry → 400 · 1 payment row · admitted to memory</span>
+</div>
+</div>
+<div style="display: flex; gap: 14px; padding-bottom: 8px">
+<span style="display: flex; flex-direction: column; align-items: center; flex: none; width: 16px"><span style="{{prDot}}"></span></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><span><span style="color: #7D8896">PR #214</span> refactor: simplify payment service</span><span style="{{prTag}}">{{prResult}}</span></div>
+<span style="color: #8792A0">{{prSub}}</span>
+</div>
+</div>
+</div>
+<div style="margin: 14px 18px 18px; padding: 16px 18px; border-radius: 10px; background: #161E28; border: 1px solid #26313D; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px">
+<span style="{{verdictTag}}">{{verdict}}</span>
+<div style="flex: 1 1 220px; min-width: 0">
+<div style="font-weight: 600; color: #FFFFFF">{{verdictHead}}</div>
+<div style="font-size: 13px; color: #A3AEBB">Admission rule: fails before the fix, passes on the fix</div>
+</div>
+</div>
+<div style="padding: 12px 18px; border-top: 1px solid #26313D; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6B7785; display: flex; flex-wrap: wrap; gap: 6px 18px">
+<span>pytest</span><span>isolated sandbox per run</span><span>3 runs per commit</span>
+</div>
+</div>
+</section>
+
+<!-- PROBLEM STRIP -->
+<section style="border-top: 1px solid #DCDDD8; border-bottom: 1px solid #DCDDD8; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 48px 24px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
+<div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">01</span>
+<div style="font-size: 18px; font-weight: 600">It breaks in production.</div>
+<p style="margin: 0; color: #505A66; font-size: 15px">A lost acknowledgement, a retry, a second charge.</p>
+</div>
+<div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">02</span>
+<div style="font-size: 18px; font-weight: 600">Someone ships a fix and a postmortem.</div>
+<p style="margin: 0; color: #505A66; font-size: 15px">The fix is in git. The lesson is in a doc nobody reruns.</p>
+</div>
+<div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: {{fail}}">03</span>
+<div style="font-size: 18px; font-weight: 600">A refactor brings it back.</div>
+<p style="margin: 0; color: #505A66; font-size: 15px">Nothing in CI knew why that guard was there.</p>
+</div>
+<div style="flex: 1.3 1 280px; padding: 20px 22px; border-radius: 10px; background: #0E141B; color: #FFFFFF; font-size: 17px; line-height: 1.5; font-weight: 500">Aftershock turns 02 into a test the moment the fix merges — so 03 fails in review, not in production.</div>
+</div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="max-width: 1200px; margin: 0 auto; padding: 104px 24px 96px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 48px">
+<div style="flex: 1 1 520px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">How it works</span>
+<h2 style="margin: 0; font-size: clamp(32px, 3.6vw, 46px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600">Four steps. Only one of them trusts a model, and it never gets the last word.</h2>
+</div>
+<div style="flex: 0 1 380px; display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: #3E4855">
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 2px; border: 1.5px dashed #505A66"></span>AI draft</span>
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #C9CBC4"></span>Human decision</span>
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #0E141B"></span>Execution</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 12px">
+<article style="background: #FFFFFF; border: 1px solid #DCDDD8; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 270px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">01 · Capture</span>
+<h3 style="margin: 0; font-size: 20px; letter-spacing: -0.01em; font-weight: 600">Bring the incident in</h3>
+<p style="margin: 0; font-size: 14.5px; color: #505A66; flex: 1">Label a GitHub issue, paste a postmortem, fill a form, or let a Sentry or PagerDuty alert open it. Alerts wait in “Awaiting fix” until the fix PR merges.</p>
+<span style="align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 5px; background: #E7E8E3; color: #3E4855">Human or alert</span>
+</article>
+<article style="background: #FFFFFF; border: 1.5px dashed #9AA1A9; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 270px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">02 · Draft</span>
+<h3 style="margin: 0; font-size: 20px; letter-spacing: -0.01em; font-weight: 600">Write the reproduction</h3>
+<p style="margin: 0; font-size: 14.5px; color: #505A66; flex: 1">A model reads the incident, the fix diff and your existing tests, then drafts one pytest or vitest test in your repo’s own style.</p>
+<span style="align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 5px; border: 1px dashed #505A66; color: #3E4855">AI · unproven</span>
+</article>
+<article style="background: #FFFFFF; border: 1px solid #DCDDD8; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 270px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">03 · Time travel</span>
+<h3 style="margin: 0; font-size: 20px; letter-spacing: -0.01em; font-weight: 600">Prove it against history</h3>
+<p style="margin: 0; font-size: 14.5px; color: #505A66; flex: 1">In a throwaway sandbox, the test must fail on the commit before the fix and pass on the fix — three times each. Anything else is rejected and redrafted.</p>
+<span style="align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 5px; background: #0E141B; color: #FFFFFF">Execution</span>
+</article>
+<article style="background: #FFFFFF; border: 1px solid #DCDDD8; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 270px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">04 · Guard</span>
+<h3 style="margin: 0; font-size: 20px; letter-spacing: -0.01em; font-weight: 600">Protect every pull request</h3>
+<p style="margin: 0; font-size: 14.5px; color: #505A66; flex: 1">The proven test lands in your repo as a normal PR. From then on, every change that touches the same code runs it and gets a check.</p>
+<span style="align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 5px; background: #0E141B; color: #FFFFFF">Execution + review</span>
+</article>
+</div>
+</section>
+
+<!-- PROOF / TEST -->
+<section id="proof" style="background: #0E141B; color: #E6EAEE">
+<div style="max-width: 1200px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 48px">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-end">
+<div style="flex: 1 1 520px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #A3AEBB">The output</span>
+<h2 style="margin: 0; font-size: clamp(32px, 3.6vw, 46px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600; color: #FFFFFF">A real test file. Not a dashboard you have to trust.</h2>
+</div>
+<p style="margin: 0; flex: 0 1 420px; color: #A3AEBB; font-size: 16px">Each admitted test is plain code in your repository, with its proof in the header. Remove Aftershock tomorrow and your CI keeps running it.</p>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1.4 1 520px; min-width: 0; background: #161E28; border: 1px solid #26313D; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column">
+<div style="padding: 14px 20px; border-bottom: 1px solid #26313D; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px">
+<span style="color: #E6EAEE">tests/aftershock/test_inc_12_payment_retry.py</span>
+<span style="color: #7AA7FF">admitted</span>
+</div>
+<div style="overflow-x: auto">
+<pre style="margin: 0; padding: 18px 20px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.75; color: #C9D1DA"><span style="color: #6B7785"># Aftershock · INC-12 “Payment retry charged a customer twice”
+# Proven: fails on 3f2a1c9 (3/3) · passes on aa86f56 (3/3)</span>
+
+<span style="color: #7AA7FF">def</span> test_retry_after_lost_ack_does_not_double_charge(client, pending_order):
+    first = client.post(<span style="color: #FFC9AC">"/payments"</span>, json={<span style="color: #FFC9AC">"order_id"</span>: pending_order.id})
+    <span style="color: #7AA7FF">assert</span> first.status_code == 201
+
+    <span style="color: #6B7785"># The acknowledgement is lost. The client retries the same request.</span>
+    retry = client.post(<span style="color: #FFC9AC">"/payments"</span>, json={<span style="color: #FFC9AC">"order_id"</span>: pending_order.id})
+
+    <span style="color: #7AA7FF">assert</span> retry.status_code == 400
+    <span style="color: #7AA7FF">assert</span> payment_count(pending_order.id) == 1</pre>
+</div>
+</div>
+
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<div style="background: #161E28; border: 1px solid #26313D; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #A3AEBB">Admission · 3 runs per commit</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 14px"><span>Before the fix</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; color: {{failDark}}">3 / 3 fail</span></div>
+<div style="display: flex; gap: 6px"><sc-for list="{{three}}" as="d" hint-placeholder-count="3"><span style="flex: 1; height: 30px; border-radius: 6px; border: 1.5px solid {{failDark}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{failDark}}" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg></span></sc-for></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 14px"><span>On the fix</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; color: #7AA7FF">3 / 3 pass</span></div>
+<div style="display: flex; gap: 6px"><sc-for list="{{three}}" as="d" hint-placeholder-count="3"><span style="flex: 1; height: 30px; border-radius: 6px; background: #1D4ED8; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span></sc-for></div>
+</div>
+<div style="font-size: 13px; color: #8792A0; padding-top: 12px; border-top: 1px solid #26313D">A test that passes before the fix proves nothing. A flaky one gets marked unproven, never green.</div>
+</div>
+<div style="background: #161E28; border: 1px solid #26313D; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 10px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px">
+<div style="color: #A3AEBB">Lands in your repo</div>
+<div style="color: #E6EAEE">.aftershock/</div>
+<div style="color: #C9D1DA; padding-left: 16px">incidents/INC-12.yaml</div>
+<div style="color: #C9D1DA; padding-left: 16px">config.yaml</div>
+<div style="color: #E6EAEE">tests/aftershock/</div>
+<div style="color: #C9D1DA; padding-left: 16px">test_inc_12_payment_retry.py</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- PR COMMENT -->
+<section id="pr" style="max-width: 1200px; margin: 0 auto; padding: 104px 24px 96px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
+<div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">Pull requests</span>
+<h2 style="margin: 0; font-size: clamp(32px, 3.6vw, 46px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600">The warning lands where the code is reviewed.</h2>
+<p style="margin: 0; color: #505A66; font-size: 16.5px">Aftershock picks the incidents a change could reopen, runs only those tests, and posts one check and one comment. Unrelated incidents are skipped with a reason, so the run stays fast.</p>
+<div style="display: flex; flex-direction: column; gap: 10px; padding-top: 8px">
+<div style="display: flex; gap: 12px; align-items: baseline"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #1D4ED8; width: 22px; flex: none">→</span><span>Runs in our sandbox, or on your own GitHub Actions runners</span></div>
+<div style="display: flex; gap: 12px; align-items: baseline"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #1D4ED8; width: 22px; flex: none">→</span><span>Blocking or advisory — your branch rules decide</span></div>
+<div style="display: flex; gap: 12px; align-items: baseline"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #1D4ED8; width: 22px; flex: none">→</span><span>One click to ask for a suggested fix, which faces the same test</span></div>
+</div>
+</div>
+<article aria-label="Example pull request comment" style="flex: 1.2 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #DCDDD8; border-radius: 14px; overflow: hidden; box-shadow: 0 24px 48px -32px rgba(14,20,27,0.35)">
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #E7E8E3; background: #FAFAF8">
+<span style="width: 30px; height: 30px; border-radius: 7px; background: #0E141B; display: flex; align-items: center; justify-content: center; flex: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F4F4F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13h3.5l2-5 3 10 3-13 2.5 8H22"></path></svg></span>
+<span style="font-size: 14px"><span style="font-weight: 600">aftershock</span> <span style="font-size: 12px; padding: 1px 6px; border: 1px solid #C9CBC4; border-radius: 10px; color: #505A66">bot</span> <span style="color: #6B7785">commented on #214</span></span>
+</div>
+<div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: #C2410C; color: #FFFFFF">1 INCIDENT WOULD RECUR</span><span style="font-size: 13px; color: #505A66">3 relevant · 9 skipped</span></div>
+<div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em">This change reopens INC-12: payment retry charged a customer twice.</div>
+<div style="border: 1px solid #E7E8E3; border-radius: 10px; overflow: hidden; font-size: 13.5px">
+<div style="display: grid; grid-template-columns: 70px 1fr 90px; gap: 12px; padding: 10px 14px; background: #FAFAF8; color: #6B7785; font-size: 12px; border-bottom: 1px solid #E7E8E3"><span>Incident</span><span>Proven test</span><span>Result</span></div>
+<div style="display: grid; grid-template-columns: 70px 1fr 90px; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #F0F0EB; align-items: center"><span style="font-family: 'Geist Mono', ui-monospace, monospace">INC-12</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">test_retry_after_lost_ack…</span><span style="font-weight: 600; color: #C2410C">0/3 pass</span></div>
+<div style="display: grid; grid-template-columns: 70px 1fr 90px; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #F0F0EB; align-items: center"><span style="font-family: 'Geist Mono', ui-monospace, monospace">INC-07</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">test_webhook_marks_paid_once</span><span style="font-weight: 600; color: #1D4ED8">3/3 pass</span></div>
+<div style="display: grid; grid-template-columns: 70px 1fr 90px; gap: 12px; padding: 11px 14px; align-items: center"><span style="font-family: 'Geist Mono', ui-monospace, monospace">INC-03</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">test_cart_total_after_discount</span><span style="font-weight: 600; color: #1D4ED8">3/3 pass</span></div>
+</div>
+<div style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; color: #3E4855; padding: 12px 14px; border-radius: 8px; background: #FDF1EA">AssertionError: retry.status_code == 201, expected 400 · payment rows: 2</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><a href="CheckRun.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 8px; background: #0E141B; color: #FFFFFF; text-decoration: none; font-size: 13.5px; font-weight: 600">Open trace</a><a href="CheckRun.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid #C9CBC4; color: #0E141B; text-decoration: none; font-size: 13.5px; font-weight: 600">Suggest a fix</a></div>
+</div>
+</article>
+</section>
+
+<!-- INTEGRATIONS -->
+<section style="border-top: 1px solid #DCDDD8; border-bottom: 1px solid #DCDDD8; background: #FFFFFF">
+<div style="max-width: 1200px; margin: 0 auto; padding: 56px 24px; display: flex; flex-wrap: wrap; gap: 28px; align-items: center; justify-content: space-between">
+<div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 20px; font-weight: 600; letter-spacing: -0.01em">Fits the tools you already run.</span><span style="font-size: 14.5px; color: #505A66">No new test framework, no agent on your servers.</span></div>
+<div style="flex: 2 1 560px; display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{tools}}" as="t" hint-placeholder-count="8">
+<span style="display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid #DCDDD8; border-radius: 999px; font-size: 14px; font-weight: 500; background: #FAFAF8"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; color: #6B7785">{{t.kind}}</span>{{t.name}}</span>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- SCOPE -->
+<section id="scope" style="max-width: 1200px; margin: 0 auto; padding: 96px 24px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 720px">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #505A66">Honest scope</span>
+<h2 style="margin: 0; font-size: clamp(32px, 3.6vw, 46px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600">What it proves today. What it won’t pretend to.</h2>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 400px; background: #FFFFFF; border: 1px solid #DCDDD8; border-radius: 12px; padding: 26px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-weight: 600; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1D4ED8"></span>Works today</div>
+<div style="display: flex; flex-direction: column; font-size: 15px; color: #3E4855">
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">Python with pytest; TypeScript with vitest or jest</div>
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">Any GitHub repository the app is installed on</div>
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">Incidents from issues, postmortems, forms, Sentry and PagerDuty</div>
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">Fail-before, pass-after admission on real commits</div>
+<div style="padding: 10px 0">Pull request checks and comments, sandboxed or on your runners</div>
+</div>
+</div>
+<div style="flex: 1 1 400px; border: 1.5px dashed #9AA1A9; border-radius: 12px; padding: 26px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-weight: 600; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 2px; border: 1.5px dashed #505A66"></span>Not yet</div>
+<div style="display: flex; flex-direction: column; font-size: 15px; color: #3E4855">
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">GitLab and Bitbucket</div>
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">Incidents that need live third-party services to reproduce</div>
+<div style="padding: 10px 0; border-bottom: 1px solid #ECEDE9">Load, latency and multi-service failures</div>
+<div style="padding: 10px 0">Incidents with no fix commit — they wait, unproven</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- CTA -->
+<section style="max-width: 1200px; margin: 0 auto; padding: 0 24px 96px">
+<div style="background: #0E141B; color: #FFFFFF; border-radius: 16px; padding: clamp(36px, 6vw, 72px); display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 480px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: clamp(32px, 4vw, 52px); line-height: 1.05; letter-spacing: -0.035em; font-weight: 600">Your last incident is your best test.</h2>
+<p style="margin: 0; color: #A3AEBB; font-size: 17px">Connect a repository, import one fixed incident, and watch it travel back through your history.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="SignIn.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 8px; background: #FFFFFF; color: #0E141B; text-decoration: none; font-weight: 600">Connect GitHub — free</a>
+<a href="Docs.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 8px; border: 1px solid #3A4654; color: #FFFFFF; text-decoration: none; font-weight: 600">Read the docs</a>
+</div>
+</div>
+</section>
+
+<!-- FOOTER -->
+<footer style="border-top: 1px solid #DCDDD8">
+<div style="max-width: 1200px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: #505A66">
+<span style="font-weight: 600; color: #0E141B">Aftershock</span>
+<nav aria-label="Footer" style="display: flex; flex-wrap: wrap; gap: 4px 20px"><a href="Docs.dc.html" style="color: #505A66; text-decoration: none; padding: 8px 0">Docs</a><a href="Pricing.dc.html" style="color: #505A66; text-decoration: none; padding: 8px 0">Pricing</a><a href="Security.dc.html" style="color: #505A66; text-decoration: none; padding: 8px 0">Security</a><a href="#top" style="color: #505A66; text-decoration: none; padding: 8px 0">Back to top ↑</a></nav>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace">AI drafts · Git history proves · Humans merge</span>
+</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"fail":{"editor":"color","default":"#C2410C","options":["#C2410C","#B91C1C","#A16207"]},"startMode":{"editor":"enum","default":"drop","options":["drop","keep"]},"$preview":{"width":1440,"height":6600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const fail = this.props.fail ?? '#C2410C';
+    const failDark = '#FB8A4C';
+    const mode = (this.state && this.state.mode) || this.props.startMode || 'drop';
+    const isDrop = mode === 'drop';
+    const on = 'min-height: 32px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; background: #E6EAEE; color: #0E141B';
+    const off = 'min-height: 32px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; background: transparent; color: #A3AEBB';
+    const tools = [['repo', 'GitHub'], ['alerts', 'Sentry'], ['alerts', 'PagerDuty'], ['py', 'pytest'], ['ts', 'vitest'], ['ts', 'jest'], ['ci', 'GitHub Actions'], ['ai', 'Any OpenAI-compatible model']].map(([kind, name]) => ({ kind, name }));
+    return {
+      fail, failDark, isDrop, isKeep: !isDrop, tools,
+      showDrop: () => this.setState({ mode: 'drop' }),
+      showKeep: () => this.setState({ mode: 'keep' }),
+      dropBtn: isDrop ? on : off,
+      keepBtn: isDrop ? off : on,
+      prDot: 'width: 12px; height: 12px; border-radius: 3px; margin-top: 3px; background: ' + (isDrop ? failDark : '#7AA7FF'),
+      prTag: 'font-weight: 600; color: ' + (isDrop ? failDark : '#7AA7FF'),
+      prResult: isDrop ? 'blocked ✕' : 'passes ✓',
+      prSub: isDrop ? 'pending-payment check deleted · retry → 201 · 2 rows' : 'guard moved, behaviour kept · retry → 400 · 1 row',
+      verdict: isDrop ? 'RECUR' : 'SAFE',
+      verdictTag: 'font-family: Geist Mono, ui-monospace, monospace; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 6px; ' + (isDrop ? 'background: ' + failDark + '; color: #0E141B' : 'background: #1D4ED8; color: #FFFFFF'),
+      verdictHead: isDrop ? 'PR #214 would ship INC-12 again. The check blocks the merge.' : 'PR #214 keeps the lesson. The check passes.',
+      three: [1, 2, 3]
+    };
+  }
+}
+</script>
+</body>
+</html>

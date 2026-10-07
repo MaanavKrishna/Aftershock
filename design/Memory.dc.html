@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aftershock · Memory</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F3F3EF}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1300px; background: #F3F3EF; color: #0E141B; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<!-- SIDEBAR -->
+<nav aria-label="Workspace navigation" style="flex: 1 1 248px; max-width: 100%; background: #0E141B; color: #C9D1DA; padding: 18px 14px 20px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF; font-weight: 700; font-size: 16px; letter-spacing: -0.02em; min-height: 44px; padding: 0 8px">
+<span style="width: 28px; height: 28px; border-radius: 7px; background: #F3F3EF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E141B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13h3.5l2-5 3 10 3-13 2.5 8H22"></path></svg></span>
+Aftershock
+</a>
+<button type="button" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border: 1px solid #26313D; border-radius: 9px; background: #161E28; color: #E6EAEE; font: inherit; font-size: 13.5px; cursor: pointer; text-align: left"><span style="width: 22px; height: 22px; border-radius: 6px; background: #344150; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">O</span><span style="flex: 1">[your-org]</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m7 10 5 5 5-5"></path></svg></button>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="{{n.style}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.icon}}"></path></svg><span style="flex: 1">{{n.label}}</span><span style="{{n.badgeStyle}}">{{n.badge}}</span></a>
+</sc-for>
+</div>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 14px">
+<div style="padding: 12px; border-radius: 10px; background: #161E28; border: 1px solid #26313D; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: #A3AEBB">Sandbox this month</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; color: #E6EAEE">1.4 / 5 h</span></div>
+<div style="height: 6px; border-radius: 3px; background: #26313D; overflow: hidden"><div style="width: 28%; height: 100%; background: #7AA7FF"></div></div>
+<span style="font-size: 11.5px; color: #7D8896">Checks fall back to your Actions at the limit</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 6px"><span style="width: 30px; height: 30px; border-radius: 50%; background: #344150; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #FFFFFF">Y</span><span style="display: flex; flex-direction: column; font-size: 12.5px; line-height: 1.3"><span style="color: #E6EAEE; font-weight: 600">[you]</span><span style="color: #7D8896">Owner</span></span></div>
+</div>
+</nav>
+
+
+<div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 32px; border-bottom: 1px solid #E2E3DD">
+<span style="font-weight: 600">Memory</span>
+<span style="flex: 1"></span>
+<button type="button" style="display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid #D3D5CE; border-radius: 9px; background: #FFFFFF; font: inherit; font-size: 13.5px; font-weight: 600; color: #0E141B; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>Export LESSONS.md</button>
+</header>
+
+<main style="padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 480px"><h1 style="margin: 0; font-size: 30px; line-height: 1.15; letter-spacing: -0.025em; font-weight: 600">Nine lessons your codebase can’t forget.</h1><span style="color: #505A66">Every test here failed before its fix and passed after. Each night they run again on your default branch to stay honest.</span></div>
+<div role="group" aria-label="Repository" style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{repoFilters}}" as="r" hint-placeholder-count="4"><button type="button" onClick="{{r.pick}}" aria-pressed="{{r.selected}}" style="{{r.style}}">{{r.label}}</button></sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+<section style="flex: 1.4 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<sc-for list="{{tests}}" as="t" hint-placeholder-count="7">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.selected}}" style="{{t.style}}">
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #505A66; width: 56px; flex: none; text-align: left">{{t.inc}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left"><span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{t.title}}</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6B7785; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{t.fn}}</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none"><span style="{{t.hStyle}}">{{t.health}}</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; color: #6B7785">{{t.guarded}} PRs</span></span>
+</button>
+</sc-for>
+</section>
+
+<aside style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<section style="background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 22px; border-bottom: 1px solid #EDEEE9; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #505A66">{{sel.inc}} · {{sel.repo}}</span><span style="{{sel.hStyle}}">{{sel.health}}</span></div>
+<span style="font-size: 18px; font-weight: 600; letter-spacing: -0.015em">{{sel.title}}</span>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #505A66">{{sel.file}}</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid #EDEEE9">
+<div style="padding: 14px 18px; border-right: 1px solid #F0F0EB"><div style="font-size: 12px; color: #505A66">Guarded</div><div style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 600">{{sel.guarded}}</div></div>
+<div style="padding: 14px 18px; border-right: 1px solid #F0F0EB"><div style="font-size: 12px; color: #505A66">Blocked</div><div style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 600; {{sel.blockedColor}}">{{sel.blocked}}</div></div>
+<div style="padding: 14px 18px"><div style="font-size: 12px; color: #505A66">Proven</div><div style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 600">{{sel.proven}}</div></div>
+</div>
+<div style="padding: 16px 22px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12.5px; color: #505A66">Nightly on main · last 14 nights</span>
+<div style="display: flex; gap: 3px"><sc-for list="{{sel.nights}}" as="n" hint-placeholder-count="14"><span style="{{n}}"></span></sc-for></div>
+<span style="font-size: 12.5px; color: #505A66">{{sel.nightNote}}</span>
+</div>
+<div style="padding: 16px 22px; border-top: 1px solid #EDEEE9; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12.5px; color: #505A66">Runs when a pull request touches</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{sel.watch}}" as="w" hint-placeholder-count="2"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: #F3F3EF">{{w}}</span></sc-for></div>
+</div>
+<div style="padding: 14px 22px; border-top: 1px solid #EDEEE9; display: flex; flex-wrap: wrap; gap: 8px">
+<a href="IncidentDetail.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 8px; background: #0E141B; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 13px">Open incident</a>
+<a href="TimeTravel.dc.html" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid #D3D5CE; color: #0E141B; text-decoration: none; font-weight: 600; font-size: 13px">See the proof</a>
+</div>
+</section>
+
+<section style="background: #0E141B; color: #E6EAEE; border-radius: 14px; overflow: hidden">
+<div style="padding: 16px 20px; border-bottom: 1px solid #222C38; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">LESSONS.md for coding agents</span><span style="font-size: 12.5px; color: #A3AEBB">Commit it, and AI assistants in your editor read your incident history before they change risky code.</span></div>
+<pre style="margin: 0; padding: 16px 20px; overflow-x: auto; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: #C9D1DA">{{lessons}}</pre>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const CURRENT = 'memory';
+    const MONO = 'Geist Mono, ui-monospace, monospace', BLUE = '#1D4ED8', FAIL = '#C2410C';
+    const I = {
+      overview: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
+      incidents: 'M12 3 2 20h20L12 3z M12 10v4 M12 17h.01',
+      memory: 'M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z M9 12l2 2 4-4',
+      prs: 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4',
+      repos: 'M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z M4 16a4 4 0 0 1 4-4h12',
+      integrations: 'M9 2v6 M15 2v6 M6 8h12v4a6 6 0 0 1-12 0z M12 18v4',
+      settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12h2 M3 12h2 M12 3v2 M12 19v2 M17 7l1.5-1.5 M5.5 18.5 7 17 M17 17l1.5 1.5 M5.5 5.5 7 7'
+    };
+    const badge = (b, hot) => b ? 'font-family: ' + MONO + '; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; ' + (hot ? 'background: ' + FAIL + '; color: #FFFFFF' : 'background: #26313D; color: #C9D1DA') : 'display: none';
+    const nav = [['Overview', 'overview', 'Workspace.dc.html', '', false], ['Incidents', 'incidents', 'Incidents.dc.html', '2', false], ['Memory', 'memory', 'Memory.dc.html', '9', false], ['Pull requests', 'prs', 'PullRequests.dc.html', '1', true], ['Repositories', 'repos', 'Repositories.dc.html', '', false], ['Integrations', 'integrations', 'Integrations.dc.html', '', false], ['Settings', 'settings', 'Settings.dc.html', '', false]].map(([label, id, href, b, hot]) => ({
+      label, href, icon: I[id], current: id === CURRENT ? 'page' : 'false', badge: b, badgeStyle: badge(b, hot),
+      style: 'display: flex; align-items: center; gap: 11px; min-height: 42px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; ' + (id === CURRENT ? 'background: #F3F3EF; color: #0E141B; font-weight: 600' : 'color: #AEB8C4; font-weight: 500')
+    }));
+    const st = this.state || {};
+    const repo = st.repo || 'all';
+    const pick = st.pick || 'INC-12';
+    const H = { healthy: ['Healthy', 'background: #E3EAFB; color: #1E3A8A'], flaky: ['Flaky 1/14', 'border: 1px dashed #6B7785; color: #3E4855'], drift: ['Failing on main', 'background: ' + FAIL + '; color: #FFFFFF'] };
+    const pill = (k) => 'font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; ' + H[k][1];
+    const data = [
+      ['INC-12', 'Payment retry charged a customer twice', 'test_retry_after_lost_ack_does_not_double_charge', 'ecommerce-api', 'tests/aftershock/test_inc_12_payment_retry.py', 'healthy', 3, 1, 'Oct 4', ['app/services/payment_service.py', 'app/api/payments.py']],
+      ['INC-09', 'Refund webhook processed twice', 'refund webhook is idempotent per event id', 'billing-worker', 'tests/aftershock/inc-09-refund-webhook.test.ts', 'healthy', 7, 0, 'Sep 28', ['src/webhooks/handler.ts']],
+      ['INC-07', 'Webhook marked order paid before capture', 'test_order_paid_only_after_capture', 'ecommerce-api', 'tests/aftershock/test_inc_07_capture.py', 'healthy', 5, 0, 'Sep 21', ['app/services/payment_service.py', 'app/api/webhooks.py']],
+      ['INC-06', 'Cart total ignored removed coupon', 'cart total drops coupon after removal', 'storefront-web', 'tests/aftershock/inc-06-coupon.test.ts', 'flaky', 6, 0, 'Sep 18', ['src/cart/applyDiscount.ts']],
+      ['INC-04', 'Order created without stock reservation', 'test_order_reserves_stock', 'ecommerce-api', 'tests/aftershock/test_inc_04_stock.py', 'healthy', 4, 0, 'Sep 10', ['app/services/order_service.py']],
+      ['INC-03', 'Negative quantity accepted in cart', 'rejects negative cart quantities', 'storefront-web', 'tests/aftershock/inc-03-quantity.test.ts', 'drift', 9, 1, 'Sep 2', ['src/cart/updateItem.ts']],
+      ['INC-02', 'Invoice email sent twice on retry', 'test_invoice_sent_once_per_order', 'ecommerce-api', 'tests/aftershock/test_inc_02_invoice.py', 'healthy', 2, 0, 'Aug 30', ['app/services/invoice_service.py']]
+    ];
+    const rows = data.filter(r => repo === 'all' || r[3] === repo);
+    const tests = rows.map(r => ({ inc: r[0], title: r[1], fn: r[2], health: H[r[5]][0], hStyle: pill(r[5]), guarded: r[6], selected: pick === r[0] ? 'true' : 'false', pick: () => this.setState({ pick: r[0] }),
+      style: 'display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px 20px; border: 0; border-bottom: 1px solid #F0F0EB; font: inherit; color: inherit; cursor: pointer; ' + (pick === r[0] ? 'background: #F3F5FB; box-shadow: inset 3px 0 0 #0E141B' : 'background: #FFFFFF') }));
+    const s = data.find(r => r[0] === pick) || data[0];
+    const night = (k, i) => 'flex: 1; height: 18px; border-radius: 3px; background: ' + ((k === 'drift' && i >= 12) || (k === 'flaky' && i === 6) ? FAIL : BLUE);
+    const sel = { inc: s[0], title: s[1], repo: s[3], file: s[4], health: H[s[5]][0], hStyle: pill(s[5]), guarded: s[6], blocked: s[7], blockedColor: s[7] ? 'color: ' + FAIL : '', proven: s[8], watch: s[9],
+      nights: Array.from({ length: 14 }, (_, i) => night(s[5], i)),
+      nightNote: s[5] === 'drift' ? 'Started failing on main two nights ago. Something merged around the check — open the incident.' : s[5] === 'flaky' ? 'One failure in 14 nights. Flaky tests are reported, never silently retried to green.' : 'Passing every night on the default branch.' };
+    const filters = [['all', 'All repos'], ['ecommerce-api', 'ecommerce-api'], ['storefront-web', 'storefront-web'], ['billing-worker', 'billing-worker']].map(([id, label]) => ({ label, selected: repo === id ? 'true' : 'false', pick: () => this.setState({ repo: id }), style: 'min-height: 36px; padding: 0 12px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; ' + (repo === id ? 'background: #0E141B; color: #FFFFFF; border: 1px solid #0E141B' : 'background: #FFFFFF; color: #3E4855; border: 1px solid #D3D5CE') }));
+    return {
+      nav, tests, sel, repoFilters: filters,
+      lessons: '# Lessons from production (Aftershock)\n\n## INC-12 · payment_service.py\nRetries after a lost acknowledgement must not\ncreate a second pending payment. Keep the\npending-payment guard in create_mock_payment.\nTest: tests/aftershock/test_inc_12_payment_retry.py\n\n## INC-07 · payment webhooks\nAn order is PAID only after capture succeeds.'
+    };
+  }
+}
+</script>
+</body>
+</html>

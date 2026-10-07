@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aftershock · Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F3F3EF}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1700px; background: #F3F3EF; color: #0E141B; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<!-- SIDEBAR -->
+<nav aria-label="Workspace navigation" style="flex: 1 1 248px; max-width: 100%; background: #0E141B; color: #C9D1DA; padding: 18px 14px 20px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF; font-weight: 700; font-size: 16px; letter-spacing: -0.02em; min-height: 44px; padding: 0 8px">
+<span style="width: 28px; height: 28px; border-radius: 7px; background: #F3F3EF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E141B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13h3.5l2-5 3 10 3-13 2.5 8H22"></path></svg></span>
+Aftershock
+</a>
+<button type="button" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border: 1px solid #26313D; border-radius: 9px; background: #161E28; color: #E6EAEE; font: inherit; font-size: 13.5px; cursor: pointer; text-align: left"><span style="width: 22px; height: 22px; border-radius: 6px; background: #344150; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">O</span><span style="flex: 1">[your-org]</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m7 10 5 5 5-5"></path></svg></button>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="{{n.style}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.icon}}"></path></svg><span style="flex: 1">{{n.label}}</span><span style="{{n.badgeStyle}}">{{n.badge}}</span></a>
+</sc-for>
+</div>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 14px">
+<div style="padding: 12px; border-radius: 10px; background: #161E28; border: 1px solid #26313D; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: #A3AEBB">Sandbox this month</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; color: #E6EAEE">1.4 / 5 h</span></div>
+<div style="height: 6px; border-radius: 3px; background: #26313D; overflow: hidden"><div style="width: 28%; height: 100%; background: #7AA7FF"></div></div>
+<span style="font-size: 11.5px; color: #7D8896">Checks fall back to your Actions at the limit</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 6px"><span style="width: 30px; height: 30px; border-radius: 50%; background: #344150; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #FFFFFF">Y</span><span style="display: flex; flex-direction: column; font-size: 12.5px; line-height: 1.3"><span style="color: #E6EAEE; font-weight: 600">[you]</span><span style="color: #7D8896">Owner</span></span></div>
+</div>
+</nav>
+
+
+<div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 32px; border-bottom: 1px solid #E2E3DD"><span style="font-weight: 600">Settings</span></header>
+
+<main style="padding: 28px 32px 64px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+<nav aria-label="Settings sections" style="flex: 1 1 200px; max-width: 100%; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6"><button type="button" onClick="{{t.pick}}" aria-current="{{t.current}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+</nav>
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{is.workspace}}" hint-placeholder-val="{{true}}">
+<section style="background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 24px; border-bottom: 1px solid #EDEEE9; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600">Workspace</span><span style="font-size: 13px; color: #505A66">Linked to your GitHub organisation.</span></div>
+<div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 18px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Display name<input type="text" value="[your-org]" style="min-height: 46px; padding: 0 12px; border: 1px solid #C9CBC4; border-radius: 9px; font: inherit; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Incident ID prefix<input type="text" value="INC" style="min-height: 46px; padding: 0 12px; border: 1px solid #C9CBC4; border-radius: 9px; font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; max-width: 160px"></label>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 44px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{true}}" style="width: 18px; height: 18px; accent-color: #0E141B">Auto-import closed issues labelled <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; font-size: 13px; padding: 1px 6px; border-radius: 5px; background: #FDF1EA; color: #7C2D12">incident</span></label>
+<label style="display: flex; align-items: center; gap: 12px; min-height: 44px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{true}}" style="width: 18px; height: 18px; accent-color: #0E141B">Start time travel when a fix PR referencing an incident merges</label>
+</div>
+<div style="padding: 14px 24px; border-top: 1px solid #EDEEE9; background: #FAFAF8; display: flex; justify-content: flex-end; border-radius: 0 0 14px 14px"><button type="button" style="min-height: 42px; padding: 0 18px; border: 0; border-radius: 9px; background: #0E141B; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Save</button></div>
+</section>
+</sc-if>
+
+<sc-if value="{{is.admission}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 24px; border-bottom: 1px solid #EDEEE9; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600">Admission rules</span><span style="font-size: 13px; color: #505A66">How strict time travel and pull request checks are.</span></div>
+<div style="padding: 8px 24px">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 16px 0; border-bottom: 1px solid #F0F0EB"><span style="flex: 1 1 280px; display: flex; flex-direction: column"><span style="font-weight: 600">{{r.k}}</span><span style="font-size: 12.5px; color: #505A66">{{r.d}}</span></span><span style="{{r.vStyle}}">{{r.v}}</span></div>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{is.team}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 24px; border-bottom: 1px solid #EDEEE9; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600">Team</span><span style="font-size: 13px; color: #505A66">Members come from your GitHub organisation.</span></span>
+<div style="display: flex; gap: 8px; flex-wrap: wrap"><label style="display: flex; flex-direction: column"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">GitHub username</span><input type="text" placeholder="GitHub username" style="min-height: 42px; padding: 0 12px; border: 1px solid #C9CBC4; border-radius: 9px; font: inherit; width: 200px"></label><button type="button" style="min-height: 42px; padding: 0 16px; border: 0; border-radius: 9px; background: #0E141B; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Invite</button></div></div>
+<sc-for list="{{team}}" as="m" hint-placeholder-count="4">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 24px; border-bottom: 1px solid #F0F0EB"><span style="width: 32px; height: 32px; flex: none; border-radius: 50%; background: #E9EAE4; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px">{{m.i}}</span><span style="flex: 1 1 200px; display: flex; flex-direction: column"><span style="font-weight: 600">{{m.n}}</span><span style="font-size: 12.5px; color: #505A66">{{m.d}}</span></span><label style="display: flex"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Role</span><select style="min-height: 40px; padding: 0 10px; border: 1px solid #C9CBC4; border-radius: 8px; font: inherit; background: #FFFFFF"><option>{{m.r}}</option><option>Admin</option><option>Member</option></select></label></div>
+</sc-for>
+</section>
+</sc-if>
+
+<sc-if value="{{is.tokens}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 24px; border-bottom: 1px solid #EDEEE9; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600">API tokens</span><span style="font-size: 13px; color: #505A66">For the CLI, the GitHub Action and the HTTP API.</span></span><button type="button" style="min-height: 42px; padding: 0 16px; border: 0; border-radius: 9px; background: #0E141B; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Create token</button></div>
+<sc-for list="{{tokens}}" as="t" hint-placeholder-count="2">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 24px; border-bottom: 1px solid #F0F0EB"><span style="flex: 1 1 200px; display: flex; flex-direction: column"><span style="font-weight: 600">{{t.n}}</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #505A66">{{t.p}}</span></span><span style="font-size: 12.5px; color: #505A66">{{t.u}}</span><button type="button" style="min-height: 38px; padding: 0 12px; border: 1px solid #E8C4B0; border-radius: 8px; background: #FFFFFF; color: #9A3412; font: inherit; font-weight: 600; cursor: pointer">Revoke</button></div>
+</sc-for>
+</section>
+</sc-if>
+
+<sc-if value="{{is.billing}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 24px; border-bottom: 1px solid #EDEEE9; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600">Plan · Free</span><span style="font-size: 13px; color: #505A66">1 private repository · unlimited public</span></span><a href="Pricing.dc.html" style="display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; border-radius: 9px; background: #0E141B; color: #FFFFFF; text-decoration: none; font-weight: 600">Compare plans</a></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr))">
+<sc-for list="{{meters}}" as="m" hint-placeholder-count="3"><div style="padding: 18px 24px; border-right: 1px solid #F0F0EB; display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12.5px; color: #505A66">{{m.k}}</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 20px; font-weight: 600">{{m.v}}</span><div style="height: 6px; border-radius: 3px; background: #F0F0EB; overflow: hidden"><div style="{{m.bar}}"></div></div></div></sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{is.danger}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #E8C4B0; border-radius: 14px; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 24px; border-bottom: 1px solid #F3DCCF; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600; color: #9A3412">Danger zone</span><span style="font-size: 13px; color: #505A66">Tests already merged into your repositories stay there.</span></div>
+<div style="padding: 8px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 16px 0; border-bottom: 1px solid #F0F0EB"><span style="flex: 1 1 280px; display: flex; flex-direction: column"><span style="font-weight: 600">Export everything</span><span style="font-size: 12.5px; color: #505A66">Incidents, evidence and run history as JSON.</span></span><button type="button" style="min-height: 42px; padding: 0 16px; border: 1px solid #D3D5CE; border-radius: 9px; background: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Download export</button></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 16px 0"><span style="flex: 1 1 280px; display: flex; flex-direction: column"><span style="font-weight: 600">Delete workspace</span><span style="font-size: 12.5px; color: #505A66">Removes all incidents, evidence and settings. Cannot be undone.</span></span><button type="button" style="min-height: 42px; padding: 0 16px; border: 0; border-radius: 9px; background: #9A3412; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Delete…</button></div>
+</div>
+</section>
+</sc-if>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startTab":{"editor":"enum","default":"workspace","options":["workspace","admission","team","tokens","billing","danger"]},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const CURRENT = 'settings';
+    const MONO = 'Geist Mono, ui-monospace, monospace', BLUE = '#1D4ED8', FAIL = '#C2410C';
+    const I = {
+      overview: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
+      incidents: 'M12 3 2 20h20L12 3z M12 10v4 M12 17h.01',
+      memory: 'M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z M9 12l2 2 4-4',
+      prs: 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4',
+      repos: 'M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z M4 16a4 4 0 0 1 4-4h12',
+      integrations: 'M9 2v6 M15 2v6 M6 8h12v4a6 6 0 0 1-12 0z M12 18v4',
+      settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12h2 M3 12h2 M12 3v2 M12 19v2 M17 7l1.5-1.5 M5.5 18.5 7 17 M17 17l1.5 1.5 M5.5 5.5 7 7'
+    };
+    const badge = (b, hot) => b ? 'font-family: ' + MONO + '; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; ' + (hot ? 'background: ' + FAIL + '; color: #FFFFFF' : 'background: #26313D; color: #C9D1DA') : 'display: none';
+    const nav = [['Overview', 'overview', 'Workspace.dc.html', '', false], ['Incidents', 'incidents', 'Incidents.dc.html', '2', false], ['Memory', 'memory', 'Memory.dc.html', '9', false], ['Pull requests', 'prs', 'PullRequests.dc.html', '1', true], ['Repositories', 'repos', 'Repositories.dc.html', '', false], ['Integrations', 'integrations', 'Integrations.dc.html', '', false], ['Settings', 'settings', 'Settings.dc.html', '', false]].map(([label, id, href, b, hot]) => ({
+      label, href, icon: I[id], current: id === CURRENT ? 'page' : 'false', badge: b, badgeStyle: badge(b, hot),
+      style: 'display: flex; align-items: center; gap: 11px; min-height: 42px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; ' + (id === CURRENT ? 'background: #F3F3EF; color: #0E141B; font-weight: 600' : 'color: #AEB8C4; font-weight: 500')
+    }));
+    const st = this.state || {};
+    const tab = st.tab || this.props.startTab || 'workspace';
+    const tabs = [['workspace', 'Workspace'], ['admission', 'Admission rules'], ['team', 'Team'], ['tokens', 'API tokens'], ['billing', 'Plan and usage'], ['danger', 'Danger zone']].map(([id, label]) => ({ label, current: tab === id ? 'page' : 'false', pick: () => this.setState({ tab: id }),
+      style: 'display: flex; align-items: center; min-height: 42px; padding: 0 12px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; text-align: left; cursor: pointer; ' + (tab === id ? 'background: #FFFFFF; color: #0E141B; font-weight: 600; box-shadow: inset 0 0 0 1px #E2E3DD' : 'background: transparent; color: ' + (id === 'danger' ? '#9A3412' : '#3E4855')) }));
+    const val = (locked) => 'font-family: ' + MONO + '; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; ' + (locked ? 'background: #0E141B; color: #FFFFFF' : 'border: 1px solid #C9CBC4; background: #FFFFFF');
+    const rules = [['Runs per commit', 'Time travel runs the draft this many times before and after the fix.', '3', false], ['Drafts per incident', 'Redrafts with failure feedback before giving up as Unproven.', '3', false], ['Pull request runs', 'Runs per relevant test on the head commit.', '3', false], ['Fail before, pass after', 'The admission rule itself.', 'always on', true], ['Mixed results', 'How a check that passes some runs is shown.', 'inconclusive', true]].map(([k, d, v, locked]) => ({ k, d, v, vStyle: val(locked) }));
+    const team = [['Y', '[you]', 'Owner · signed in with GitHub', 'Owner'], ['A', '[teammate-a]', 'Admin · reviews bot PRs', 'Admin'], ['B', '[teammate-b]', 'Member', 'Member']].map(([i, n, d, r]) => ({ i, n, d, r }));
+    const tokens = [['GitHub Action · storefront-web', 'as_live_••••8c2e', 'used 1 h ago'], ['Local CLI', 'as_live_••••19fd', 'used 3 days ago']].map(([n, p, u]) => ({ n, p, u }));
+    const meters = [['Private repositories', '1 / 1', 100], ['Sandbox CPU-hours', '1.4 / 5', 28], ['Model drafts this month', '31', 0]].map(([k, v, p]) => ({ k, v, bar: 'height: 100%; width: ' + p + '%; background: ' + (p >= 100 ? FAIL : BLUE) }));
+    return { nav, tabs, rules, team, tokens, meters,
+      is: { workspace: tab === 'workspace', admission: tab === 'admission', team: tab === 'team', tokens: tab === 'tokens', billing: tab === 'billing', danger: tab === 'danger' } };
+  }
+}
+</script>
+</body>
+</html>

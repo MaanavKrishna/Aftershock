@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aftershock · Integrations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F3F3EF}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1300px; background: #F3F3EF; color: #0E141B; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<!-- SIDEBAR -->
+<nav aria-label="Workspace navigation" style="flex: 1 1 248px; max-width: 100%; background: #0E141B; color: #C9D1DA; padding: 18px 14px 20px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF; font-weight: 700; font-size: 16px; letter-spacing: -0.02em; min-height: 44px; padding: 0 8px">
+<span style="width: 28px; height: 28px; border-radius: 7px; background: #F3F3EF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E141B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13h3.5l2-5 3 10 3-13 2.5 8H22"></path></svg></span>
+Aftershock
+</a>
+<button type="button" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border: 1px solid #26313D; border-radius: 9px; background: #161E28; color: #E6EAEE; font: inherit; font-size: 13.5px; cursor: pointer; text-align: left"><span style="width: 22px; height: 22px; border-radius: 6px; background: #344150; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">O</span><span style="flex: 1">[your-org]</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m7 10 5 5 5-5"></path></svg></button>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="{{n.style}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.icon}}"></path></svg><span style="flex: 1">{{n.label}}</span><span style="{{n.badgeStyle}}">{{n.badge}}</span></a>
+</sc-for>
+</div>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 14px">
+<div style="padding: 12px; border-radius: 10px; background: #161E28; border: 1px solid #26313D; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: #A3AEBB">Sandbox this month</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; color: #E6EAEE">1.4 / 5 h</span></div>
+<div style="height: 6px; border-radius: 3px; background: #26313D; overflow: hidden"><div style="width: 28%; height: 100%; background: #7AA7FF"></div></div>
+<span style="font-size: 11.5px; color: #7D8896">Checks fall back to your Actions at the limit</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 6px"><span style="width: 30px; height: 30px; border-radius: 50%; background: #344150; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #FFFFFF">Y</span><span style="display: flex; flex-direction: column; font-size: 12.5px; line-height: 1.3"><span style="color: #E6EAEE; font-weight: 600">[you]</span><span style="color: #7D8896">Owner</span></span></div>
+</div>
+</nav>
+
+
+<div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 32px; border-bottom: 1px solid #E2E3DD"><span style="font-weight: 600">Integrations</span></header>
+
+<main style="padding: 28px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; font-size: 30px; line-height: 1.15; letter-spacing: -0.025em; font-weight: 600">Where incidents come from, and who drafts the tests.</h1><span style="color: #505A66">Every delivery is verified by signature before anything is stored or run.</span></div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 10px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="4">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.selected}}" style="{{c.style}}">
+<span style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px"><span style="width: 36px; height: 36px; border-radius: 9px; background: #0E141B; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.icon}}"></path></svg></span><span style="{{c.stateStyle}}">{{c.state}}</span></span>
+<span style="font-weight: 600; font-size: 15px">{{c.name}}</span>
+<span style="font-size: 13px; color: #505A66; text-align: left">{{c.text}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+<section style="flex: 1.5 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 18px 22px; border-bottom: 1px solid #EDEEE9; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center"><span style="font-size: 18px; font-weight: 600; letter-spacing: -0.015em">{{d.name}}</span><span style="{{d.stateStyle}}">{{d.state}}</span></div>
+<div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+<sc-for list="{{d.fields}}" as="f" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 600">{{f.k}}</span><div style="display: flex; gap: 8px; flex-wrap: wrap"><span style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1px solid #E2E3DD; border-radius: 9px; background: #FAFAF8; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{f.v}}</span><button type="button" style="min-height: 44px; padding: 0 14px; border: 1px solid #D3D5CE; border-radius: 9px; background: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">{{f.action}}</button></div><span style="font-size: 12.5px; color: #505A66">{{f.help}}</span></div>
+</sc-for>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px">
+<button type="button" style="min-height: 42px; padding: 0 16px; border: 0; border-radius: 9px; background: #0E141B; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">{{d.primary}}</button>
+<button type="button" style="min-height: 42px; padding: 0 16px; border: 1px solid #E8C4B0; border-radius: 9px; background: #FFFFFF; color: #9A3412; font: inherit; font-weight: 600; cursor: pointer">Disconnect</button>
+</div>
+</div>
+</section>
+
+<section style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E3DD; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(14,20,27,0.04)">
+<div style="padding: 16px 20px; border-bottom: 1px solid #EDEEE9; font-weight: 600">Recent deliveries</div>
+<sc-for list="{{d.log}}" as="l" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 12px; padding: 11px 20px; border-bottom: 1px solid #F0F0EB; font-size: 13px"><span style="{{l.dot}}"></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{l.e}}</span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; color: #6B7785">{{l.m}}</span></span><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #505A66">{{l.t}}</span></div>
+</sc-for>
+</section>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const CURRENT = 'integrations';
+    const MONO = 'Geist Mono, ui-monospace, monospace', BLUE = '#1D4ED8', FAIL = '#C2410C';
+    const I = {
+      overview: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
+      incidents: 'M12 3 2 20h20L12 3z M12 10v4 M12 17h.01',
+      memory: 'M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z M9 12l2 2 4-4',
+      prs: 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4',
+      repos: 'M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z M4 16a4 4 0 0 1 4-4h12',
+      integrations: 'M9 2v6 M15 2v6 M6 8h12v4a6 6 0 0 1-12 0z M12 18v4',
+      settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12h2 M3 12h2 M12 3v2 M12 19v2 M17 7l1.5-1.5 M5.5 18.5 7 17 M17 17l1.5 1.5 M5.5 5.5 7 7'
+    };
+    const badge = (b, hot) => b ? 'font-family: ' + MONO + '; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; ' + (hot ? 'background: ' + FAIL + '; color: #FFFFFF' : 'background: #26313D; color: #C9D1DA') : 'display: none';
+    const nav = [['Overview', 'overview', 'Workspace.dc.html', '', false], ['Incidents', 'incidents', 'Incidents.dc.html', '2', false], ['Memory', 'memory', 'Memory.dc.html', '9', false], ['Pull requests', 'prs', 'PullRequests.dc.html', '1', true], ['Repositories', 'repos', 'Repositories.dc.html', '', false], ['Integrations', 'integrations', 'Integrations.dc.html', '', false], ['Settings', 'settings', 'Settings.dc.html', '', false]].map(([label, id, href, b, hot]) => ({
+      label, href, icon: I[id], current: id === CURRENT ? 'page' : 'false', badge: b, badgeStyle: badge(b, hot),
+      style: 'display: flex; align-items: center; gap: 11px; min-height: 42px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 14px; ' + (id === CURRENT ? 'background: #F3F3EF; color: #0E141B; font-weight: 600' : 'color: #AEB8C4; font-weight: 500')
+    }));
+    const st = this.state || {};
+    const pick = st.pick || 'sentry';
+    const sp = (on) => 'font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 6px; ' + (on ? 'background: #E3EAFB; color: #1E3A8A' : 'border: 1px dashed #6B7785; color: #3E4855');
+    const okDot = (ok) => 'width: 10px; height: 10px; flex: none; border-radius: 50%; background: ' + (ok ? BLUE : FAIL);
+    const D = {
+      github: { name: 'GitHub App', text: 'Repos, issues, checks and bot pull requests.', icon: 'M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4', on: true, state: 'Installed', primary: 'Manage on GitHub',
+        fields: [['Installation', '[your-org] · 3 repositories', 'Change', 'Add or remove repositories on GitHub.'], ['Permissions', 'contents: read · checks: write · pull_requests: write · issues: read', 'Review', 'Aftershock never pushes to a default branch.']],
+        log: [['pull_request.synchronize', '#214 · signature ok', '13:57', true], ['check_run.rerequested', '#218 · signature ok', '12:40', true], ['issues.closed', '#41 labelled incident', 'Oct 3', true]] },
+      sentry: { name: 'Sentry', text: 'New error issues open incidents in Awaiting fix.', icon: 'M3 18 12 4l9 14H3z M12 10v3 M12 15.5h.01', on: true, state: 'Connected', primary: 'Send test delivery',
+        fields: [['Webhook URL', 'https://[your-domain]/api/v1/webhooks/sentry', 'Copy', 'Paste into Sentry → Settings → Integrations → Webhooks.'], ['Signing secret', '••••••••••••••••••••3f9a', 'Rotate', 'Deliveries without a valid HMAC signature are rejected.'], ['Rule', 'level ≥ error · projects: ecommerce-api, storefront-web', 'Edit', 'Map Sentry projects to repositories.']],
+        log: [['issue.created · IntegrityError', 'ecommerce-api → INC-16', 'Oct 5', true], ['issue.created · duplicate of INC-16', 'merged into INC-16', 'Oct 5', true], ['unsigned request', 'rejected · 401', 'Oct 2', false]] },
+      pagerduty: { name: 'PagerDuty', text: 'Resolved incidents with notes become incidents here.', icon: 'M6 3v18 M6 4h7a4 4 0 0 1 0 8H6', on: true, state: 'Connected', primary: 'Send test delivery',
+        fields: [['Webhook URL', 'https://[your-domain]/api/v1/webhooks/pagerduty', 'Copy', 'Add as a generic V3 webhook subscription.'], ['Signing secret', '••••••••••••••••••••a71c', 'Rotate', 'Checked against the X-PagerDuty-Signature header.'], ['Services', 'payments → ecommerce-api · workers → billing-worker', 'Edit', 'Only mapped services create incidents.']],
+        log: [['incident.resolved · worker crash loop', 'billing-worker → INC-14', 'Oct 4', true]] },
+      model: { name: 'Model provider', text: 'Drafts tests and triages pull requests. Never decides.', icon: 'M12 3l2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z', on: true, state: 'Muse Spark', primary: 'Test connection',
+        fields: [['Provider', 'Muse · OpenAI-compatible', 'Change', 'Or Vercel AI Gateway, or any OpenAI-compatible endpoint.'], ['Model', 'muse-spark-1.3-contributor', 'Change', 'Used for drafting tests and pull request triage.'], ['API key', '••••••••••••••••••••', 'Replace', 'Encrypted at rest. Never sent to a sandbox.']],
+        log: [['draft · INC-17', '9.8s · 4.1k tokens', '2 min', true], ['triage · PR #222', '1.2s · 1.3k tokens', '5 min', true], ['draft · INC-15 attempt 3', '11.0s · 4.6k tokens', 'Yesterday', true]] }
+    };
+    const cards = Object.keys(D).map(id => ({ name: D[id].name, text: D[id].text, icon: D[id].icon, state: D[id].state, stateStyle: sp(D[id].on), selected: pick === id ? 'true' : 'false', pick: () => this.setState({ pick: id }),
+      style: 'display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px; min-height: 150px; border-radius: 14px; background: #FFFFFF; font: inherit; color: inherit; cursor: pointer; ' + (pick === id ? 'border: 2px solid #0E141B' : 'border: 1px solid #E2E3DD') }));
+    const x = D[pick];
+    const d = { name: x.name, state: x.state, stateStyle: sp(x.on), primary: x.primary, fields: x.fields.map(([k, v, action, help]) => ({ k, v, action, help })), log: x.log.map(([e, m, t, ok]) => ({ e, m, t, dot: okDot(ok) })) };
+    return { nav, cards, d };
+  }
+}
+</script>
+</body>
+</html>
