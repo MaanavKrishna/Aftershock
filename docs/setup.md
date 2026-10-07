@@ -11,7 +11,7 @@ npm run dev
 - **Database**: with no `DATABASE_URL`, Aftershock uses embedded Postgres (PGlite) in `./data/pglite`. Migrations run automatically.
 - **Runner**: time travel and pull request checks run in Docker. Run folders live in `~/.cache/aftershock/runs` (override with `AFTERSHOCK_WORK_DIR`) because Docker Desktop and Colima share the home folder with containers.
 - **Workflows**: in development they run in-process. On Vercel they run durably with the Workflow SDK.
-- **Demo**: `AFTERSHOCK_DEMO=1` shows “Try the demo workspace” on the sign-in page.
+- **Demo**: `AFTERSHOCK_DEMO=1` shows “Try the demo workspace” on the sign-in page. Vercel builds without it delete any demo workspace from the database (`scripts/remove-demo-data.mts`).
 
 ## 1. GitHub App (sign-in and repositories)
 
@@ -29,7 +29,7 @@ One GitHub App handles both “Sign in with GitHub” and repository access. Cre
 | Events | Issues, Pull request, Check run (installation events are always sent) |
 
 3. Confirm on GitHub. You land on a page that shows `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` **once**. Add them to Vercel (Production) and redeploy. The setup page locks itself once `GITHUB_APP_ID` is set.
-4. Install the app on your repositories from `https://github.com/apps/<slug>/installations/new`.
+4. Install the app on your repositories from `https://github.com/apps/<slug>/installations/new`. Each installation becomes a workspace; on sign-in, people who can access an installation join it (the first as owner, later ones as members).
 
 Contents write is used only to open test PRs on `aftershock/*` branches. Runners always clone with a one-hour token scoped **read-only** to a single repository. The app is created private; make it public in its GitHub settings if other organisations should install it.
 
