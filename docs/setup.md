@@ -15,25 +15,36 @@ npm run dev
 
 ## 1. GitHub App (sign-in and repositories)
 
-One GitHub App handles both “Sign in with GitHub” and repository access. Create it from the running app:
+One GitHub App handles both “Sign in with GitHub” and repository access.
 
 1. Deploy first (step 3) so the app has a public URL, and set `APP_URL` to it.
-2. Open `APP_URL/setup/github`, optionally enter an organisation, and click **Create GitHub App**. GitHub opens with everything pre-filled:
+2. On GitHub, open **Settings → Developer settings → GitHub Apps → New GitHub App** (or the organisation's settings) and fill in:
 
 | Setting | Value |
 |---|---|
-| Webhook URL | `APP_URL/api/webhooks/github` |
+| Homepage URL | `APP_URL` |
 | Callback URL (sign-in) | `APP_URL/api/auth/callback` |
 | Setup URL | `APP_URL/onboarding` |
+| Webhook URL | `APP_URL/api/webhooks/github`, with a long random **Webhook secret** |
 | Repository permissions | Contents **read & write**, Issues **read**, Metadata **read**, Checks **read & write**, Pull requests **read & write** |
 | Events | Issues, Pull request, Check run (installation events are always sent) |
 
-3. Confirm on GitHub. You land on a page that shows `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` **once**. Add them to Vercel (Production) and redeploy. The setup page locks itself once `GITHUB_APP_ID` is set.
+3. After creating it, generate a **private key** and a **client secret**, then add these to Vercel (Production) and redeploy:
+
+| Variable | From |
+|---|---|
+| `GITHUB_APP_ID` | App ID |
+| `GITHUB_APP_SLUG` | the app's URL name (`github.com/apps/<slug>`) |
+| `GITHUB_APP_PRIVATE_KEY` | the downloaded `.pem` file (newlines may be written as `\n`) |
+| `GITHUB_WEBHOOK_SECRET` | the webhook secret you chose |
+| `AUTH_GITHUB_ID` | Client ID |
+| `AUTH_GITHUB_SECRET` | the client secret |
+
 4. Install the app on your repositories from `https://github.com/apps/<slug>/installations/new`. Each installation becomes a workspace; on sign-in, people who can access an installation join it (the first as owner, later ones as members).
 
 Changing the production domain later: update `APP_URL` in Vercel, redeploy, and change the Homepage, Callback, Setup and Webhook URLs in the GitHub App's settings to the new domain.
 
-Contents write is used only to open test PRs on `aftershock/*` branches. Runners always clone with a one-hour token scoped **read-only** to a single repository. The app is created private; make it public in its GitHub settings if other organisations should install it.
+Contents write is used only to open test PRs on `aftershock/*` branches. Runners always clone with a one-hour token scoped **read-only** to a single repository. Make the app public in its GitHub settings (**Advanced → Make public**) so other accounts and organisations can install it.
 
 ## 2. Database (Neon)
 
