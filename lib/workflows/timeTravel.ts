@@ -131,11 +131,16 @@ async function draftTest(runId: string, ctx: TravelContext, feedback?: string, h
   const { safeTestPath } = await import("@/lib/runner/paths");
   const started = Date.now();
   try {
-    const d = await (await deps()).drafter().draft({ key: ctx.key, incident: ctx.incident, framework: ctx.framework, testDir: ctx.testDir, fixTitle: ctx.fixTitle, diff: ctx.diff, changedFiles: ctx.changedFiles, context: ctx.context, feedback, hint, previous });
+    const d = await (await deps()).drafter().draft({ workspaceId: ctx.workspaceId, key: ctx.key, incident: ctx.incident, framework: ctx.framework, testDir: ctx.testDir, fixTitle: ctx.fixTitle, diff: ctx.diff, changedFiles: ctx.changedFiles, context: ctx.context, feedback, hint, previous });
     const path = safeTestPath(d.path);
     if (!path.startsWith(ctx.testDir.replace(/\/$/, "") + "/")) throw Object.assign(new Error(`The draft must live under ${ctx.testDir}/`), { name: "InvalidModelOutput" });
     await patchStep(runId, "draft", { state: "ok", detail: `${d.model}${feedback ? " · with the previous failure as feedback" : ""}`, ms: Date.now() - started }, { testPath: path, testCode: d.code, model: d.model, tokens: d.tokens ?? null });
     await patchStep(runId, "before", { state: "running", detail: "Running" });
+    const { getDb } = await import("@/lib/db/client");
+    const s = await import("@/lib/db/schema");
+    const { sql } = await import("drizzle-orm");
+    const month = new Date().toISOString().slice(0, 7);
+    await (await getDb()).insert(s.usage).values({ workspaceId: ctx.workspaceId, month, drafts: 1 }).onConflictDoUpdate({ target: [s.usage.workspaceId, s.usage.month], set: { drafts: sql`${s.usage.drafts} + 1` } });
     return { ok: true, path, code: d.code, model: d.model };
   } catch (err) {
     const message = err instanceof Error ? err.message : "The model did not return a draft.";

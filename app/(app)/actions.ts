@@ -98,12 +98,12 @@ export async function importIssue(form: FormData): Promise<void> {
 }
 
 export async function extractPostmortem(_prev: FormState, form: FormData): Promise<FormState> {
-  await currentScope();
+  const { session } = await currentScope();
   const text = String(form.get("postmortem") ?? "").trim();
   if (text.length < 40) return { error: "Paste the postmortem text — at least a few sentences.", fields: { postmortem: text } };
   try {
     const { extractIncident } = await import("@/lib/model/extract");
-    const fields = await extractIncident(text);
+    const fields = await extractIncident(text, session.workspaceId);
     return { ok: "Extracted — check before saving", fields: { ...fields, postmortem: text } };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "The model could not extract this postmortem.", fields: { postmortem: text } };

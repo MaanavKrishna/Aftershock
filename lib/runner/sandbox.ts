@@ -35,7 +35,7 @@ export class SandboxRunner implements Runner {
         return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message: `Dependency install failed (exit ${install.exitCode})` })), log: logs.join("\n\n"), cpuMs: sandbox.activeCpuUsageMs ?? 0, wallMs: Date.now() - started };
       }
       await sandbox.updateNetworkPolicy("deny-all");
-      await sandbox.writeFiles([{ path: testPath, content: spec.testCode }]);
+      await sandbox.writeFiles([{ path: testPath, content: spec.testCode }, ...(spec.overlay ?? []).map((o) => ({ path: safeTestPath(o.path), content: o.content }))]);
       const results: RunResult[] = [];
       for (let i = 0; i < spec.runs; i++) {
         const junit = `.aftershock-out/junit-${i}.xml`;

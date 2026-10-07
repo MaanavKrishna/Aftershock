@@ -95,6 +95,11 @@ export class DockerRunner implements Runner {
       const target = path.join(work, testPath);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, spec.testCode);
+      for (const o of spec.overlay ?? []) {
+        const file = path.join(work, safeTestPath(o.path));
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, o.content);
+      }
       fs.mkdirSync(path.join(work, ".aftershock-out"), { recursive: true });
 
       const image = imageFor(spec.framework);

@@ -14,6 +14,8 @@ export type RunSpec = {
   testCode: string;
   runs: number;
   timeoutMs: number;
+  /** Files written over the checkout before the test runs (a suggested fix). */
+  overlay?: { path: string; content: string }[];
 };
 
 export type RunReport = { results: RunResult[]; installOk: boolean; log: string; cpuMs: number; wallMs: number };

@@ -2,6 +2,7 @@ import type { Runner } from "@/lib/runner/types";
 import type { Framework } from "@/lib/runner/types";
 
 export type DraftInput = {
+  workspaceId: string;
   key: string;
   incident: { title: string; trigger: string; observed: string; expected: string };
   framework: Framework;
