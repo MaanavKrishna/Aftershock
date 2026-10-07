@@ -1,3 +1,4 @@
+import { limited } from "@/lib/http/rateLimit";
 import { NextResponse, type NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { apiWorkspace, unauthorized } from "@/lib/auth/api";
@@ -6,6 +7,8 @@ import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const tooMany = limited(req, "api");
+  if (tooMany) return tooMany;
   const ws = await apiWorkspace(req);
   if (!ws) return unauthorized();
   const { id } = await params;

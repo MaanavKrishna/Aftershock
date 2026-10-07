@@ -1,8 +1,11 @@
+import { limited } from "@/lib/http/rateLimit";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyGithubSignature } from "@/lib/github/signature";
 import { handleGithubEvent } from "@/lib/github/webhook";
 
 export async function POST(req: NextRequest) {
+  const tooMany = limited(req, "webhook");
+  if (tooMany) return tooMany;
   const body = await req.text();
   if (!verifyGithubSignature(body, req.headers.get("x-hub-signature-256"), process.env.GITHUB_WEBHOOK_SECRET ?? "")) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });

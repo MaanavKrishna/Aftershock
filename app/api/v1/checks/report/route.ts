@@ -1,3 +1,4 @@
+import { limited } from "@/lib/http/rateLimit";
 import { NextResponse, type NextRequest } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -17,6 +18,8 @@ const body = z.object({
 
 /** Results from a team's own GitHub Actions runner (`aftershock check --in-place --report`). */
 export async function POST(req: NextRequest) {
+  const tooMany = limited(req, "api");
+  if (tooMany) return tooMany;
   const ws = await apiWorkspace(req);
   if (!ws) return unauthorized();
   const parsed = body.safeParse(await req.json().catch(() => ({})));

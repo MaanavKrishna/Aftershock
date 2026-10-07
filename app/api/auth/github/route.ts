@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { absolute } from "@/lib/http";
+import { absolute } from "@/lib/http/url";
 import { authorizeUrl, STATE_COOKIE } from "@/lib/auth/github-oauth";
 
 export async function GET(req: NextRequest) {

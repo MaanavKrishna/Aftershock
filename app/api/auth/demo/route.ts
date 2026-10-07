@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { absolute } from "@/lib/http";
+import { absolute } from "@/lib/http/url";
 import { seedDemo } from "@/lib/db/seed";
 import { sessionCookie } from "@/lib/auth/session";
 

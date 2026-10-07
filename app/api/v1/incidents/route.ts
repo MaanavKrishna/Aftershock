@@ -1,3 +1,4 @@
+import { limited } from "@/lib/http/rateLimit";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { apiWorkspace, unauthorized } from "@/lib/auth/api";
@@ -7,6 +8,8 @@ import * as s from "@/lib/db/schema";
 import { incidentKey } from "@/lib/domain/ids";
 
 export async function GET(req: NextRequest) {
+  const tooMany = limited(req, "api");
+  if (tooMany) return tooMany;
   const ws = await apiWorkspace(req);
   if (!ws) return unauthorized();
   const sc = scoped(ws);
@@ -27,6 +30,8 @@ const body = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const tooMany = limited(req, "api");
+  if (tooMany) return tooMany;
   const ws = await apiWorkspace(req);
   if (!ws) return unauthorized();
   const parsed = body.safeParse(await req.json().catch(() => ({})));

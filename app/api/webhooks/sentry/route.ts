@@ -1,8 +1,11 @@
+import { limited } from "@/lib/http/rateLimit";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySentry } from "@/lib/integrations/signatures";
 import { integrationFor, intakeAlert, logDelivery, parseMapping } from "@/lib/integrations/intake";
 
 export async function POST(req: NextRequest) {
+  const tooMany = limited(req, "webhook");
+  if (tooMany) return tooMany;
   const login = req.nextUrl.searchParams.get("workspace") ?? "";
   const body = await req.text();
   const found = await integrationFor(login, "sentry");

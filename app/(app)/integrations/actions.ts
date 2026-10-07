@@ -3,7 +3,7 @@ import { randomBytes, createHmac } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
-import { currentScope } from "@/lib/auth/scope";
+import { authorize, currentScope } from "@/lib/auth/scope";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { encrypt, decrypt } from "@/lib/crypto";
@@ -22,7 +22,8 @@ async function upsert(workspaceId: string, kind: "sentry" | "pagerduty" | "model
 }
 
 export async function saveMapping(_p: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("manageIntegrations");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const kind = form.get("kind") as Kind;
   if (kind !== "sentry" && kind !== "pagerduty") return { error: "Unknown integration." };
   const value = String(form.get("mapping") ?? "").trim().slice(0, 1000);
@@ -32,7 +33,8 @@ export async function saveMapping(_p: FormState, form: FormData): Promise<FormSt
 }
 
 export async function rotateSecret(_p: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("manageIntegrations");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const kind = form.get("kind") as Kind;
   if (kind !== "sentry" && kind !== "pagerduty") return { error: "Unknown integration." };
   const secret = randomBytes(24).toString("hex");
@@ -43,7 +45,8 @@ export async function rotateSecret(_p: FormState, form: FormData): Promise<FormS
 
 /** Signs a harmless ping with the stored secret and sends it through the real webhook route. */
 export async function testDelivery(_p: FormState, form: FormData): Promise<FormState> {
-  const { scope, session } = await currentScope();
+  const { scope, session, allowed } = await authorize("manageIntegrations");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const kind = form.get("kind") as Kind;
   const ws = await scope.workspace();
   const db = await getDb();
@@ -61,7 +64,8 @@ export async function testDelivery(_p: FormState, form: FormData): Promise<FormS
 }
 
 export async function saveModel(_p: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("manageIntegrations");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const provider = String(form.get("provider"));
   if (!["muse", "gateway", "custom"].includes(provider)) return { error: "Choose a provider." };
   const model = String(form.get("model") ?? "").trim();

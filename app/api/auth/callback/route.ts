@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { absolute } from "@/lib/http";
+import { absolute } from "@/lib/http/url";
 import { exchangeCode, fetchUser, STATE_COOKIE } from "@/lib/auth/github-oauth";
 import { upsertGithubAccount } from "@/lib/auth/accounts";
 import { sessionCookie } from "@/lib/auth/session";

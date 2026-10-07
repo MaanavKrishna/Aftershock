@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { currentScope } from "@/lib/auth/scope";
+import { authorize, currentScope } from "@/lib/auth/scope";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { incidentKey } from "@/lib/domain/ids";
@@ -147,7 +147,8 @@ export async function addNote(form: FormData): Promise<void> {
 }
 
 export async function setRepoSetting(form: FormData): Promise<void> {
-  const { scope, session } = await currentScope();
+  const { scope, session, allowed } = await authorize("manageRepositories");
+  if (!allowed) return;
   const repo = await scope.repo(String(form.get("repoId")));
   if (!repo) return;
   const field = String(form.get("field"));
@@ -161,7 +162,8 @@ export async function setRepoSetting(form: FormData): Promise<void> {
 }
 
 export async function overrideCheck(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("override");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const reason = String(form.get("reason") ?? "").trim();
   if (reason.length < 10) return { error: "Give a reason of at least 10 characters. It is recorded on the incident trail." };
   const db = await getDb();
@@ -185,7 +187,8 @@ export async function requestSuggestedFix(form: FormData): Promise<void> {
 }
 
 export async function saveWorkspace(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("manageWorkspace");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const name = String(form.get("name") ?? "").trim();
   const prefix = String(form.get("prefix") ?? "").trim().toUpperCase();
   if (name.length < 2) return { error: "Name must be at least 2 characters." };
@@ -200,7 +203,8 @@ export async function saveWorkspace(_prev: FormState, form: FormData): Promise<F
 }
 
 export async function createToken(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("manageTokens");
+  if (!allowed) return { error: "Only owners and admins can do this." };
   const name = String(form.get("name") ?? "").trim() || "API token";
   const token = newToken();
   const db = await getDb();
@@ -210,14 +214,16 @@ export async function createToken(_prev: FormState, form: FormData): Promise<For
 }
 
 export async function revokeToken(form: FormData): Promise<void> {
-  const { session } = await currentScope();
+  const { session, allowed } = await authorize("manageTokens");
+  if (!allowed) return;
   const db = await getDb();
   await db.delete(s.apiTokens).where(and(eq(s.apiTokens.id, String(form.get("tokenId"))), eq(s.apiTokens.workspaceId, session.workspaceId)));
   revalidatePath("/settings");
 }
 
 export async function finishOnboarding(form: FormData): Promise<void> {
-  const { scope, session } = await currentScope();
+  const { scope, session, allowed } = await authorize("manageRepositories");
+  if (!allowed) redirect("/overview");
   const runner = form.get("runner") === "actions" ? "actions" : "sandbox";
   const provider = ["muse", "gateway", "custom"].includes(String(form.get("provider"))) ? String(form.get("provider")) : "muse";
   const chosen = new Set(form.getAll("repo").map(String));

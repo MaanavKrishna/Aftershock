@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { absolute } from "@/lib/http";
+import { absolute } from "@/lib/http/url";
 import { SESSION_COOKIE } from "@/lib/auth/token";
 
 // Optimistic check only: pages verify the session themselves via requireSession().

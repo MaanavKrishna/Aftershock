@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { readSession, sessionCookie } from "@/lib/auth/session";
-import { absolute } from "@/lib/http";
+import { absolute } from "@/lib/http/url";
 
 /** Switch the session to another workspace the user is a member of. */
 export async function POST(req: NextRequest) {

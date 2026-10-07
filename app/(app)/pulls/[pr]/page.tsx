@@ -10,6 +10,7 @@ import { incidentKey } from "@/lib/domain/ids";
 import { duration, stamp } from "@/lib/format";
 import { requestSuggestedFix } from "../../actions";
 import { OverrideForm } from "./OverrideForm";
+import { can } from "@/lib/auth/roles";
 
 const HEAD = {
   recur: ["RECUR", "bg-fail text-white", "bg-fail"],
@@ -22,8 +23,9 @@ const HEAD = {
 export default async function CheckPage({ params, searchParams }: { params: Promise<{ pr: string }>; searchParams: Promise<{ repo?: string; inc?: string }> }) {
   const { pr } = await params;
   const sp = await searchParams;
-  const { scope } = await currentScope();
-  const [ws, data] = await Promise.all([scope.workspace(), scope.check(Number(pr), sp.repo)]);
+  const { scope, session } = await currentScope();
+  const [ws, data, me] = await Promise.all([scope.workspace(), scope.check(Number(pr), sp.repo), scope.me(session.userId)]);
+  const canOverride = can(me?.role, "override");
   if (!data) notFound();
   const { check, repo, results, skips, fix, overrides } = data;
   const prefix = ws?.incidentPrefix ?? "INC";
@@ -152,8 +154,8 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
                     <span className="text-on-dark-muted">{fix.explanation || "Posted as a suggestion on the PR — a human applies it."}</span>
                   </div>
                 )}
-                <OverrideForm checkId={check.id} />
-                <span className="text-xs text-[#7D8896]">Overrides are recorded on the incident’s trail.</span>
+                {canOverride ? <OverrideForm checkId={check.id} /> : null}
+                <span className="text-xs text-[#7D8896]">{canOverride ? "Overrides are recorded on the incident’s trail." : "Only owners and admins can override a check."}</span>
               </section>
             )}
             {overrides.length > 0 && (

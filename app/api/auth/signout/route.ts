@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { absolute } from "@/lib/http";
+import { absolute } from "@/lib/http/url";
 import { SESSION_COOKIE } from "@/lib/auth/token";
 
 export async function POST(req: NextRequest) {
