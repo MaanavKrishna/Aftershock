@@ -136,6 +136,8 @@ export const prChecks = pgTable("pr_checks", {
   title: text("title").notNull(),
   headSha: text("head_sha").notNull(),
   baseSha: text("base_sha").notNull(),
+  /** The commit the tests ran on: GitHub's test merge of head into base, or the head when the PR conflicts. */
+  testedSha: text("tested_sha"),
   filesChanged: integer("files_changed").notNull().default(0),
   changedFiles: jsonb("changed_files").$type<string[]>().notNull().default([]),
   diff: text("diff").notNull().default(""),

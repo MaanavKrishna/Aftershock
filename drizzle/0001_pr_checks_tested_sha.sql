@@ -1,0 +1,1 @@
+ALTER TABLE "pr_checks" ADD COLUMN "tested_sha" text;

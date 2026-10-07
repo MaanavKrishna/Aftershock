@@ -12,6 +12,7 @@ type Plan =
       workspaceId: string;
       repo: { id: string; url: string; fullName: string; framework: "pytest" | "vitest" | "jest"; install: string; mode: "blocking" | "advisory" };
       headSha: string;
+      testedSha: string;
       mode: "run" | "actions" | "unavailable";
       selected: Selected[];
       skips: { incidentId: string; reason: string }[];
@@ -58,11 +59,17 @@ async function plan(checkId: string): Promise<Plan> {
   const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
   const src = await sourceFor(repo, await (await deps()).tokenFor(repo)).catch(() => null);
   const cfg = src ? applyRepoConfig(repo, await loadRepoConfig(src, repo.defaultBranch).catch(() => ({}))) : repo;
+  // Test what would land: the PR merged into its base (as CI does), not a head that may predate later fixes.
+  const { testMergeCommit } = await import("@/lib/github/pulls");
+  const { octokitFor } = await import("@/lib/github/app");
+  const merged = selected.length > 0 ? await testMergeCommit((await octokitFor(ws.id)) as Parameters<typeof testMergeCommit>[0], repo.fullName, check.prNumber) : null;
+  const testedSha = merged ?? check.headSha;
+  await db.update(s.prChecks).set({ testedSha }).where(eq(s.prChecks.id, checkId));
   const choice = pickRunner(cfg, { remainingCpuMs: SANDBOX_ALLOWANCE_MS - usage.sandboxCpuMs }, false);
   const mode = choice === "actions" ? "actions" : choice === "unavailable" ? "unavailable" : "run";
   await db.update(s.prChecks).set({ status: "running", runner: mode === "actions" ? "actions" : mode === "run" ? "sandbox" : null }).where(eq(s.prChecks.id, checkId));
   return {
-    ok: true, checkId, workspaceId: ws.id, headSha: check.headSha, mode, selected, skips,
+    ok: true, checkId, workspaceId: ws.id, headSha: check.headSha, testedSha, mode, selected, skips,
     repo: { id: repo.id, url: repo.cloneUrl, fullName: repo.fullName, framework: cfg.framework, install: cfg.installCmd, mode: cfg.checkMode },
   };
 }
@@ -72,7 +79,7 @@ async function runSelected(p: Extract<Plan, { ok: true }>, t: Selected): Promise
   const { deps } = await import("@/lib/timetravel/deps");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
-  const report = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: PR_RUNS, timeoutMs: 120_000 });
+  const report = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.testedSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: PR_RUNS, timeoutMs: 120_000 });
   return { runs: report.results, cpuMs: report.cpuMs, kind: d.runner().kind };
 }
 
@@ -92,7 +99,7 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
     const verdict = prVerdict(runs);
     const failure = runs.find((r) => r.outcome !== "passed")?.message;
     const trace: TraceStep[] = [
-      { head: `checkout ${check.headSha.slice(0, 7)}`, sub: `${selected.path}` },
+      { head: `checkout ${(check.testedSha ?? check.headSha).slice(0, 7)}${check.testedSha && check.testedSha !== check.headSha ? ` (PR merged into ${check.baseSha.slice(0, 7)})` : ""}`, sub: `${selected.path}` },
       { head: `run ×${runs.length}`, sub: runs.map((r) => r.outcome).join(", "), bad: verdict === "recur" },
       ...(failure ? [{ head: "first failure", sub: failure.slice(0, 300), bad: true }] : []),
     ];

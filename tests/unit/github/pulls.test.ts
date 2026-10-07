@@ -19,3 +19,19 @@ test("unmerged, missing or unreadable pull requests resolve to null", async () =
   expect(await mergeCommitForPr(client({}, true), "o/r", 2)).toBeNull();
   expect(await mergeCommitForPr(null, "o/r", 2)).toBeNull();
 });
+
+test("the test merge commit is used once GitHub has computed mergeability", async () => {
+  const { testMergeCommit } = await import("@/lib/github/pulls");
+  const states = [{ mergeable: null, merge_commit_sha: null }, { mergeable: true, merge_commit_sha: "m1" }];
+  let calls = 0;
+  const c = { request: async () => ({ data: states[Math.min(calls++, states.length - 1)] }) };
+  expect(await testMergeCommit(c, "o/r", 4, 0)).toBe("m1");
+  expect(calls).toBe(2);
+});
+
+test("a conflicting or unknown pull request has no test merge commit", async () => {
+  const { testMergeCommit } = await import("@/lib/github/pulls");
+  expect(await testMergeCommit({ request: async () => ({ data: { mergeable: false, merge_commit_sha: "stale" } }) }, "o/r", 4, 0)).toBeNull();
+  expect(await testMergeCommit({ request: async () => ({ data: { mergeable: null, merge_commit_sha: null } }) }, "o/r", 4, 0)).toBeNull();
+  expect(await testMergeCommit(null, "o/r", 4, 0)).toBeNull();
+});
