@@ -7,4 +7,8 @@ const config: NextConfig = {
   outputFileTracingIncludes: { "/**": ["./drizzle/**/*"] },
 };
 
-export default withWorkflow(config);
+// Durable workflows are compiled for production builds and Vercel. In `next dev` they run
+// in-process (lib/workflows/start.ts), so the plugin's generated routes would only cause reloads.
+const durable = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL) || process.env.AFTERSHOCK_WORKFLOWS === "durable";
+
+export default durable ? withWorkflow(config) : config;

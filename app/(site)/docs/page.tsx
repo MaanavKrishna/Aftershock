@@ -12,7 +12,7 @@ const TOC = [
 ] as const;
 
 const QUICK = [
-  ["Sign in with GitHub and install the app", "Pick the repositories Aftershock may read. It asks for contents read, checks and pull requests write."],
+  ["Sign in with GitHub and install the app", "Pick the repositories Aftershock may read. It asks for checks and pull requests write, and contents write used only for aftershock/* branches."],
   ["Import an incident", "Choose a closed issue labelled incident, paste a postmortem, or fill the form. Point at the fix commit or PR."],
   ["Watch time travel", "Aftershock drafts a test and runs it before and after the fix. If it fails then passes, it is admitted."],
   ["Merge the bot PR", "The proven test lands under tests/aftershock/. From now on, pull requests that touch that code get a check."],

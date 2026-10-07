@@ -18,3 +18,4 @@ tsconfig.tsbuildinfo
 !.env.example
 /.swc
 dist/
+app/.well-known/workflow/

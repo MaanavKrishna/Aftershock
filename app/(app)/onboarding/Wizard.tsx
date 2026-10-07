@@ -41,7 +41,7 @@ export function Wizard({ repos, installUrl }: { repos: Repo[]; installUrl: strin
               ))}
             </div>
           )}
-          <div className="flex gap-3 rounded-[10px] bg-pass-wash px-4 py-3.5 text-[13px] text-pass-deep"><span className="font-semibold">Permissions.</span><span>Contents read-only. Checks and pull requests write. Aftershock never pushes to your default branch.</span></div>
+          <div className="flex gap-3 rounded-[10px] bg-pass-wash px-4 py-3.5 text-[13px] text-pass-deep"><span className="font-semibold">Permissions.</span><span>Runners get read-only clone tokens. The app writes only to aftershock/* branches to open test PRs — never to your default branch.</span></div>
         </div>
         <div className={step === 1 ? "flex flex-col gap-[22px] p-8 max-sm:p-5" : "hidden"}>
           <div className="flex flex-col gap-1.5"><h2 className="m-0 text-[26px] font-semibold tracking-[-0.025em]">Where should checks run?</h2><p className="m-0 text-muted">Time travel always uses the sandbox. Pull request checks can run there or on your runners.</p></div>
