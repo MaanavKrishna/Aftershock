@@ -55,9 +55,10 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
   if (!run) {
     return (
       <>
+        <AutoRefresh active={inc.status === "traveling"} />
         <TopBar crumbs={[{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }]} />
         <Main>
-          <h1 className="m-0 text-[30px] font-semibold tracking-[-0.025em]">No time travel has run for {key} yet.</h1>
+          <h1 className="m-0 text-[30px] font-semibold tracking-[-0.025em]">{inc.status === "traveling" ? `Starting time travel for ${key}…` : `No time travel has run for ${key} yet.`}</h1>
           <p className="m-0 text-muted">{inc.statusReason ?? "Link the fix commit on the incident page to start one."}</p>
         </Main>
       </>
@@ -77,7 +78,7 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <AutoRefresh active={run.status === "running"} />
+      <AutoRefresh active={run.status === "running" || inc.status === "traveling"} />
       <TopBar crumbs={[{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }]}>
         <a href={`/api/v1/runs/${run.id}/evidence`} className="inline-flex min-h-[38px] items-center rounded-lg border border-line-strong bg-white px-3 text-[13px] font-semibold text-ink no-underline">Download evidence.json</a>
       </TopBar>

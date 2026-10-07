@@ -16,3 +16,4 @@ tsconfig.tsbuildinfo
 *.pyc
 .env*
 !.env.example
+/.swc
