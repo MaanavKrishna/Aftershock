@@ -249,3 +249,9 @@ export const usage = pgTable(
   },
   (t) => [primaryKey({ columns: [t.workspaceId, t.month] })],
 );
+
+export type IncidentRow = typeof incidents.$inferSelect;
+export type TimeTravelRunRow = typeof timeTravelRuns.$inferSelect;
+export type RepositoryRow = typeof repositories.$inferSelect;
+export type PrCheckRow = typeof prChecks.$inferSelect;
+export type MemoryTestRow = typeof memoryTests.$inferSelect;

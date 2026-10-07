@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { absolute } from "@/lib/http";
 import { exchangeCode, fetchUser, STATE_COOKIE } from "@/lib/auth/github-oauth";
 import { upsertGithubAccount } from "@/lib/auth/accounts";
 import { sessionCookie } from "@/lib/auth/session";
@@ -13,11 +14,11 @@ export async function GET(req: NextRequest) {
   try {
     const user = await fetchUser(await exchangeCode(code));
     const session = await upsertGithubAccount(user);
-    const res = NextResponse.redirect(new URL("/overview", req.url));
+    const res = NextResponse.redirect(absolute(req, "/overview"));
     res.cookies.set(await sessionCookie(session));
     res.cookies.delete(STATE_COOKIE);
     return res;
   } catch {
-    return NextResponse.redirect(new URL("/signin?error=github_failed", req.url));
+    return NextResponse.redirect(absolute(req, "/signin?error=github_failed"));
   }
 }

@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { absolute } from "@/lib/http";
 import { SESSION_COOKIE } from "@/lib/auth/token";
 
 // Optimistic check only: pages verify the session themselves via requireSession().
 export function proxy(req: NextRequest) {
-  if (!req.cookies.get(SESSION_COOKIE)) return NextResponse.redirect(new URL("/signin", req.url));
+  if (!req.cookies.get(SESSION_COOKIE)) return NextResponse.redirect(absolute(req, "/signin"));
   return NextResponse.next();
 }
 
