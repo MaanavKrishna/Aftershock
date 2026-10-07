@@ -4,6 +4,7 @@ import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { timeAgo } from "@/lib/format";
+import { AlertForms, ModelForm } from "./forms";
 
 const KINDS = {
   github: { name: "GitHub App", text: "Repos, issues, checks and bot pull requests.", icon: "M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4" },
@@ -20,7 +21,7 @@ export default async function Integrations({ searchParams }: { searchParams: Pro
   const [ws, integrations, repos, log] = await Promise.all([scope.workspace(), scope.integrations(), scope.repos(), scope.deliveries(kind)]);
   const base = process.env.APP_URL ?? "https://[your-domain]";
   const by = Object.fromEntries(integrations.map((i) => [i.kind, i]));
-  const connected: Record<Kind, boolean> = { github: Boolean(ws?.installationId) || repos.length > 0, sentry: Boolean(by.sentry?.enabled), pagerduty: Boolean(by.pagerduty?.enabled), model: Boolean(by.model?.enabled) || Boolean(process.env.MODEL_API_KEY) };
+  const connected: Record<Kind, boolean> = { github: Boolean(ws?.installationId) || repos.length > 0, sentry: Boolean(by.sentry?.enabled && (by.sentry.secretCiphertext || by.sentry.config.secretHint)), pagerduty: Boolean(by.pagerduty?.enabled && (by.pagerduty.secretCiphertext || by.pagerduty.config.secretHint)), model: Boolean(by.model?.enabled) || Boolean(process.env.MODEL_API_KEY) };
   const modelName = by.model?.config.model ?? process.env.MODEL_NAME ?? "muse-spark-1.3-contributor";
   const state: Record<Kind, string> = { github: connected.github ? "Installed" : "Not installed", sentry: connected.sentry ? "Connected" : "Not connected", pagerduty: connected.pagerduty ? "Connected" : "Not connected", model: connected.model ? (by.model?.config.provider === "gateway" ? "AI Gateway" : "Muse Spark") : "Not configured" };
   const fields: Record<Kind, [string, string, string][]> = {
@@ -57,6 +58,8 @@ export default async function Integrations({ searchParams }: { searchParams: Pro
                   <span className="text-[12.5px] text-muted">{help}</span>
                 </div>
               ))}
+              {(kind === "sentry" || kind === "pagerduty") && <AlertForms kind={kind} mapping={(kind === "sentry" ? by.sentry?.config.projects : by.pagerduty?.config.services) ?? ""} />}
+              {kind === "model" && <ModelForm provider={by.model?.config.provider ?? "muse"} model={by.model?.config.model ?? ""} baseUrl={by.model?.config.baseUrl ?? ""} />}
               {kind === "github" && process.env.GITHUB_APP_SLUG && <a href={`https://github.com/apps/${process.env.GITHUB_APP_SLUG}/installations/new`} className="inline-flex min-h-[42px] items-center self-start rounded-[9px] bg-ink px-4 font-semibold text-white no-underline">Manage on GitHub</a>}
             </div>
           </Card>
