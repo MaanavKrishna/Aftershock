@@ -13,7 +13,7 @@ import { SOURCES } from "@/components/app/sources";
 import { AutoRefresh } from "@/components/app/AutoRefresh";
 import { incidentKey } from "@/lib/domain/ids";
 import { stamp } from "@/lib/format";
-import { addNote, linkFix, retryTimeTravel } from "../../actions";
+import { addNote, linkFix, retryTimeTravel, searchEpicenter } from "../../actions";
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params;
@@ -33,6 +33,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
   const proven = runs.find((r) => r.status === "proven");
   const latest = runs.at(-1);
   const epic = inc.epicenter && "sha" in inc.epicenter ? inc.epicenter : null;
+  const epicMissing = inc.epicenter && "unavailable" in inc.epicenter ? inc.epicenter.unavailable : null;
 
   return (
     <>
@@ -80,6 +81,13 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                   <div className="flex flex-[1_1_240px] items-center gap-3.5 border-r border-line-soft px-[22px] py-[18px]"><span className="h-3 w-3 shrink-0 rounded-full border-2 border-fail" /><span className="flex flex-col"><span className="font-mono font-semibold">{inc.parentSha ?? "resolved at run time"}</span><span className="text-[12.5px] text-muted">before the fix · parent</span></span></div>
                   <div className="flex flex-[1_1_240px] items-center gap-3.5 border-r border-line-soft px-[22px] py-[18px]"><span className="h-3 w-3 shrink-0 rounded-full bg-pass" /><span className="flex flex-col"><span className="font-mono font-semibold">{inc.fixSha ?? `PR #${inc.fixPr}`}</span><span className="text-[12.5px] text-muted">{inc.fixTitle ?? "the fix"}</span></span></div>
                   {epic && <div className="flex flex-[1_1_220px] flex-col justify-center px-[22px] py-[18px]"><span className="font-mono text-[11.5px] tracking-[0.04em] text-fail">EPICENTER</span><span className="text-[13px]">Introduced in <span className="font-mono font-semibold">{epic.sha}</span>{epic.prNumber ? ` · PR #${epic.prNumber}` : ""}</span><span className="text-xs text-muted">{epic.title ?? ""} · found in {epic.testedCommits} runs{epic.arrivedWithCode ? " · arrived with the code it tests" : ""}</span></div>}
+                  {mem && inc.status === "proven" && !epic && (
+                    <form action={searchEpicenter} className="flex w-full flex-wrap items-center gap-3 border-t border-line-soft px-[22px] py-4">
+                      <input type="hidden" name="incidentId" value={inc.id} />
+                      <span className="flex flex-[1_1_260px] flex-col"><span className="font-mono text-[11.5px] tracking-[0.04em] text-muted">EPICENTER</span><span className="text-[13px] text-body">{epicMissing ?? "Searching history for the commit that introduced the bug…"}</span></span>
+                      {epicMissing && <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Starting…">Search again</SubmitButton>}
+                    </form>
+                  )}
                   {inc.status === "awaiting_fix" && (
                     <div className="flex w-full flex-wrap items-end gap-3 border-t border-line-soft px-[22px] py-4">
                       <form action={retryTimeTravel}>

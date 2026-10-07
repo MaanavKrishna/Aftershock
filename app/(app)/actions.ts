@@ -138,6 +138,21 @@ export async function retryTimeTravel(form: FormData): Promise<void> {
   redirect(`/incidents/${inc.number}/travel`);
 }
 
+/** Runs Epicenter again for a proven incident, e.g. after more history arrives. */
+export async function searchEpicenter(form: FormData): Promise<void> {
+  const { scope } = await currentScope();
+  const inc = await scope.getIncidentById(String(form.get("incidentId")));
+  if (!inc) redirect("/incidents");
+  const mem = await scope.memoryForIncident(inc.id);
+  if (mem) {
+    const db = await getDb();
+    await db.update(s.incidents).set({ epicenter: null }).where(and(eq(s.incidents.id, inc.id), eq(s.incidents.workspaceId, inc.workspaceId)));
+    const { startEpicenter } = await import("@/lib/workflows/start");
+    await startEpicenter(mem.id);
+  }
+  revalidatePath(`/incidents/${inc.number}`);
+}
+
 export async function addNote(form: FormData): Promise<void> {
   const { scope, session } = await currentScope();
   const inc = await scope.getIncidentById(String(form.get("incidentId")));
