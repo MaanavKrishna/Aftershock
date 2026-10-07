@@ -27,6 +27,8 @@ export type Deps = {
   openBotPr: (input: BotPrInput) => Promise<number | null>;
   /** Short-lived token for cloning a private repo (GitHub App installation token). */
   tokenFor: (repo: { workspaceId: string; fullName: string }) => Promise<string | undefined>;
+  /** Base back-off between transient model failures. */
+  retryDelayMs: number;
 };
 
 let override: Partial<Deps> = {};
@@ -50,5 +52,6 @@ export async function deps(): Promise<Deps> {
     drafter: () => drafter,
     openBotPr: override.openBotPr ?? (async (i) => (await import("@/lib/github/botPr")).openBotPr(i)),
     tokenFor: override.tokenFor ?? (async (r) => (await import("@/lib/github/app")).installationTokenFor(r.workspaceId, r.fullName)),
+    retryDelayMs: override.retryDelayMs ?? 5_000,
   };
 }

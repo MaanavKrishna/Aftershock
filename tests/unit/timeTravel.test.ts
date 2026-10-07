@@ -49,6 +49,22 @@ describe("time travel", () => {
     expect(runs[0].beforeResults.map((x) => x.outcome)).toEqual(["failed", "failed", "failed"]);
   });
 
+  test("a model timeout is retried within the same attempt instead of ending time travel", async () => {
+    const w = await ledgerWorld();
+    let calls = 0;
+    const drafter: Drafter = {
+      draft: async () => {
+        calls++;
+        if (calls < 3) throw Object.assign(new Error("Request timed out."), { name: "APIConnectionTimeoutError" });
+        return { path: "tests/aftershock/test_inc_1.py", code: "GOOD", model: "fake-model", tokens: 1 };
+      },
+    };
+    setDeps({ runner: () => fakeRunner((s) => (s.sha === w.git.parent ? "failed" : "passed")), drafter: () => drafter, openBotPr: async () => null, retryDelayMs: 0 });
+    await timeTravel(w.incident.id, {});
+    expect(calls).toBe(3);
+    expect((await w.runs()).map((x) => x.status)).toEqual(["proven"]);
+  });
+
   test("a rejected draft feeds its failure into the next draft, which can be proven", async () => {
     const w = await ledgerWorld();
     const drafter = fakeDrafter(["WEAK", "GOOD"]);

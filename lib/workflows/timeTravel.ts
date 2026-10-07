@@ -134,7 +134,9 @@ async function draftTest(runId: string, ctx: TravelContext, feedback?: string, h
   const { safeTestPath } = await import("@/lib/runner/paths");
   const started = Date.now();
   try {
-    const d = await (await deps()).drafter().draft({ workspaceId: ctx.workspaceId, key: ctx.key, incident: ctx.incident, framework: ctx.framework, testDir: ctx.testDir, fixTitle: ctx.fixTitle, diff: ctx.diff, changedFiles: ctx.changedFiles, context: ctx.context, feedback, hint, previous });
+    const { withModelRetry } = await import("@/lib/model/retry");
+    const dep = await deps();
+    const d = await withModelRetry(() => dep.drafter().draft({ workspaceId: ctx.workspaceId, key: ctx.key, incident: ctx.incident, framework: ctx.framework, testDir: ctx.testDir, fixTitle: ctx.fixTitle, diff: ctx.diff, changedFiles: ctx.changedFiles, context: ctx.context, feedback, hint, previous }), dep.retryDelayMs);
     const path = safeTestPath(d.path);
     if (!path.startsWith(ctx.testDir.replace(/\/$/, "") + "/")) throw Object.assign(new Error(`The draft must live under ${ctx.testDir}/`), { name: "InvalidModelOutput" });
     await patchStep(runId, "draft", { state: "ok", detail: `${d.model}${feedback ? " · with the previous failure as feedback" : ""}`, ms: Date.now() - started }, { testPath: path, testCode: d.code, model: d.model, tokens: d.tokens ?? null });

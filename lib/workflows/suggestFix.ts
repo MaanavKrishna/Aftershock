@@ -52,7 +52,8 @@ async function propose(p: Extract<Plan, { ok: true }>): Promise<{ ok: true; path
   const { FIX_SYSTEM } = await import("@/lib/model/prompts");
   const { parseModelJson } = await import("@/lib/model/validate");
   try {
-    const res = await complete(p.workspaceId, [
+    const { withModelRetry } = await import("@/lib/model/retry");
+    const res = await withModelRetry(() => complete(p.workspaceId, [
       { role: "system", content: FIX_SYSTEM },
       {
         role: "user",
@@ -64,7 +65,7 @@ async function propose(p: Extract<Plan, { ok: true }>): Promise<{ ok: true; path
           `Return the corrected contents of ${p.prompt.file}.`,
         ].join("\n\n"),
       },
-    ]);
+    ]));
     const out = parseModelJson(res.text) as { path?: unknown; content?: unknown; explanation?: unknown };
     if (typeof out.path !== "string" || typeof out.content !== "string") return { ok: false, reason: "The model did not return a file." };
     if (!p.changedFiles.includes(out.path)) return { ok: false, reason: `The suggestion edited ${out.path}, which this pull request never changed.` };

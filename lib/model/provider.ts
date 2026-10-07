@@ -54,7 +54,7 @@ export function setModelClient(c: Client | null) {
 
 const openaiClient: Client = async (cfg, messages) => {
   const { default: OpenAI } = await import("openai");
-  const client = new OpenAI({ apiKey: cfg.apiKey, baseURL: cfg.baseURL, timeout: 60_000, maxRetries: 1 });
+  const client = new OpenAI({ apiKey: cfg.apiKey, baseURL: cfg.baseURL, timeout: 90_000, maxRetries: 0 }); // callers retry transient failures (lib/model/retry.ts)
   const res = await client.chat.completions.create({ model: cfg.model, messages, temperature: 0.2 });
   return { text: res.choices[0]?.message?.content ?? "", tokens: res.usage?.total_tokens, model: cfg.model };
 };
