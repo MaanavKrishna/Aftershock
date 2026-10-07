@@ -27,3 +27,7 @@ test("an empty or missing report is an error", () => {
 test("a skipped test is an error, not a pass", () => {
   expect(parseJUnit('<testsuite><testcase name="t"><skipped/></testcase></testsuite>', 0).outcome).toBe("error");
 });
+test("numeric character references in failure messages are decoded", () => {
+  const xml = `<testsuite><testcase name="t"><failure message="AssertionError: assert -1000 == 0&#10; +  where -1000 = total_cents()&#x27;x&#x27;">x</failure></testcase></testsuite>`;
+  expect(parseJUnit(xml, 0).message).toBe("AssertionError: assert -1000 == 0\n +  where -1000 = total_cents()'x'");
+});
