@@ -44,7 +44,7 @@ jobs:
       - run: npx aftershock check --in-place --pr \${{ github.event.number }} --report
         env:
           AFTERSHOCK_TOKEN: \${{ secrets.AFTERSHOCK_TOKEN }}
-          AFTERSHOCK_URL: https://[your-domain]`;
+          AFTERSHOCK_URL: https://aftershock-mk.vercel.app`;
 const API = [["GET", "/api/v1/incidents", "List incidents and their status"], ["POST", "/api/v1/incidents", "Create an incident from text"], ["POST", "/api/v1/incidents/:number/verify", "Start time travel"], ["GET", "/api/v1/runs/:id/evidence", "One time-travel run with its evidence"], ["GET", "/api/v1/memory", "Admitted tests"], ["GET", "/api/v1/lessons", "LESSONS.md for coding agents"], ["POST", "/api/v1/checks/report", "Report a check run from your own runner"]];
 const RULES = ["A model never marks anything proven or safe. Only test runs do.", "A test that passes before the fix is rejected, however good it looks.", "Mixed results are inconclusive — never green.", "Aftershock never pushes to your default branch. Tests arrive as pull requests.", "Sandboxed runs never receive your secrets."];
 

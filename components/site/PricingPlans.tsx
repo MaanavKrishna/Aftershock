@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 const FREE = ["Unlimited public repositories", "1 private repository", "Unlimited incidents and admitted tests", "Checks on your own GitHub Actions — unlimited", "5 sandbox CPU-hours a month", "Community support"];
-const TEAM = ["Unlimited private repositories", "Sentry and PagerDuty intake", "[N] sandbox CPU-hours per committer", "Suggested fixes on failing checks", "Required checks and team roles", "Email support, next business day"];
+const TEAM = ["Unlimited private repositories", "Sentry and PagerDuty intake", "10 sandbox CPU-hours a month per committer", "Suggested fixes on failing checks", "Required checks and team roles", "Email support, next business day"];
 const ENT = ["Self-hosted runners only mode", "SSO and SCIM", "Audit log export", "Bring your own model endpoint", "Data residency options", "Named support contact"];
 
 function Check({ dark }: { dark?: boolean }) {
@@ -31,14 +31,14 @@ export function PricingPlans() {
           </article>
           <article className="flex flex-col gap-5 rounded-[14px] bg-ink p-7 text-on-dark shadow-[0_30px_60px_-30px_rgba(14,20,27,0.45)]">
             <div className="flex items-start justify-between gap-3"><div className="flex flex-col gap-1.5"><span className="text-lg font-semibold text-white">Team</span><span className="text-sm text-on-dark-muted">Product teams shipping daily</span></div><span className="rounded-md bg-pass-dark px-2 py-1 font-mono text-[11.5px] font-semibold text-ink">MOST TEAMS</span></div>
-            <div className="flex items-baseline gap-1.5"><span className="text-[44px] font-semibold tracking-[-0.03em] text-white">{yearly ? "[YEARLY PRICE]" : "[MONTHLY PRICE]"}</span><span className="text-sm text-on-dark-muted">per active committer / {yearly ? "year" : "month"}</span></div>
+            <div className="flex items-baseline gap-1.5"><span className="text-[44px] font-semibold tracking-[-0.03em] text-white">{yearly ? "$150" : "$15"}</span><span className="text-sm text-on-dark-muted">per active committer / {yearly ? "year" : "month"}</span></div>
             <Link href="/signin" className="flex min-h-[46px] items-center justify-center rounded-[9px] bg-site font-semibold text-ink no-underline">Start a 14-day trial</Link>
             <div className="flex flex-col text-[14.5px] text-[#C9D1DA]">{TEAM.map((f) => <div key={f} className="flex gap-2.5 border-t border-ink-line py-[9px]"><Check dark /><span>{f}</span></div>)}</div>
           </article>
           <article className="flex flex-col gap-5 rounded-[14px] border border-[#DCDDD8] bg-white p-7">
             <div className="flex flex-col gap-1.5"><span className="text-lg font-semibold">Enterprise</span><span className="text-sm text-muted">Regulated and large organisations</span></div>
             <div className="flex items-baseline gap-1.5"><span className="text-[44px] font-semibold tracking-[-0.03em]">Custom</span></div>
-            <a href="mailto:[YOUR SALES EMAIL]" className="flex min-h-[46px] items-center justify-center rounded-[9px] border border-field font-semibold text-ink no-underline">Talk to us</a>
+            <a href="mailto:maanavkrishna@gmail.com?subject=Aftershock%20Enterprise" className="flex min-h-[46px] items-center justify-center rounded-[9px] border border-field font-semibold text-ink no-underline">Talk to us</a>
             <div className="flex flex-col text-[14.5px] text-body">{ENT.map((f) => <div key={f} className="flex gap-2.5 border-t border-line-soft py-[9px]"><Check /><span>{f}</span></div>)}</div>
           </article>
         </div>

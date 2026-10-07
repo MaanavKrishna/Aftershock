@@ -5,7 +5,7 @@ import { LogoMark } from "@/components/ui/Logo";
 export const metadata: Metadata = { title: "Sign in" };
 
 const ERRORS: Record<string, string> = {
-  github_not_configured: "GitHub sign-in is not configured on this server yet. An administrator needs to finish setup at /setup/github.",
+  github_not_configured: "GitHub sign-in is not configured on this server yet. An administrator needs to add the GitHub App settings.",
   github_failed: "GitHub sign-in did not complete. Try again.",
 };
 

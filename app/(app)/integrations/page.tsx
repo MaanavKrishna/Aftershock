@@ -22,7 +22,7 @@ export default async function Integrations({ searchParams }: { searchParams: Pro
   const kind: Kind = k && k in KINDS ? (k as Kind) : "github";
   const { scope } = await currentScope();
   const [ws, integrations, repos, log] = await Promise.all([scope.workspace(), scope.integrations(), scope.repos(), scope.deliveries(kind)]);
-  const base = process.env.APP_URL ?? "https://[your-domain]";
+  const base = process.env.APP_URL ?? "http://127.0.0.1:3000";
   const by = Object.fromEntries(integrations.map((i) => [i.kind, i]));
   const connected: Record<Kind, boolean> = { github: Boolean(ws?.installationId) || repos.length > 0, sentry: Boolean(by.sentry?.enabled && (by.sentry.secretCiphertext || by.sentry.config.secretHint)), pagerduty: Boolean(by.pagerduty?.enabled && (by.pagerduty.secretCiphertext || by.pagerduty.config.secretHint)), model: Boolean(by.model?.enabled) || Boolean(process.env.MODEL_API_KEY) };
   const modelName = by.model?.config.model ?? process.env.MODEL_NAME ?? "muse-spark-1.3-contributor";

@@ -1,8 +1,0 @@
-export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
-/** A small standalone page in the Aftershock style, for flows that leave the app shell. */
-export function page(title: string, body: string, status = 200): Response {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)} · Aftershock</title>
-<style>body{margin:0;background:#f3f3ef;color:#0e141b;font:15px/1.55 ui-sans-serif,system-ui,sans-serif}main{max-width:760px;margin:0 auto;padding:48px 20px}h1{font-size:28px;letter-spacing:-.02em;margin:0 0 8px}p{color:#3e4855}code,pre{font-family:ui-monospace,monospace;font-size:13px}pre{background:#0e141b;color:#e6eaee;padding:12px 14px;border-radius:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:6px 0 18px}.k{font-weight:600}.warn{background:#fdf1ea;color:#7c2d12;padding:12px 14px;border-radius:10px}button,.btn{min-height:44px;padding:0 18px;border:0;border-radius:9px;background:#0e141b;color:#fff;font:inherit;font-weight:600;cursor:pointer}input{min-height:44px;padding:0 12px;border:1px solid #c9cbc4;border-radius:9px;font:inherit;width:100%;box-sizing:border-box}label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13px;margin:16px 0}</style></head><body><main>${body}</main></body></html>`;
-  return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
-}

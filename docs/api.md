@@ -50,7 +50,7 @@ jobs:
       - run: npx aftershock check --in-place --pr ${{ github.event.number }} --report
         env:
           AFTERSHOCK_TOKEN: ${{ secrets.AFTERSHOCK_TOKEN }}
-          AFTERSHOCK_URL: https://your-aftershock-domain
+          AFTERSHOCK_URL: https://aftershock-mk.vercel.app
 ```
 
 Results complete the same GitHub check and comment as sandboxed runs.

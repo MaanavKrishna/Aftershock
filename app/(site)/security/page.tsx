@@ -38,7 +38,7 @@ export default function Security() {
             <tbody>{DATA.map(([k, v, w, strong]) => <tr key={k} className="border-b border-line-soft"><th scope="row" className="px-[22px] py-[15px] font-semibold">{k}</th><td className={`px-[22px] py-[15px] ${strong ? "font-semibold" : "text-body"}`}>{v}</td><td className="px-[22px] py-[15px] text-muted">{w}</td></tr>)}</tbody>
           </table>
         </div>
-        <p className="m-0 text-[13.5px] text-muted">Report a vulnerability to <a href="mailto:[YOUR SECURITY EMAIL]" className="text-pass">[YOUR SECURITY EMAIL]</a>.</p>
+        <p className="m-0 text-[13.5px] text-muted">Report a vulnerability to <a href="mailto:maanavkrishna@gmail.com?subject=Aftershock%20security" className="text-pass">maanavkrishna@gmail.com</a>.</p>
       </section>
       <section className="mx-auto max-w-[1200px] px-6 pb-24">
         <div className="flex flex-wrap items-center justify-between gap-7 rounded-2xl bg-ink p-[clamp(32px,5vw,60px)] text-white">
