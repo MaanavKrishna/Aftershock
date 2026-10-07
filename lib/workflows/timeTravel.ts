@@ -69,7 +69,8 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
     let fixRef = inc.fixSha;
     if (!fixRef && inc.fixPr) {
       const { mergeCommitForPr } = await import("@/lib/github/pulls");
-      fixRef = await mergeCommitForPr(repo.fullName, inc.fixPr, token);
+      const { octokitFor } = await import("@/lib/github/app");
+      fixRef = await mergeCommitForPr((await octokitFor(inc.workspaceId)) as Parameters<typeof mergeCommitForPr>[0], repo.fullName, inc.fixPr);
       if (!fixRef) return fail(`Pull request #${inc.fixPr} is not merged yet. Time travel starts when it merges.`);
     }
     const resolved = await src.resolveFix(fixRef!);
