@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --experimental-strip-types scripts/migrate.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
