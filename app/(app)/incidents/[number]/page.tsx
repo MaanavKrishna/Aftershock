@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -83,12 +84,12 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                     <div className="flex w-full flex-wrap items-end gap-3 border-t border-line-soft px-[22px] py-4">
                       <form action={retryTimeTravel}>
                         <input type="hidden" name="incidentId" value={inc.id} />
-                        <button type="submit" className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white">Start time travel</button>
+                        <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white" pendingLabel="Starting…">Start time travel</SubmitButton>
                       </form>
                       <form action={linkFix} className="flex flex-[1_1_320px] flex-wrap items-end gap-3">
                         <input type="hidden" name="incidentId" value={inc.id} />
                         <label className="flex flex-[1_1_220px] flex-col gap-1.5 text-[13px] font-semibold">Or link a different fix<input name="fix" required placeholder="SHA, #PR or GitHub URL" className="min-h-[46px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal" /></label>
-                        <button type="submit" className="min-h-[46px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink">Link fix</button>
+                        <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Linking…">Link fix</SubmitButton>
                       </form>
                     </div>
                   )}
@@ -97,7 +98,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                 <form action={linkFix} className="flex flex-wrap items-end gap-3 px-[22px] py-5">
                   <input type="hidden" name="incidentId" value={inc.id} />
                   <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-[13px] font-semibold">Fix commit or pull request<input name="fix" required placeholder="SHA, #PR or GitHub URL" className="min-h-[46px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal" /></label>
-                  <button type="submit" className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white">Link fix and time travel</button>
+                  <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white" pendingLabel="Starting…">Link fix and time travel</SubmitButton>
                   {error === "fix" && <p role="alert" className="m-0 w-full text-[13px] text-fail-deep">Enter a commit SHA, a PR number like #44, or a GitHub URL.</p>}
                 </form>
               )}
@@ -147,7 +148,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                 <form action={addNote} className="flex flex-col gap-2">
                   <input type="hidden" name="incidentId" value={inc.id} />
                   <label className="flex flex-col gap-1.5 text-[13px] font-semibold">Add a note<textarea name="text" rows={2} placeholder="Context for the next person who sees this test fail" className="resize-y rounded-[9px] border border-line-strong px-3 py-2.5 font-normal" /></label>
-                  <button type="submit" className="min-h-10 cursor-pointer self-end rounded-[9px] border border-line-strong bg-white px-4 text-[13px] font-semibold">Add note</button>
+                  <SubmitButton className="min-h-10 cursor-pointer self-end rounded-[9px] border border-line-strong bg-white px-4 text-[13px] font-semibold" pendingLabel="Adding…">Add note</SubmitButton>
                 </form>
               </div>
             </Card>

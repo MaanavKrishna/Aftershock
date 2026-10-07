@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -162,7 +163,7 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
                 <span className="font-semibold">Not convinced?</span>
                 <span className="text-[13px] text-on-dark-muted">Give the model a hint. The new draft faces the same time travel.</span>
                 <label className="flex flex-col gap-1.5 text-[12.5px] text-[#C9D1DA]">Hint<textarea name="hint" rows={2} placeholder="e.g. the bug only shows when the first response is lost" className="resize-y rounded-[9px] border border-[#344150] bg-ink-2 px-3 py-2.5 text-on-dark" /></label>
-                <button type="submit" className="min-h-11 cursor-pointer rounded-[9px] bg-paper font-semibold text-ink">Redraft and re-run</button>
+                <SubmitButton className="min-h-11 cursor-pointer rounded-[9px] bg-paper font-semibold text-ink" pendingLabel="Starting…">Redraft and re-run</SubmitButton>
               </form>
             )}
           </aside>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -150,7 +151,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
                 {!fix && (
                   <form action={requestSuggestedFix}>
                     <input type="hidden" name="checkId" value={check.id} />
-                    <button type="submit" className="min-h-11 w-full cursor-pointer rounded-[9px] bg-paper font-semibold text-ink">Suggest a fix</button>
+                    <SubmitButton className="min-h-11 w-full cursor-pointer rounded-[9px] bg-paper font-semibold text-ink" pendingLabel="Requesting…">Suggest a fix</SubmitButton>
                   </form>
                 )}
                 {fix && (
