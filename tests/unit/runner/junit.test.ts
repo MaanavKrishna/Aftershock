@@ -36,5 +36,7 @@ test("a test whose imports fail is marked as missing code", async () => {
   expect(codeAbsent({ outcome: "error", durationMs: 0, message: "The test file failed to load" })).toBe(true);
   expect(codeAbsent({ outcome: "error", durationMs: 0, message: "ModuleNotFoundError: No module named 'shop.receipt'" })).toBe(true);
   expect(codeAbsent({ outcome: "error", durationMs: 0, message: "Dependency install failed (exit 1)" })).toBe(false);
-  expect(codeAbsent({ outcome: "failed", durationMs: 0, message: "ImportError" })).toBe(false);
+  expect(codeAbsent({ outcome: "failed", durationMs: 0, message: "AttributeError: 'Cart' object has no attribute 'item_count'" })).toBe(true);
+  expect(codeAbsent({ outcome: "failed", durationMs: 0, message: "assert 1 == 3" })).toBe(false);
+  expect(codeAbsent({ outcome: "passed", durationMs: 0 })).toBe(false);
 });

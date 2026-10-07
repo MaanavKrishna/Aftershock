@@ -48,3 +48,9 @@ test("commits where the tested code does not exist yet bound the search like a p
   const r = await findEpicenter(chain(7), async (sha) => (Number(sha.slice(1)) <= 2 ? "fail" : "absent"), 12);
   expect(r).toMatchObject({ sha: "c2", subject: "commit 2", arrivedWithCode: true });
 });
+
+test("a passing commit hidden between failing and absent commits is still found", async () => {
+  // c0, c1 fail (bug); c2 passes (code correct); c3+ predate the code.
+  const r = await findEpicenter(chain(9), async (sha) => { const n = Number(sha.slice(1)); return n <= 1 ? "fail" : n === 2 ? "pass" : "absent"; }, 12);
+  expect(r).toEqual({ sha: "c1", subject: "commit 1", testedCommits: expect.any(Number) });
+});

@@ -37,7 +37,9 @@ export function parseJUnit(xml: string, durationMs: number): RunResult {
   return { outcome: "passed", durationMs };
 }
 
-/** An error that means the code under test is missing at this commit (it cannot be imported), not a broken environment. */
+export const MISSING_CODE = /failed to load|collection failure|ImportError|ModuleNotFoundError|NameError|Cannot find module|has no attribute|is not a function|is not exported|does not provide an export/i;
+
+/** A result that means the code under test is missing at this commit (it cannot be imported or named), not a broken environment. */
 export function codeAbsent(r: RunResult): boolean {
-  return r.outcome === "error" && /failed to load|collection failure|ImportError|ModuleNotFoundError|Cannot find module|has no attribute|is not exported|does not provide an export/i.test(r.message ?? "");
+  return (r.outcome === "error" || r.outcome === "failed") && MISSING_CODE.test(r.message ?? "");
 }

@@ -8,7 +8,7 @@ async function search(memoryTestId: string): Promise<void> {
   const { sourceFor } = await import("@/lib/git/source");
   const { deps } = await import("@/lib/timetravel/deps");
   const { findEpicenter, prFromSubject } = await import("@/lib/domain/epicenter");
-  const { codeAbsent } = await import("@/lib/runner/junit");
+  const { codeAbsent, MISSING_CODE } = await import("@/lib/runner/junit");
   const { incidentKey } = await import("@/lib/domain/ids");
   const db = await getDb();
   const [t] = await db.select().from(s.memoryTests).where(eq(s.memoryTests.id, memoryTestId));
@@ -19,12 +19,15 @@ async function search(memoryTestId: string): Promise<void> {
   if (!inc.parentSha) return;
   const d = await deps();
   const token = await d.tokenFor(repo);
+  const [proof] = t.runId ? await db.select({ before: s.timeTravelRuns.beforeResults }).from(s.timeTravelRuns).where(eq(s.timeTravelRuns.id, t.runId)) : [];
+  const provenAsMissing = (proof?.before ?? []).some((x) => MISSING_CODE.test(x.message ?? ""));
   const DEPTH = 64;
   const chain = await (await sourceFor(repo, token)).firstParentChain(inc.parentSha, DEPTH);
   const result = await findEpicenter(chain, async (sha) => {
     const r = await d.runner().run({ repoUrl: repo.cloneUrl, token, sha, framework: repo.framework, install: repo.installCmd, testPath: t.path, testCode: t.code, runs: 1, timeoutMs: 120_000 });
     const first = r.results[0];
-    if (r.installOk && first && codeAbsent(first)) return "absent";
+    // A missing name only marks absent code when the proven failure itself was not that kind of error.
+    if (r.installOk && first && codeAbsent(first) && !provenAsMissing) return "absent";
     return first?.outcome === "passed" ? "pass" : first?.outcome === "failed" ? "fail" : "error";
   }, 12, { reachedRoot: chain.length < DEPTH });
   const epicenter: Epicenter = "sha" in result ? { sha: result.sha.slice(0, 7), prNumber: prFromSubject(result.subject), title: result.subject.slice(0, 160), testedCommits: result.testedCommits, ...(result.arrivedWithCode ? { arrivedWithCode: true } : {}) } : result;
