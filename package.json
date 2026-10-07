@@ -11,7 +11,8 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --experimental-strip-types scripts/migrate.ts",
-    "build:cli": "esbuild cli/aftershock.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/aftershock.mjs --alias:@=. --banner:js='#!/usr/bin/env node'"
+    "build:cli": "esbuild cli/aftershock.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/aftershock.mjs --alias:@=. --banner:js='#!/usr/bin/env node'",
+    "vercel-build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
