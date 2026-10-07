@@ -67,7 +67,8 @@ export async function saveModel(_p: FormState, form: FormData): Promise<FormStat
   const model = String(form.get("model") ?? "").trim();
   const baseUrl = String(form.get("baseUrl") ?? "").trim();
   if (provider !== "muse" && !model) return { error: "Enter a model name." };
-  if (provider === "custom" && !/^https:\/\//.test(baseUrl)) return { error: "The base URL must start with https://." };
+  const { isPublicHttpsUrl } = await import("@/lib/model/provider");
+  if (provider === "custom" && !isPublicHttpsUrl(baseUrl)) return { error: "The base URL must be a public https:// address (no localhost or private networks)." };
   const key = String(form.get("apiKey") ?? "").trim();
   await upsert(session.workspaceId, "model", { provider, model, ...(provider === "custom" ? { baseUrl } : {}) }, key || undefined);
   revalidatePath("/integrations");

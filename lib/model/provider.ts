@@ -7,6 +7,26 @@ const GATEWAY = "https://ai-gateway.vercel.sh/v1";
 const MUSE_DEFAULT_URL = "https://api.meta.ai/v1";
 const MUSE_DEFAULT_MODEL = "muse-spark-1.3-contributor";
 
+/** Custom endpoints must be public https hosts: never loopback, private, link-local or internal names. */
+export function isPublicHttpsUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:") return false;
+  const h = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".internal") || h.endsWith(".local")) return false;
+  if (h.includes(":")) return !(h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80") || h === "::");
+  const ip = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ip) {
+    const [a, b] = [Number(ip[1]), Number(ip[2])];
+    if (a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127)) return false;
+  }
+  return true;
+}
+
 /** Workspace setting first, then the server's environment. Null means no model is available. */
 export function resolveModelConfig(stored: { config: Record<string, string>; apiKey?: string } | null, env: Record<string, string | undefined>): ModelConfig | null {
   const provider = (stored?.config.provider as ModelConfig["provider"]) ?? "muse";
@@ -19,7 +39,7 @@ export function resolveModelConfig(stored: { config: Record<string, string>; api
     const apiKey = stored?.apiKey;
     const baseURL = stored?.config.baseUrl;
     const model = stored?.config.model;
-    return apiKey && baseURL && model ? { provider, baseURL, apiKey, model } : null;
+    return apiKey && baseURL && model && isPublicHttpsUrl(baseURL) ? { provider, baseURL, apiKey, model } : null;
   }
   const apiKey = stored?.apiKey ?? env.MODEL_API_KEY;
   if (!apiKey) return null;

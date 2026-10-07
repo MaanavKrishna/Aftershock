@@ -11,7 +11,7 @@ test("a tampered session is rejected", async () => {
   const [h, p, sig] = token.split(".");
   const forged = Buffer.from(JSON.stringify({ userId: "u1", workspaceId: "other" })).toString("base64url");
   expect(await verifySession(`${h}.${forged}.${sig}`)).toBeNull();
-  expect(await verifySession(`${h}.${p}.x${sig.slice(1)}`)).toBeNull();
+  expect(await verifySession(`${h}.${p}.${sig[0] === "A" ? "B" : "A"}${sig.slice(1)}`)).toBeNull();
 });
 
 test("an expired session is rejected", async () => {

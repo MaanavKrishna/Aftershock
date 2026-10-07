@@ -121,3 +121,15 @@ describe("triage and extraction", () => {
     expect(await extractIncident("A long postmortem text about retries and duplicate charges.", "w")).toEqual({ title: "T", trigger: "a", observed: "b", expected: "c", fix: "aa86f56" });
   });
 });
+
+describe("custom endpoints", () => {
+  const custom = (baseUrl: string) => resolveModelConfig({ config: { provider: "custom", model: "m", baseUrl }, apiKey: "k" }, {});
+  test("a public https endpoint is allowed", () => {
+    expect(custom("https://models.example.com/v1")).toMatchObject({ baseURL: "https://models.example.com/v1" });
+  });
+  test("private, loopback, link-local and plain-http endpoints are refused", () => {
+    for (const u of ["http://models.example.com/v1", "https://localhost/v1", "https://127.0.0.1/v1", "https://10.0.0.5/v1", "https://192.168.1.2/v1", "https://172.16.0.1/v1", "https://169.254.169.254/latest", "https://[::1]/v1", "https://metadata.google.internal/"]) {
+      expect(custom(u), u).toBeNull();
+    }
+  });
+});
