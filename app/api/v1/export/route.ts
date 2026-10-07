@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     repositories: await sc.repos(),
     incidents: await Promise.all(incidents.map(async (i) => ({ ...i, runs: await sc.runs(i.id), notes: (await sc.notes(i.id)).map((n) => n.note) }))),
     memory: (await sc.memory()).map((m) => m.test),
-    checks: await sc.checks(),
+    checks: await sc.checks({ history: true }),
   };
   return new NextResponse(JSON.stringify(data, null, 2), { headers: { "content-type": "application/json", "content-disposition": 'attachment; filename="aftershock-export.json"' } });
 }

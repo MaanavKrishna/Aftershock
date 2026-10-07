@@ -13,11 +13,12 @@ export const metadata: Metadata = { title: "Overview" };
 
 export default async function Overview() {
   const { scope } = await currentScope();
-  const [ws, rows, memory, checks, faults, activity, repos] = await Promise.all([
+  const [ws, rows, memory, checks, history, faults, activity, repos] = await Promise.all([
     scope.workspace(),
     scope.incidentRows({}),
     scope.memory(),
     scope.checks(),
+    scope.checks({ history: true }),
     scope.faultLines(),
     scope.activity(5),
     scope.repos(),
@@ -43,7 +44,8 @@ export default async function Overview() {
   ];
   const week = Date.now() - 7 * 86_400_000;
   const recentChecks = checks.filter((c) => c.check.createdAt.getTime() > week);
-  const recur = checks.filter((c) => c.check.verdict === "recur");
+  // Every pull request a recurrence was ever blocked on, newest first — even if it has since been fixed.
+  const recur = history.filter((c, i, all) => c.check.verdict === "recur" && all.findIndex((x) => x.check.verdict === "recur" && x.check.repoId === c.check.repoId && x.check.prNumber === c.check.prNumber) === i);
   const awaiting = rows.filter((r) => r.incident.status === "awaiting_fix");
   const traveling = rows.find((r) => r.incident.status === "traveling");
   const maxFault = Math.max(1, ...faults.map((f) => f.count));
@@ -52,7 +54,7 @@ export default async function Overview() {
   const stats = [
     { k: "Proven tests in memory", v: memory.length, sub: `across ${new Set(memory.map((m) => m.repo.id)).size} repositories`, href: "/memory", fail: false },
     { k: "Pull requests checked", v: recentChecks.length, sub: "last 7 days", href: "/pulls", fail: false },
-    { k: "Recurrences blocked", v: recur.length, sub: recur[0] ? `PR #${recur[0].check.prNumber}` : "none yet", href: recur[0] ? `/pulls/${recur[0].check.prNumber}` : "/pulls", fail: recur.length > 0 },
+    { k: "Recurrences blocked", v: recur.length, sub: recur[0] ? `PR #${recur[0].check.prNumber}` : "none yet", href: recur[0] ? `/pulls/${recur[0].check.prNumber}?repo=${recur[0].repo.name}` : "/pulls", fail: recur.length > 0 },
     { k: "Awaiting fix", v: awaiting.length, sub: "from alerts and reports", href: "/incidents?status=awaiting_fix", fail: false },
   ];
 

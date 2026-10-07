@@ -183,16 +183,18 @@ export function scoped(workspaceId: string) {
       return rows.map((r) => ({ ...r, guarded: Number(by[r.test.id]?.guarded ?? 0), blocked: Number(by[r.test.id]?.blocked ?? 0) }));
     },
 
-    async checks(filter: { verdict?: s.CheckVerdict } = {}) {
+    /** One row per pull request — its latest check — unless `history` asks for every check. */
+    async checks(filter: { verdict?: s.CheckVerdict; history?: boolean } = {}) {
       const db = await getDb();
-      const where: SQL[] = [eq(s.prChecks.workspaceId, workspaceId)];
-      if (filter.verdict) where.push(eq(s.prChecks.verdict, filter.verdict));
-      const rows = await db
+      const all = await db
         .select({ check: s.prChecks, repo: s.repositories })
         .from(s.prChecks)
         .innerJoin(s.repositories, eq(s.repositories.id, s.prChecks.repoId))
-        .where(and(...where))
+        .where(eq(s.prChecks.workspaceId, workspaceId))
         .orderBy(desc(s.prChecks.createdAt));
+      const seen = new Set<string>();
+      const latest = filter.history ? all : all.filter((r) => !seen.has(`${r.check.repoId}#${r.check.prNumber}`) && seen.add(`${r.check.repoId}#${r.check.prNumber}`));
+      const rows = filter.verdict ? latest.filter((r) => r.check.verdict === filter.verdict) : latest;
       const ids = rows.map((r) => r.check.id);
       const results = ids.length ? await db.select().from(s.prCheckResults).where(inArray(s.prCheckResults.checkId, ids)) : [];
       const skips = ids.length ? await db.select({ checkId: s.prCheckSkips.checkId, n: count() }).from(s.prCheckSkips).where(inArray(s.prCheckSkips.checkId, ids)).groupBy(s.prCheckSkips.checkId) : [];
@@ -202,11 +204,19 @@ export function scoped(workspaceId: string) {
 
     async verdictCounts() {
       const db = await getDb();
-      const rows = await db.select({ v: s.prChecks.verdict, n: count() }).from(s.prChecks).where(eq(s.prChecks.workspaceId, workspaceId)).groupBy(s.prChecks.verdict);
+      const rows = await db
+        .select({ repoId: s.prChecks.repoId, pr: s.prChecks.prNumber, v: s.prChecks.verdict })
+        .from(s.prChecks)
+        .where(eq(s.prChecks.workspaceId, workspaceId))
+        .orderBy(desc(s.prChecks.createdAt));
+      const seen = new Set<string>();
       const out: Record<string, number> = { all: 0 };
       for (const r of rows) {
-        out[r.v ?? "running"] = r.n;
-        out.all += r.n;
+        if (seen.has(`${r.repoId}#${r.pr}`)) continue;
+        seen.add(`${r.repoId}#${r.pr}`);
+        const k = r.v ?? "running";
+        out[k] = (out[k] ?? 0) + 1;
+        out.all += 1;
       }
       return out;
     },
