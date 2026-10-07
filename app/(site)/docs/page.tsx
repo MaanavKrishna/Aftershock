@@ -28,9 +28,10 @@ check:
   runs: 3
 incidents:
   issue_label: incident`;
-const CLI = `npx aftershock verify INC-12 --local    # time travel one incident with Docker
-npx aftershock check --base main --head HEAD --local
-npx aftershock check --pr 214           # report a PR check from CI`;
+const CLI = `npx aftershock prove --fix aa86f56 --test tests/aftershock/test_retry.py   # time travel your own test in Docker
+npx aftershock check                     # run every memory test at HEAD in Docker
+npx aftershock check --in-place --pr 214 --report   # in CI: run in this checkout, report to Aftershock
+npx aftershock verify INC-12             # start a hosted time travel (needs AFTERSHOCK_URL and AFTERSHOCK_TOKEN)`;
 const ACTION = `name: Aftershock
 on: [pull_request]
 jobs:
@@ -39,7 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - run: npx aftershock check --pr \${{ github.event.number }} --base \${{ github.event.pull_request.base.sha }} --head \${{ github.sha }}
+      - run: pip install -r requirements.txt pytest   # or: npm ci
+      - run: npx aftershock check --in-place --pr \${{ github.event.number }} --report
         env:
           AFTERSHOCK_TOKEN: \${{ secrets.AFTERSHOCK_TOKEN }}
           AFTERSHOCK_URL: https://[your-domain]`;

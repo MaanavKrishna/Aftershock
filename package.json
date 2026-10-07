@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --experimental-strip-types scripts/migrate.ts"
+    "db:migrate": "node --experimental-strip-types scripts/migrate.ts",
+    "build:cli": "esbuild cli/aftershock.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/aftershock.mjs --alias:@=. --banner:js='#!/usr/bin/env node'"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -44,6 +45,6 @@
     "vitest": "^5.0.3"
   },
   "bin": {
-    "aftershock": "./cli/aftershock.ts"
+    "aftershock": "./dist/aftershock.mjs"
   }
 }
