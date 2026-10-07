@@ -2,6 +2,8 @@
 
 **Every incident becomes a test. Git history proves it.**
 
+Live: https://aftershock-mk.vercel.app
+
 Aftershock turns a production incident into a regression test that must **fail on the commit before the fix and pass on the fix** — three runs each, in an isolated runner — and then guards every pull request against that incident coming back.
 
 ```
@@ -41,8 +43,6 @@ To draft tests, configure a model: set `MODEL_API_KEY` (Muse, the default) or pi
 - [Setup and deployment](docs/setup.md) — GitHub App, OAuth, Neon, Vercel, Sentry, PagerDuty
 - [Architecture](docs/architecture.md) — how the pieces fit, code layout
 - [API and CLI](docs/api.md) — HTTP API, `aftershock` command line, GitHub Actions runner
-- [Product spec](docs/product-spec.md) — the full design
-- [Design](docs/design/) — the 18 screen designs the UI is built from
 
 ## Development
 
