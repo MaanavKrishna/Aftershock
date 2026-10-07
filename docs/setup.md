@@ -13,49 +13,40 @@ npm run dev
 - **Workflows**: in development they run in-process. On Vercel they run durably with the Workflow SDK.
 - **Demo**: `AFTERSHOCK_DEMO=1` shows “Try the demo workspace” on the sign-in page.
 
-## 1. Sign in with GitHub (OAuth app)
+## 1. GitHub App (sign-in and repositories)
 
-GitHub → Settings → Developer settings → OAuth Apps → New.
+One GitHub App handles both “Sign in with GitHub” and repository access. Create it from the running app:
 
-- Homepage URL: `APP_URL`
-- Callback URL: `APP_URL/api/auth/callback`
-
-Set `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`. Scopes requested: `read:user read:org`.
-
-## 2. GitHub App (repositories)
-
-GitHub → Settings → Developer settings → GitHub Apps → New.
+1. Deploy first (step 3) so the app has a public URL, and set `APP_URL` to it.
+2. Open `APP_URL/setup/github`, optionally enter an organisation, and click **Create GitHub App**. GitHub opens with everything pre-filled:
 
 | Setting | Value |
 |---|---|
 | Webhook URL | `APP_URL/api/webhooks/github` |
-| Webhook secret | random string → `GITHUB_WEBHOOK_SECRET` |
+| Callback URL (sign-in) | `APP_URL/api/auth/callback` |
 | Setup URL | `APP_URL/onboarding` |
 | Repository permissions | Contents **read & write**, Issues **read**, Metadata **read**, Checks **read & write**, Pull requests **read & write** |
-| Events | Installation, Installation repositories, Issues, Pull request, Check run |
+| Events | Issues, Pull request, Check run (installation events are always sent) |
 
-Contents write is used only to open test PRs on `aftershock/*` branches. Runners always clone with a one-hour token scoped **read-only** to a single repository.
+3. Confirm on GitHub. You land on a page that shows `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` **once**. Add them to Vercel (Production) and redeploy. The setup page locks itself once `GITHUB_APP_ID` is set.
+4. Install the app on your repositories from `https://github.com/apps/<slug>/installations/new`.
 
-Set `GITHUB_APP_ID`, `GITHUB_APP_SLUG` and `GITHUB_APP_PRIVATE_KEY` (the PEM; `\n` escapes are accepted).
+Contents write is used only to open test PRs on `aftershock/*` branches. Runners always clone with a one-hour token scoped **read-only** to a single repository. The app is created private; make it public in its GitHub settings if other organisations should install it.
 
-## 3. Database (Neon)
+## 2. Database (Neon)
 
-Create a Neon Postgres database (for example from the Vercel Marketplace), set `DATABASE_URL`, then:
-
-```bash
-npm run db:migrate
-```
+Create a Neon Postgres database from the Vercel project's **Storage** tab; it sets `DATABASE_URL`. Migrations run automatically on every Vercel build (`npm run vercel-build`). To run them by hand: `npm run db:migrate`.
 
 After changing `lib/db/schema.ts`, generate a migration with `npm run db:generate`.
 
-## 4. Deploy to Vercel
+## 3. Deploy to Vercel
 
 1. Import the repository in Vercel and add every variable from `.env.example` that applies.
 2. Set `APP_URL` to the production URL, `ENCRYPTION_KEY` and `AUTH_SECRET` to long random strings, and `CRON_SECRET`.
 3. On Vercel, runs use **Vercel Sandbox** (one Firecracker microVM per run) and workflows use the **Workflow SDK** automatically. `vercel.json` schedules the nightly re-check at 03:00 UTC.
 4. Recommended: add a Vercel Firewall rate-limit rule on `/api/webhooks/*` and `/api/v1/*`. Aftershock also limits per instance (300 webhook and 120 API requests per minute per caller).
 
-## 5. Model
+## 4. Model
 
 Under **Integrations → Model provider**:
 
@@ -65,7 +56,7 @@ Under **Integrations → Model provider**:
 
 Keys are encrypted at rest (AES-256-GCM) and never sent to a runner.
 
-## 6. Sentry and PagerDuty
+## 5. Sentry and PagerDuty
 
 Under **Integrations**:
 
