@@ -3,6 +3,9 @@ import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { incidentKey, parseIncidentRefs } from "@/lib/domain/ids";
 import { github } from "./api";
+import { fieldsFromIssue } from "@/lib/domain/issueBody";
+
+const clip = (f: { trigger: string; observed: string; expected: string }) => ({ trigger: f.trigger.slice(0, 2000), observed: f.observed.slice(0, 4000), expected: f.expected.slice(0, 2000) });
 
 type Repo = { id: number; name: string; full_name: string };
 type Payload = Record<string, any>; // GitHub payloads; only the fields read below are trusted, after the signature check.
@@ -89,7 +92,7 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
     const [inc] = await db
       .insert(s.incidents)
       .values({
-        workspaceId: ws.id, repoId: repo.id, number: await nextNumber(ws.id), title: String(p.issue.title).slice(0, 200), observed: String(p.issue.body ?? "").slice(0, 4000),
+        workspaceId: ws.id, repoId: repo.id, number: await nextNumber(ws.id), title: String(p.issue.title).slice(0, 200), ...clip(fieldsFromIssue(String(p.issue.body ?? ""))),
         source: "issue", sourceRef: ref, fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, status: "awaiting_fix",
         statusReason: fix.sha || fix.pr ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
       })

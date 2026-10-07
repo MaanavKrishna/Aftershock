@@ -1,4 +1,5 @@
 "use server";
+import { fieldsFromIssue } from "@/lib/domain/issueBody";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
@@ -83,7 +84,7 @@ export async function importIssue(form: FormData): Promise<void> {
   const ws = await scope.workspace();
   const hasFix = Boolean(issue.fixSha || issue.fixPr);
   const row = await insertIncident(session.workspaceId, {
-    repoId: issue.repoId, title: issue.title, observed: issue.body, source: "issue", sourceRef: `${issue.repo}#${issue.number}`,
+    repoId: issue.repoId, title: issue.title, ...fieldsFromIssue(issue.body), source: "issue", sourceRef: `${issue.repo}#${issue.number}`,
     fixSha: issue.fixSha ?? null, parentSha: issue.parentSha ?? null, fixPr: issue.fixPr ?? null, status: "awaiting_fix",
     statusReason: hasFix ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
   });
