@@ -65,8 +65,8 @@ describe("resolveModelConfig", () => {
     expect(c).toMatchObject({ provider: "muse", apiKey: "k", baseURL: "https://m.example/v1", model: "muse-spark-1.3-contributor" });
   });
   test("uses the AI Gateway when chosen", () => {
-    const c = resolveModelConfig({ config: { provider: "gateway", model: "anthropic/claude-sonnet" }, apiKey: undefined }, { AI_GATEWAY_API_KEY: "g" });
-    expect(c).toMatchObject({ baseURL: "https://ai-gateway.vercel.sh/v1", apiKey: "g", model: "anthropic/claude-sonnet" });
+    const c = resolveModelConfig({ config: { provider: "gateway", model: "openai/gpt-5" }, apiKey: undefined }, { AI_GATEWAY_API_KEY: "g" });
+    expect(c).toMatchObject({ baseURL: "https://ai-gateway.vercel.sh/v1", apiKey: "g", model: "openai/gpt-5" });
   });
   test("returns null when nothing is configured", () => {
     expect(resolveModelConfig(null, {})).toBeNull();
