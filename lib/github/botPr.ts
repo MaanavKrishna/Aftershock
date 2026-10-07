@@ -28,10 +28,25 @@ export async function openBotPr(i: BotPrInput): Promise<number | null> {
   };
   await put(i.path, i.code, `test: add proven regression test for ${i.key}`);
   await put(`.aftershock/incidents/${i.key}.yaml`, yaml, `chore: record ${i.key} proof`);
-  const { data: pr } = await ok.request("POST /repos/{owner}/{repo}/pulls", {
+  return openOrReusePr(ok as unknown as Client, {
     owner, repo: name, head: branch, base,
     title: `Add proven regression test for ${i.key}`,
     body: `Aftershock proved this test against your git history:\n\n- **Fails** on \`${i.parentSha.slice(0, 7)}\` (before the fix), 3 of 3 runs\n- **Passes** on \`${i.fixSha.slice(0, 7)}\` (the fix), 3 of 3 runs\n\nIncident: **${i.key} — ${i.title}**\n\nMerge it to keep the lesson in your repository. Nothing else changes.`,
   });
-  return pr.number;
+}
+
+type Client = { request: (route: string, params: Record<string, unknown>) => Promise<{ data: unknown }> };
+
+/** Opens the bot PR, or returns the one already open for the branch (a re-proof updates its files in place). */
+export async function openOrReusePr(ok: Client, p: { owner: string; repo: string; head: string; base: string; title: string; body: string }): Promise<number> {
+  try {
+    const { data } = await ok.request("POST /repos/{owner}/{repo}/pulls", p);
+    return (data as { number: number }).number;
+  } catch (err) {
+    if ((err as { status?: number }).status !== 422) throw err;
+    const { data } = await ok.request("GET /repos/{owner}/{repo}/pulls", { owner: p.owner, repo: p.repo, head: `${p.owner}:${p.head}`, state: "open" });
+    const [open] = data as { number: number }[];
+    if (!open) throw err;
+    return open.number;
+  }
 }
