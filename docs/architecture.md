@@ -17,8 +17,8 @@ One Next.js 16 (App Router) application. Pure decision logic is separated from I
 **Time travel** (`lib/workflows/timeTravel.ts`)
 1. Resolve the fix commit and its parent (`lib/git/source.ts`: the GitHub REST API for GitHub repositories, the git CLI for local paths). A root commit or unknown SHA leaves the incident in *Awaiting fix* with a reason.
 2. Read context: the fix diff, the changed files at the parent, test setup files, the nearest tests.
-3. Draft a test (`lib/model/draft.ts`). Output is validated: one file, under the test folder, the right framework, a real test, balanced code.
-4. Run it three times on the parent. Model timeouts and rate limits are retried with back-off (`lib/model/retry.ts`). Anything but three failures stops here: passing means *rejected* and feeds back into the next draft; errors mean *unproven* and end the run.
+3. Draft a test (`lib/model/draft.ts`). Output is validated: one file, under the test folder, the right framework, a real test, balanced code. Model timeouts and rate limits are retried with back-off (`lib/model/retry.ts`).
+4. Run it three times on the parent. Anything but three failures stops here: passing means *rejected* and feeds back into the next draft; errors mean *unproven* and end the run.
 5. Run it three times on the fix. `lib/domain/admission.ts` decides.
 6. On *proven*: store the memory test, open a bot PR, then start Epicenter and the retro-check.
 
