@@ -54,7 +54,7 @@ export const repositories = pgTable("repositories", {
 
 export type IncidentStatus = "awaiting_fix" | "traveling" | "proven" | "rejected" | "unproven";
 export type IncidentSource = "issue" | "postmortem" | "form" | "sentry" | "pagerduty";
-export type Epicenter = { sha: string; prNumber?: number; title?: string; testedCommits: number } | { unavailable: string };
+export type Epicenter = { sha: string; prNumber?: number; title?: string; testedCommits: number; arrivedWithCode?: boolean } | { unavailable: string };
 
 export const incidents = pgTable(
   "incidents",

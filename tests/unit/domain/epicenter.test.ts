@@ -42,3 +42,9 @@ test("health: latest night failing is failing, an older failure is flaky, else h
   expect(healthFrom([true, true])).toBe("healthy");
   expect(healthFrom([])).toBe("healthy");
 });
+
+test("commits where the tested code does not exist yet bound the search like a pass", async () => {
+  // c0..c2 fail; c3 onwards cannot even load the code under test.
+  const r = await findEpicenter(chain(7), async (sha) => (Number(sha.slice(1)) <= 2 ? "fail" : "absent"), 12);
+  expect(r).toMatchObject({ sha: "c2", subject: "commit 2", arrivedWithCode: true });
+});

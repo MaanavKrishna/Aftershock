@@ -1,5 +1,6 @@
-export type Probe = "pass" | "fail" | "error";
-export type EpicenterResult = { sha: string; subject: string; testedCommits: number } | { unavailable: string };
+/** "absent": the code under test does not exist yet at that commit (the test cannot load), so the bug cannot either. */
+export type Probe = "pass" | "fail" | "error" | "absent";
+export type EpicenterResult = { sha: string; subject: string; testedCommits: number; arrivedWithCode?: boolean } | { unavailable: string };
 
 /**
  * chain: first-parent ancestors of the commit before the fix, newest first. The proven test fails at chain[0].
@@ -14,15 +15,17 @@ export async function findEpicenter(chain: { sha: string; subject: string }[], p
     return probe(chain[i].sha);
   };
   let lo = 0; // known failing
-  let hi = -1; // known passing
+  let hi = -1; // known passing (or the code is absent)
+  let hiAbsent = false;
   for (let step = 1; ; step *= 2) {
     const i = Math.min(lo + step, chain.length - 1);
     if (i === lo) break;
     if (runs >= maxRuns) return { unavailable: `Stopped after ${maxRuns} runs without finding a passing ancestor.` };
     const r = await test(i);
     if (r === "error") return { unavailable: `The test could not run on ${chain[i].sha.slice(0, 7)} (old dependencies). Epicenter search stopped.` };
-    if (r === "pass") {
+    if (r === "pass" || r === "absent") {
       hi = i;
+      hiAbsent = r === "absent";
       break;
     }
     lo = i;
@@ -37,9 +40,12 @@ export async function findEpicenter(chain: { sha: string; subject: string }[], p
     const r = await test(mid);
     if (r === "error") return { unavailable: `The test could not run on ${chain[mid].sha.slice(0, 7)}. Epicenter search stopped.` };
     if (r === "fail") lo = mid;
-    else hi = mid;
+    else {
+      hi = mid;
+      hiAbsent = r === "absent";
+    }
   }
-  return { sha: chain[lo].sha, subject: chain[lo].subject, testedCommits: runs };
+  return { sha: chain[lo].sha, subject: chain[lo].subject, testedCommits: runs, ...(hiAbsent ? { arrivedWithCode: true } : {}) };
 }
 
 export function prFromSubject(subject: string): number | undefined {

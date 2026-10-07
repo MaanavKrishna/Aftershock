@@ -31,3 +31,10 @@ test("numeric character references in failure messages are decoded", () => {
   const xml = `<testsuite><testcase name="t"><failure message="AssertionError: assert -1000 == 0&#10; +  where -1000 = total_cents()&#x27;x&#x27;">x</failure></testcase></testsuite>`;
   expect(parseJUnit(xml, 0).message).toBe("AssertionError: assert -1000 == 0\n +  where -1000 = total_cents()'x'");
 });
+test("a test whose imports fail is marked as missing code", async () => {
+  const { codeAbsent } = await import("@/lib/runner/junit");
+  expect(codeAbsent({ outcome: "error", durationMs: 0, message: "The test file failed to load" })).toBe(true);
+  expect(codeAbsent({ outcome: "error", durationMs: 0, message: "ModuleNotFoundError: No module named 'shop.receipt'" })).toBe(true);
+  expect(codeAbsent({ outcome: "error", durationMs: 0, message: "Dependency install failed (exit 1)" })).toBe(false);
+  expect(codeAbsent({ outcome: "failed", durationMs: 0, message: "ImportError" })).toBe(false);
+});
