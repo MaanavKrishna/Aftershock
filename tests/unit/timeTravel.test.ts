@@ -49,6 +49,17 @@ describe("time travel", () => {
     expect(runs[0].beforeResults.map((x) => x.outcome)).toEqual(["failed", "failed", "failed"]);
   });
 
+  test("proving an incident again replaces its memory test instead of adding a second one", async () => {
+    const w = await ledgerWorld();
+    setDeps({ runner: () => fakeRunner((s) => (s.sha === w.git.parent ? "failed" : "passed")), drafter: () => fakeDrafter(["GOOD"]), openBotPr: async () => null });
+    await timeTravel(w.incident.id, {});
+    setDeps({ runner: () => fakeRunner((s) => (s.sha === w.git.parent ? "failed" : "passed")), drafter: () => fakeDrafter(["BETTER"]), openBotPr: async () => null });
+    await timeTravel(w.incident.id, {});
+    const mem = await w.memory();
+    expect(mem.length).toBe(1);
+    expect(mem[0].code).toBe("BETTER");
+  });
+
   test("a model timeout is retried within the same attempt instead of ending time travel", async () => {
     const w = await ledgerWorld();
     let calls = 0;

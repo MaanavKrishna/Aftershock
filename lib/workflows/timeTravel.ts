@@ -200,10 +200,12 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
   const db = await getDb();
   const fn = draft.code.match(/def (test_\w+)/)?.[1] ?? draft.code.match(/\b(?:test|it)\(\s*["'`]([^"'`]+)/)?.[1] ?? draft.path.split("/").pop()!;
   const watched = ctx.changedFiles.filter((f) => !f.startsWith(ctx.testDir) && !/(^|\/)(tests?|__tests__)\//.test(f));
-  const [mem] = await db
-    .insert(s.memoryTests)
-    .values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, repoId: ctx.repoId, runId, path: draft.path, fn, code: draft.code, health: "healthy", nights: [] })
-    .returning();
+  // One memory test per incident: a newer proof replaces the old test.
+  const [existing] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, ctx.incidentId));
+  const values = { repoId: ctx.repoId, runId, path: draft.path, fn, code: draft.code, health: "healthy" as const, nights: [] };
+  const [mem] = existing
+    ? await db.update(s.memoryTests).set(values).where(eq(s.memoryTests.id, existing.id)).returning()
+    : await db.insert(s.memoryTests).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, ...values }).returning();
   await db.update(s.incidents).set({ status: "proven", statusReason: null, watchedFiles: watched.length ? watched : ctx.changedFiles, updatedAt: new Date() }).where(eq(s.incidents.id, ctx.incidentId));
   await db.insert(s.activity).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `${ctx.key} proven · ${RUNS_PER_COMMIT}/${RUNS_PER_COMMIT} fail, ${RUNS_PER_COMMIT}/${RUNS_PER_COMMIT} pass`, detail: draft.path, tone: "pass" });
   await patchStep(runId, "admit", { state: "ok", detail: "Stored with evidence and both commit SHAs" });
