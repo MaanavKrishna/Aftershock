@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { absolute } from "@/lib/http/url";
-import { exchangeCode, fetchUser, STATE_COOKIE } from "@/lib/auth/github-oauth";
-import { upsertGithubAccount } from "@/lib/auth/accounts";
+import { exchangeCode, fetchInstallationIds, fetchUser, STATE_COOKIE } from "@/lib/auth/github-oauth";
+import { joinInstalledWorkspaces, upsertGithubAccount } from "@/lib/auth/accounts";
 import { sessionCookie } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
@@ -12,8 +12,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Sign-in state did not match. Start again from the sign-in page." }, { status: 400 });
   }
   try {
-    const user = await fetchUser(await exchangeCode(code));
+    const token = await exchangeCode(code);
+    const user = await fetchUser(token);
     const session = await upsertGithubAccount(user);
+    await joinInstalledWorkspaces(session.userId, await fetchInstallationIds(token));
     const res = NextResponse.redirect(absolute(req, "/overview"));
     res.cookies.set(await sessionCookie(session));
     res.cookies.delete(STATE_COOKIE);

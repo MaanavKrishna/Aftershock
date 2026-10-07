@@ -27,3 +27,11 @@ export async function fetchUser(token: string): Promise<GithubUser> {
   if (!res.ok) throw new Error(`GitHub user lookup failed (${res.status})`);
   return (await res.json()) as GithubUser;
 }
+
+/** Ids of this GitHub App's installations the signed-in user can access. */
+export async function fetchInstallationIds(token: string): Promise<number[]> {
+  const res = await fetch("https://api.github.com/user/installations?per_page=100", { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { installations?: { id: number }[] };
+  return (data.installations ?? []).map((i) => i.id);
+}

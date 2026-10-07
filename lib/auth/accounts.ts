@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import type { GithubUser } from "./github-oauth";
@@ -22,4 +22,18 @@ export async function upsertGithubAccount(u: GithubUser): Promise<{ userId: stri
     await tx.insert(s.memberships).values({ workspaceId: ws.id, userId: user.id, role: "owner" }).onConflictDoNothing();
     return { userId: user.id, workspaceId: ws.id };
   });
+}
+
+/** Joins the workspaces of GitHub App installations the user can access: the first member becomes owner, later ones members. */
+export async function joinInstalledWorkspaces(userId: string, installationIds: number[]): Promise<void> {
+  if (!installationIds.length) return;
+  const db = await getDb();
+  const spaces = await db.select().from(s.workspaces).where(inArray(s.workspaces.installationId, installationIds));
+  for (const ws of spaces) {
+    await db.transaction(async (tx) => {
+      const members = await tx.select({ userId: s.memberships.userId }).from(s.memberships).where(eq(s.memberships.workspaceId, ws.id));
+      if (members.some((m) => m.userId === userId)) return;
+      await tx.insert(s.memberships).values({ workspaceId: ws.id, userId, role: members.length ? "member" : "owner" }).onConflictDoNothing();
+    });
+  }
 }
