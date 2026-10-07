@@ -8,7 +8,18 @@ import * as s from "@/lib/db/schema";
  */
 const durable = () => process.env.AFTERSHOCK_WORKFLOWS === "durable" || (Boolean(process.env.VERCEL) && process.env.AFTERSHOCK_WORKFLOWS !== "inline");
 
+type Override = (kind: string, id: string) => void;
+let override: Override | null = null;
+/** Tests record starts instead of running workflows. */
+export function setStartOverride(o: Override | null) {
+  override = o;
+}
+
 async function launch<A extends unknown[]>(fn: (...args: A) => Promise<unknown>, args: A, label: string): Promise<void> {
+  if (override) {
+    override(fn.name, String(args[0]));
+    return;
+  }
   if (durable()) {
     const { start } = await import("workflow/api");
     await start(fn as never, args as never);

@@ -5,7 +5,7 @@ import { hours } from "@/lib/format";
 import type { Scoped } from "@/lib/db/queries/scope";
 
 export async function Sidebar({ scope, userId }: { scope: Scoped; userId: string }) {
-  const [ws, me, counts, usage] = await Promise.all([scope.workspace(), scope.me(userId), scope.navCounts(), scope.usage()]);
+  const [ws, me, counts, usage, all] = await Promise.all([scope.workspace(), scope.me(userId), scope.navCounts(), scope.usage(), scope.workspacesFor(userId)]);
   const pct = Math.min(100, (usage.sandboxCpuMs / usage.allowanceMs) * 100);
   const name = me?.user.name ?? me?.user.login ?? "You";
   return (
@@ -14,10 +14,20 @@ export async function Sidebar({ scope, userId }: { scope: Scoped; userId: string
         <LogoMark size={28} inverted />
         Aftershock
       </Link>
-      <div className="flex min-h-11 items-center gap-2.5 rounded-[9px] border border-ink-line bg-ink-2 px-2.5 text-[13.5px] text-on-dark">
-        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-[#344150] text-[11px] font-bold">{(ws?.name ?? "W")[0].toUpperCase()}</span>
-        <span className="flex-1 truncate">{ws?.name}</span>
-      </div>
+      <details className="group relative">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 rounded-[9px] border border-ink-line bg-ink-2 px-2.5 text-[13.5px] text-on-dark">
+          <span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-[#344150] text-[11px] font-bold">{(ws?.name ?? "W")[0].toUpperCase()}</span>
+          <span className="flex-1 truncate">{ws?.name}</span>
+          {all.length > 1 && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>}
+        </summary>
+        {all.length > 1 && (
+          <form action="/api/auth/switch" method="post" className="mt-1 flex flex-col gap-0.5 rounded-[9px] border border-ink-line bg-ink-2 p-1">
+            {all.map((w) => (
+              <button key={w.id} type="submit" name="workspaceId" value={w.id} className={`min-h-10 cursor-pointer rounded-md px-2.5 text-left text-[13px] ${w.id === ws?.id ? "bg-[#26313D] font-semibold text-white" : "text-on-dark-muted hover:bg-[#1c2733]"}`}>{w.name}</button>
+            ))}
+          </form>
+        )}
+      </details>
       <NavList
         items={[
           { id: "overview", label: "Overview" },

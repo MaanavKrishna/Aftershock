@@ -34,6 +34,16 @@ export function scoped(workspaceId: string) {
       return row ?? null;
     },
 
+    async workspacesFor(userId: string) {
+      const db = await getDb();
+      return db
+        .select({ id: s.workspaces.id, name: s.workspaces.name })
+        .from(s.memberships)
+        .innerJoin(s.workspaces, eq(s.workspaces.id, s.memberships.workspaceId))
+        .where(eq(s.memberships.userId, userId))
+        .orderBy(asc(s.workspaces.name));
+    },
+
     async members() {
       const db = await getDb();
       return db
