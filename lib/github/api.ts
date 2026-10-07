@@ -13,6 +13,15 @@ export type GithubApi = {
   openPullRequests(workspaceId: string, fullName: string): Promise<number[] | null>;
 };
 
+type Closer = { __typename: "PullRequest"; number: number; mergeCommit: { oid: string } | null } | { __typename: "Commit"; oid: string } | null;
+
+/** The fix an issue's closer points at: a merged pull request (and its merge commit) or a commit. */
+export function fixFromCloser(closer: Closer): { sha?: string; pr?: number } {
+  if (closer?.__typename === "PullRequest") return closer.mergeCommit ? { sha: closer.mergeCommit.oid, pr: closer.number } : { pr: closer.number };
+  if (closer?.__typename === "Commit") return { sha: closer.oid };
+  return {};
+}
+
 const split = (fullName: string) => {
   const [owner, repo] = fullName.split("/");
   return { owner, repo };
@@ -43,9 +52,17 @@ const real: GithubApi = {
   async closingCommit(workspaceId, fullName, issue) {
     const ok = await octokitFor(workspaceId);
     if (!ok) return {};
-    const { data } = await ok.request("GET /repos/{owner}/{repo}/issues/{issue_number}/events", { ...split(fullName), issue_number: issue, per_page: 100 });
-    const closed = [...data].reverse().find((e) => e.event === "closed" && e.commit_id);
-    return closed?.commit_id ? { sha: closed.commit_id } : {};
+    // REST "closed" events carry no commit when a pull request closed the issue; GraphQL names the closer.
+    const { owner, repo } = split(fullName);
+    const data = await ok.graphql<{ repository: { issue: { timelineItems: { nodes: { closer: Closer }[] } } | null } }>(
+      `query($owner: String!, $repo: String!, $issue: Int!) {
+        repository(owner: $owner, name: $repo) { issue(number: $issue) { timelineItems(itemTypes: [CLOSED_EVENT], last: 1) { nodes { ... on ClosedEvent {
+          closer { __typename ... on PullRequest { number mergeCommit { oid } } ... on Commit { oid } }
+        } } } } }
+      }`,
+      { owner, repo, issue },
+    );
+    return fixFromCloser(data.repository.issue?.timelineItems.nodes[0]?.closer ?? null);
   },
   async prFiles(workspaceId, fullName, pr) {
     const ok = await octokitFor(workspaceId);
