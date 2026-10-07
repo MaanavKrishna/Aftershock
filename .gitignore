@@ -1,21 +1,27 @@
-__pycache__/
-*.py[cod]
-.venv/
-.env
-.pytest_cache/
-.DS_Store
+# dependencies
 node_modules/
-data/*.sqlite3*
+
+# build output
 .next/
+dist/
+/.swc
+*.tsbuildinfo
+next-env.d.ts
+app/.well-known/workflow/
+
+# local data and caches
+data/
+samples/
+
+# tests
 test-results/
 playwright-report/
-data/
-samples/ecommerce-api/
-.superpowers/
-tsconfig.tsbuildinfo
-*.pyc
+
+# environment
 .env*
 !.env.example
-/.swc
-dist/
-app/.well-known/workflow/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

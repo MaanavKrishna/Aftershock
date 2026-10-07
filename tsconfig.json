@@ -37,9 +37,8 @@
   ],
   "exclude": [
     "node_modules",
-    "legacy",
-    "design",
+    "docs",
     "samples",
-    ".superpowers"
+    "data"
   ]
 }

@@ -67,7 +67,7 @@ export default async function Repositories({ searchParams }: { searchParams: Pro
           </Card>
           {sel && (
             <Card dark className="min-w-0 flex-[1_1_380px]">
-              <CardHead dark sub="Generated from these settings. Commit it to keep them with your code.">.aftershock/config.yaml · {sel.name}</CardHead>
+              <CardHead dark sub="Commit this file to the default branch to keep these settings with your code. It overrides the settings above.">.aftershock/config.yaml · {sel.name}</CardHead>
               <pre className="m-0 overflow-x-auto px-[22px] py-4 font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{`framework: ${sel.framework}\nrunner: ${sel.runner}\ninstall: ${sel.installCmd}\ntest_dir: ${sel.testDir}\ncheck:\n  mode: ${sel.checkMode}\n  runs: 3\nincidents:\n  issue_label: ${ws?.settings.issueLabel ?? "incident"}`}</pre>
             </Card>
           )}

@@ -99,7 +99,7 @@ export default function Docs() {
           </section>
           <section id="config" className="flex flex-col gap-[18px]">
             <h2 className={h2}>.aftershock/config.yaml</h2>
-            <p className="m-0 text-body">Optional. Without it, Aftershock detects the framework and uses the sandbox. The file is read from the default branch.</p>
+            <p className="m-0 text-body">Optional. When present on the default branch it overrides the repository’s settings in Aftershock for time travel and pull request checks.</p>
             <div className="overflow-hidden rounded-xl bg-ink">
               <div className="flex items-center justify-between border-b border-[#222C38] px-4 py-2.5 font-mono text-xs text-[#7D8896]"><span>yaml</span><CopyButton text={CONFIG} /></div>
               <pre className="m-0 overflow-x-auto px-[18px] py-4 font-mono text-[13px] leading-[1.75] text-[#C9D1DA]">{CONFIG}</pre>

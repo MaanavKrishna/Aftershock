@@ -1,7 +1,6 @@
 # Aftershock — product and system design
 
-Date: 2026-10-07. Supersedes `2026-10-04-recurgate-platform.md` (RecurGate).
-Visual design: https://claude.ai/artifact/1ADmvkEsJfPzyNXvGeeBAJ (18 screens; the build must match it).
+Visual design: `docs/design/*.dc.html` (18 screens).
 
 ## 1. Product
 
@@ -67,7 +66,7 @@ lib/relevance/          fault lines + triage
 packages/cli/           `aftershock` CLI (verify, check, --local) sharing lib/runner
 samples/ecommerce-api/  pinned demo repository (kept)
 ```
-The existing Python package `recurgate/` and `recurgate/static/` are retired. The ecommerce-api sample stays as the built-in demo and the integration-test target.
+
 
 ## 3. Data model (Postgres)
 
@@ -99,7 +98,7 @@ Secrets are encrypted with an app key (AES-GCM); plaintext is never returned by 
 
 ## 5. Security
 
-Least-privilege GitHub App permissions (contents read, issues read, checks write, pull requests write, metadata read). Webhook signatures verified for GitHub (HMAC-SHA256), Sentry and PagerDuty before parsing. Sandbox: no env secrets, network blocked after install, wall-clock cap, VM destroyed. The model sees fenced untrusted data; its output is schema-validated and only ever written to the test path. Authorization: every query is scoped by workspace membership; API tokens are hashed. Rate limits on webhook and API routes.
+Least-privilege GitHub App permissions (contents read, issues read, checks write, pull requests write, metadata read). Webhook signatures verified for GitHub (HMAC-SHA256), Sentry and PagerDuty before parsing. Sandbox: no env secrets, network blocked after install, wall-clock cap, VM destroyed. The model sees fenced untrusted data; its output is schema-validated and only ever written to the test path. Authorization: every query is scoped by workspace membership; API tokens are hashed. Per-caller rate limits on webhook (300/min) and API (120/min) routes, plus Vercel Firewall rules for a global limit. Roles: only owners and admins can override checks, change repository settings, integrations, API tokens and workspace settings. Custom model endpoints must be public https hosts.
 
 ## 6. Error handling
 
