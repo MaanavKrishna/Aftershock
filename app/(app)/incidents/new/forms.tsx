@@ -19,6 +19,7 @@ export function IncidentForm({ repos, initial }: { repos: Repo[]; initial?: Reco
   const f = state.fields ?? {};
   return (
     <form action={action} aria-busy={pending}>
+      <input type="hidden" name="source" value={f.source === "postmortem" ? "postmortem" : "form"} />
       <div className="flex flex-col gap-4 p-6">
         {state.error && <p role="alert" className="m-0 rounded-[10px] bg-fail-tint px-4 py-3 text-[13.5px] text-fail-ink">{state.error}</p>}
         <TextField label="Title" name="title" required defaultValue={f.title} placeholder="e.g. Payment retry charged a customer twice" />

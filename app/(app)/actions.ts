@@ -22,6 +22,7 @@ const incidentSchema = z.object({
   expected: z.string().trim().min(3, "Describe what it should have done.").max(4000),
   fix: z.string().trim().max(300),
   intent: z.enum(["save", "travel"]),
+  source: z.enum(["form", "postmortem"]).default("form"),
 });
 
 /** Turns "aa86f56", "#44", "44" or a GitHub PR/commit URL into a fix reference. */
@@ -61,12 +62,12 @@ export async function createIncident(_prev: FormState, form: FormData): Promise<
   if (fix === null) return { error: "Enter the fix as a commit SHA, a PR number like #44, or a GitHub URL.", fields };
   const ws = await scope.workspace();
   const row = await insertIncident(session.workspaceId, {
-    repoId: d.repoId, title: d.title, severity: d.severity, trigger: d.trigger, observed: d.observed, expected: d.expected, source: "form",
+    repoId: d.repoId, title: d.title, severity: d.severity, trigger: d.trigger, observed: d.observed, expected: d.expected, source: d.source,
     fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, status: "awaiting_fix",
     statusReason: fix.sha || fix.pr ? null : "No fix linked yet. Link the fix commit or PR to start time travel.",
   });
   const db = await getDb();
-  await db.insert(s.activity).values({ workspaceId: session.workspaceId, incidentId: row.id, title: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} recorded`, detail: "From the form", tone: "neutral" });
+  await db.insert(s.activity).values({ workspaceId: session.workspaceId, incidentId: row.id, title: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} recorded`, detail: d.source === "postmortem" ? "From a postmortem" : "From the form", tone: "neutral" });
   if (d.intent === "travel" && (fix.sha || fix.pr)) {
     const { startTimeTravel } = await import("@/lib/workflows/start");
     await startTimeTravel(row.id);
@@ -99,13 +100,15 @@ export async function importIssue(form: FormData): Promise<void> {
 }
 
 export async function extractPostmortem(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session } = await currentScope();
+  const { scope, session } = await currentScope();
   const text = String(form.get("postmortem") ?? "").trim();
   if (text.length < 40) return { error: "Paste the postmortem text — at least a few sentences.", fields: { postmortem: text } };
   try {
     const { extractIncident } = await import("@/lib/model/extract");
     const fields = await extractIncident(text, session.workspaceId);
-    return { ok: "Extracted — check before saving", fields: { ...fields, postmortem: text } };
+    const { guessRepoId } = await import("@/lib/domain/guessRepo");
+    const repoId = guessRepoId(text, await scope.repos());
+    return { ok: "Extracted — check before saving", fields: { ...fields, ...(repoId ? { repoId } : {}), source: "postmortem", postmortem: text } };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "The model could not extract this postmortem.", fields: { postmortem: text } };
   }
