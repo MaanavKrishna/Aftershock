@@ -4,7 +4,7 @@ async function runNightly(memoryTestId: string): Promise<void> {
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
-  const git = await import("@/lib/git/local");
+  const { sourceFor } = await import("@/lib/git/source");
   const { deps } = await import("@/lib/timetravel/deps");
   const { healthFrom } = await import("@/lib/domain/epicenter");
   const db = await getDb();
@@ -13,8 +13,7 @@ async function runNightly(memoryTestId: string): Promise<void> {
   const [repo] = await db.select().from(s.repositories).where(eq(s.repositories.id, t.repoId));
   const d = await deps();
   const token = await d.tokenFor(repo);
-  const dir = await git.gitDirFor(repo.cloneUrl, token);
-  const head = await git.revParse(dir, repo.defaultBranch);
+  const head = await (await sourceFor(repo, token)).revParse(repo.defaultBranch);
   if (!head) return;
   const report = await d.runner().run({ repoUrl: repo.cloneUrl, token, sha: head, framework: repo.framework, install: repo.installCmd, testPath: t.path, testCode: t.code, runs: 1, timeoutMs: 120_000 });
   const outcome = report.results[0]?.outcome;

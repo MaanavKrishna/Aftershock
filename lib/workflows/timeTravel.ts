@@ -46,7 +46,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
   const { incidentKey } = await import("@/lib/domain/ids");
-  const git = await import("@/lib/git/local");
+  const git = await import("@/lib/git/source");
   const { deps } = await import("@/lib/timetravel/deps");
   const db = await getDb();
   const [inc] = await db.select().from(s.incidents).where(eq(s.incidents.id, incidentId));
@@ -63,17 +63,17 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
   if (!inc.fixSha && !inc.fixPr) return fail("No fix linked yet. Link the fix commit or PR to start time travel.");
   try {
     const token = await (await deps()).tokenFor(repo);
-    const dir = await git.gitDirFor(repo.cloneUrl, token);
+    const src = await git.sourceFor(repo, token);
     const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
-    const cfg = applyRepoConfig(repo, await loadRepoConfig(dir, repo.defaultBranch));
+    const cfg = applyRepoConfig(repo, await loadRepoConfig(src, repo.defaultBranch));
     let fixRef = inc.fixSha;
     if (!fixRef && inc.fixPr) {
       const { mergeCommitForPr } = await import("@/lib/github/pulls");
       fixRef = await mergeCommitForPr(repo.fullName, inc.fixPr, token);
       if (!fixRef) return fail(`Pull request #${inc.fixPr} is not merged yet. Time travel starts when it merges.`);
     }
-    const resolved = await git.resolveFix(dir, fixRef!, token);
-    const context = await git.draftContext(dir, resolved.parentSha, resolved.changedFiles, cfg.framework);
+    const resolved = await src.resolveFix(fixRef!);
+    const context = await git.draftContext(src, resolved.parentSha, resolved.changedFiles, cfg.framework);
     const { sql } = await import("drizzle-orm");
     const [{ max }] = await db.select({ max: sql<number>`coalesce(max(${s.timeTravelRuns.attempt}), 0)` }).from(s.timeTravelRuns).where(eq(s.timeTravelRuns.incidentId, inc.id));
     await db

@@ -53,11 +53,11 @@ async function plan(checkId: string): Promise<Plan> {
   const awaiting = await db.select().from(s.incidents).where(and(eq(s.incidents.repoId, repo.id), eq(s.incidents.status, "awaiting_fix")));
   for (const a of awaiting) skips.push({ incidentId: a.id, reason: "Awaiting fix — no proven test yet" });
   const usage = await scoped(ws.id).usage();
-  const git = await import("@/lib/git/local");
+  const { sourceFor } = await import("@/lib/git/source");
   const { deps } = await import("@/lib/timetravel/deps");
   const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
-  const dir = await git.gitDirFor(repo.cloneUrl, await (await deps()).tokenFor(repo)).catch(() => null);
-  const cfg = dir ? applyRepoConfig(repo, await loadRepoConfig(dir, repo.defaultBranch)) : repo;
+  const src = await sourceFor(repo, await (await deps()).tokenFor(repo)).catch(() => null);
+  const cfg = src ? applyRepoConfig(repo, await loadRepoConfig(src, repo.defaultBranch).catch(() => ({}))) : repo;
   const choice = pickRunner(cfg, { remainingCpuMs: SANDBOX_ALLOWANCE_MS - usage.sandboxCpuMs }, false);
   const mode = choice === "actions" ? "actions" : choice === "unavailable" ? "unavailable" : "run";
   await db.update(s.prChecks).set({ status: "running", runner: mode === "actions" ? "actions" : mode === "run" ? "sandbox" : null }).where(eq(s.prChecks.id, checkId));

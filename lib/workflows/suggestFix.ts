@@ -18,7 +18,7 @@ async function plan(checkId: string): Promise<Plan> {
   const { eq, and } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
-  const git = await import("@/lib/git/local");
+  const { sourceFor } = await import("@/lib/git/source");
   const { deps } = await import("@/lib/timetravel/deps");
   const db = await getDb();
   const [check] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, checkId));
@@ -35,9 +35,7 @@ async function plan(checkId: string): Promise<Plan> {
   const [fix] = await db.insert(s.suggestedFixes).values({ checkId, patch: "", status: "running" }).returning();
   const file = check.changedFiles.find((f) => failing.i.watchedFiles.includes(f)) ?? check.changedFiles[0];
   const token = await (await deps()).tokenFor(repo);
-  const dir = await git.gitDirFor(repo.cloneUrl, token);
-  await git.ensureCommit(dir, check.headSha, token);
-  const content = (await git.readFileAt(dir, check.headSha, file, 60_000)) ?? "";
+  const content = (await (await sourceFor(repo, token)).readFileAt(check.headSha, file, 60_000)) ?? "";
   return {
     ok: true, fixId: fix.id, workspaceId: check.workspaceId,
     repo: { url: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd },

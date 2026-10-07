@@ -5,7 +5,7 @@ async function search(memoryTestId: string): Promise<void> {
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
-  const git = await import("@/lib/git/local");
+  const { sourceFor } = await import("@/lib/git/source");
   const { deps } = await import("@/lib/timetravel/deps");
   const { findEpicenter, prFromSubject } = await import("@/lib/domain/epicenter");
   const { incidentKey } = await import("@/lib/domain/ids");
@@ -18,8 +18,7 @@ async function search(memoryTestId: string): Promise<void> {
   if (!inc.parentSha) return;
   const d = await deps();
   const token = await d.tokenFor(repo);
-  const dir = await git.gitDirFor(repo.cloneUrl, token);
-  const chain = await git.firstParentChain(dir, inc.parentSha, 64);
+  const chain = await (await sourceFor(repo, token)).firstParentChain(inc.parentSha, 64);
   const result = await findEpicenter(chain, async (sha) => {
     const r = await d.runner().run({ repoUrl: repo.cloneUrl, token, sha, framework: repo.framework, install: repo.installCmd, testPath: t.path, testCode: t.code, runs: 1, timeoutMs: 120_000 });
     const o = r.results[0]?.outcome;

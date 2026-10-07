@@ -15,7 +15,7 @@ One Next.js 16 (App Router) application. Pure decision logic is separated from I
 ## Flows
 
 **Time travel** (`lib/workflows/timeTravel.ts`)
-1. Resolve the fix commit and its parent (`lib/git/local.ts`). A root commit or unknown SHA leaves the incident in *Awaiting fix* with a reason.
+1. Resolve the fix commit and its parent (`lib/git/source.ts`: the GitHub REST API for GitHub repositories, the git CLI for local paths). A root commit or unknown SHA leaves the incident in *Awaiting fix* with a reason.
 2. Read context: the fix diff, the changed files at the parent, test setup files, the nearest tests.
 3. Draft a test (`lib/model/draft.ts`). Output is validated: one file, under the test folder, the right framework, a real test, balanced code.
 4. Run it three times on the parent. Anything but three failures stops here: passing means *rejected* and feeds back into the next draft; errors mean *unproven* and end the run.
@@ -51,7 +51,7 @@ lib/domain/            verdicts, admission, relevance, fault lines, epicenter, l
 lib/db/                Drizzle schema, client (Neon or PGlite), workspace-scoped queries, demo seed
 lib/auth/              sessions (jose), GitHub OAuth, roles, API tokens
 lib/runner/            Runner interface; Docker and Vercel Sandbox; JUnit parsing; framework adapters
-lib/git/               commit resolution, context and history over a cached clone
+lib/git/               commit resolution, file reads and history via the GitHub API or git CLI
 lib/model/             provider config, fencing of untrusted text, prompts, validation, drafting, triage
 lib/github/            App client, REST calls, webhook routing, comments, bot PRs, suggestions
 lib/integrations/      Sentry / PagerDuty signatures and intake

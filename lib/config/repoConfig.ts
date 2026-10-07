@@ -1,3 +1,5 @@
+import type { GitSource } from "@/lib/git/types";
+
 export type RepoSettings = {
   framework: "pytest" | "vitest" | "jest";
   installCmd: string;
@@ -45,10 +47,9 @@ export function applyRepoConfig<T extends RepoSettings>(repo: T, cfg: RepoConfig
 }
 
 /** Reads the config from the repository's default branch, if present. */
-export async function loadRepoConfig(dir: string, defaultBranch: string): Promise<RepoConfig> {
-  const { readFileAt, revParse } = await import("@/lib/git/local");
-  const head = (await revParse(dir, defaultBranch)) ?? (await revParse(dir, "HEAD"));
+export async function loadRepoConfig(src: GitSource, defaultBranch: string): Promise<RepoConfig> {
+  const head = (await src.revParse(defaultBranch)) ?? (await src.revParse("HEAD"));
   if (!head) return {};
-  const text = await readFileAt(dir, head, CONFIG_PATH, 8_000);
+  const text = await src.readFileAt(head, CONFIG_PATH, 8_000);
   return text ? parseRepoConfig(text) : {};
 }
