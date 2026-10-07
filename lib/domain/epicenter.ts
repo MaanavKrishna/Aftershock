@@ -6,7 +6,7 @@ export type EpicenterResult = { sha: string; subject: string; testedCommits: num
  * Find the oldest consecutive failing commit — where the bug was introduced — using at most `maxRuns` probes:
  * gallop back until the test passes, then binary-search the boundary.
  */
-export async function findEpicenter(chain: { sha: string; subject: string }[], probe: (sha: string) => Promise<Probe>, maxRuns = 12): Promise<EpicenterResult> {
+export async function findEpicenter(chain: { sha: string; subject: string }[], probe: (sha: string) => Promise<Probe>, maxRuns = 12, opts: { reachedRoot?: boolean } = {}): Promise<EpicenterResult> {
   if (chain.length === 0) return { unavailable: "No history to search." };
   let runs = 0;
   const test = async (i: number) => {
@@ -28,7 +28,9 @@ export async function findEpicenter(chain: { sha: string; subject: string }[], p
     lo = i;
     if (i === chain.length - 1) break;
   }
-  if (hi === -1) return { unavailable: `The bug is older than the ${chain.length} commits searched.` };
+  if (hi === -1) {
+    return { unavailable: opts.reachedRoot ? "The test fails on every commit back to the repository's first, so no commit shows where the bug started." : `The bug is older than the ${chain.length} commits searched.` };
+  }
   while (hi - lo > 1) {
     if (runs >= maxRuns) return { unavailable: `Narrowed to ${hi - lo} commits after ${maxRuns} runs.` };
     const mid = Math.floor((lo + hi) / 2);

@@ -15,6 +15,11 @@ test("if no ancestor passes, the epicenter is unavailable", async () => {
   expect(r).toEqual({ unavailable: "The bug is older than the 10 commits searched." });
 });
 
+test("when the search reaches the first commit, it says so instead of blaming older history", async () => {
+  const r = await findEpicenter(chain(5), async () => "fail", 12, { reachedRoot: true });
+  expect(r).toEqual({ unavailable: "The test fails on every commit back to the repository's first, so no commit shows where the bug started." });
+});
+
 test("an environment error on an old commit stops the search honestly", async () => {
   const r = await findEpicenter(chain(40), async (sha) => (sha === "c0" || sha === "c1" ? "fail" : "error"), 12);
   expect("unavailable" in r && r.unavailable).toMatch(/could not run/);

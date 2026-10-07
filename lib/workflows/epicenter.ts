@@ -18,12 +18,13 @@ async function search(memoryTestId: string): Promise<void> {
   if (!inc.parentSha) return;
   const d = await deps();
   const token = await d.tokenFor(repo);
-  const chain = await (await sourceFor(repo, token)).firstParentChain(inc.parentSha, 64);
+  const DEPTH = 64;
+  const chain = await (await sourceFor(repo, token)).firstParentChain(inc.parentSha, DEPTH);
   const result = await findEpicenter(chain, async (sha) => {
     const r = await d.runner().run({ repoUrl: repo.cloneUrl, token, sha, framework: repo.framework, install: repo.installCmd, testPath: t.path, testCode: t.code, runs: 1, timeoutMs: 120_000 });
     const o = r.results[0]?.outcome;
     return o === "passed" ? "pass" : o === "failed" ? "fail" : "error";
-  });
+  }, 12, { reachedRoot: chain.length < DEPTH });
   const epicenter: Epicenter = "sha" in result ? { sha: result.sha.slice(0, 7), prNumber: prFromSubject(result.subject), title: result.subject.slice(0, 160), testedCommits: result.testedCommits } : result;
   await db.update(s.incidents).set({ epicenter }).where(eq(s.incidents.id, inc.id));
   await db.insert(s.activity).values({
