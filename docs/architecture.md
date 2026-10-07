@@ -37,7 +37,7 @@ Each workflow is a deterministic `"use workflow"` function calling `"use step"` 
 ## Code layout
 
 ```
-app/(site)/            marketing: home, pricing, security, docs, sign in
+app/(site)/            public site: home, pricing, security, docs, sign in
 app/(app)/             product: overview, incidents, time travel, memory, pull requests,
                        repositories, integrations, settings, onboarding; server actions
 app/api/auth/          GitHub OAuth, demo sign-in, workspace switch, sign out
@@ -59,7 +59,7 @@ lib/workflows/         time travel, PR check, suggested fix, epicenter, retro-ch
 lib/http/              absolute URLs, rate limiting
 cli/                   aftershock CLI (bundled with esbuild)
 drizzle/               SQL migrations
-tests/unit, tests/integration, tests/live, e2e/
+tests/unit, tests/integration, e2e/
 ```
 
 ## Security model

@@ -1,4 +1,4 @@
-# Setup and deployment
+# Self-hosting and setup
 
 ## Local development
 
@@ -11,7 +11,7 @@ npm run dev
 - **Database**: with no `DATABASE_URL`, Aftershock uses embedded Postgres (PGlite) in `./data/pglite`. Migrations run automatically.
 - **Runner**: time travel and pull request checks run in Docker. Run folders live in `~/.cache/aftershock/runs` (override with `AFTERSHOCK_WORK_DIR`) because Docker Desktop and Colima share the home folder with containers.
 - **Workflows**: in development they run in-process. On Vercel they run durably with the Workflow SDK.
-- **Demo**: `AFTERSHOCK_DEMO=1` shows “Try the demo workspace” on the sign-in page. Vercel builds without it delete any demo workspace from the database (`scripts/remove-demo-data.mts`).
+- **Demo (local only)**: `AFTERSHOCK_DEMO=1` shows “Try the demo workspace” on the sign-in page. Vercel builds without it delete any demo workspace from the database (`scripts/remove-demo-data.mts`).
 
 ## 1. GitHub App (sign-in and repositories)
 
