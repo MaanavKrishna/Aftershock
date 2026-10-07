@@ -50,7 +50,8 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
     verdict === "recur" ? `The proven test for “${recur[0].incident.title}” failed on ${recur[0].result.runs.filter((r) => r.outcome === "failed").length} of ${recur[0].result.runs.length} runs.`
     : verdict === "inconclusive" ? "At least one test passed on some runs and failed on others, or the environment failed. Re-run, or mark the test flaky."
     : `${results.length} relevant test${results.length === 1 ? "" : "s"} ran; ${skips.length} incident${skips.length === 1 ? " was" : "s were"} skipped with reasons.`;
-  const diffLines = check.diff ? check.diff.split("\n") : [];
+  // Stored as "--- <file>" headers followed by GitHub patches; headers are not changed lines.
+  const diffLines = check.diff ? check.diff.split("\n").filter((l) => !l.startsWith("--- ")) : [];
   const counts = { recur: recur.length, safe: results.filter((r) => r.result.verdict === "safe").length, skipped: skips.length };
 
   return (
