@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -11,6 +12,11 @@ import { duration, stamp } from "@/lib/format";
 import { requestSuggestedFix } from "../../actions";
 import { OverrideForm } from "./OverrideForm";
 import { can } from "@/lib/auth/roles";
+
+export async function generateMetadata({ params }: { params: Promise<{ pr: string }> }): Promise<Metadata> {
+  const { pr } = await params;
+  return { title: `Pull request #${pr}` };
+}
 
 const HEAD = {
   recur: ["RECUR", "bg-fail text-white", "bg-fail"],

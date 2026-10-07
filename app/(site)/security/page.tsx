@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader, SiteFooter } from "@/components/site/Chrome";
 
-export const metadata: Metadata = { title: "Security — Aftershock" };
+export const metadata: Metadata = { title: "Security" };
 
 const FACTS = [["1 microVM", "per run, never reused"], ["0 secrets", "injected into a run"], ["45 min", "hard cap per sandbox"], ["Read-only", "clone token per run"]];
 const LIFE = [["01", "Fresh machine", "A new Firecracker microVM boots from a clean image. No state from any other team or run."], ["02", "Shallow clone", "One commit is fetched with a short-lived, read-only installation token scoped to that repository."], ["03", "Locked network", "Package registries are reachable for install. After install, outbound network is cut before tests run."], ["04", "Run and record", "The test runs with a time limit. We keep exit codes, the test report and trimmed logs."], ["05", "Destroyed", "The machine is stopped and deleted. The clone, caches and any files the test wrote go with it."]];

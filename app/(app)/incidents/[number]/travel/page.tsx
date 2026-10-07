@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -8,6 +9,11 @@ import { incidentKey } from "@/lib/domain/ids";
 import { duration, stamp } from "@/lib/format";
 import { retryTimeTravel } from "../../../actions";
 import type { RunResult } from "@/lib/domain/verdict";
+
+export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
+  const { number } = await params;
+  return { title: `Time travel · incident ${number}` };
+}
 
 const VERDICT = {
   proven: ["PROVEN", "bg-pass-dark text-ink"],

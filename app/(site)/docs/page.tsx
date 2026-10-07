@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LogoMark } from "@/components/ui/Logo";
 import { CopyButton } from "@/components/site/CopyButton";
 
-export const metadata: Metadata = { title: "Docs — Aftershock" };
+export const metadata: Metadata = { title: "Docs" };
 
 const TOC = [
   ["GETTING STARTED", [["#quickstart", "Quickstart"], ["#concepts", "Core concepts"], ["#verdicts", "Verdicts"]]],

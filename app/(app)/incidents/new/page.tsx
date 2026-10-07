@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
@@ -6,6 +7,8 @@ import { Pill } from "@/components/ui/Pill";
 import { listImportableIssues } from "@/lib/github/issues";
 import { importIssue } from "../../actions";
 import { IncidentForm, PostmortemForm } from "./forms";
+
+export const metadata: Metadata = { title: "New incident" };
 
 const TABS = [
   ["issue", "GitHub issue", "Fix found from links", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 9v4 M12 16h.01"],

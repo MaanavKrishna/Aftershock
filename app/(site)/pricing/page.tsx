@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader, SiteFooter, eyebrow } from "@/components/site/Chrome";
 import { PricingPlans } from "@/components/site/PricingPlans";
 
-export const metadata: Metadata = { title: "Pricing — Aftershock" };
+export const metadata: Metadata = { title: "Pricing" };
 
 const COMPARE = [["Setup", "None", "One workflow file"], ["Cost", "Counts sandbox CPU-hours", "Your Actions minutes"], ["Isolation", "Fresh microVM per run", "Your runner"], ["Secrets available", "None, ever", "Only ones you pass in"], ["Best for", "Getting started, private code you want isolated", "High PR volume, custom services"]];
 const FAQ = [

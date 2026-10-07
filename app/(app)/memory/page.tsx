@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
@@ -7,6 +8,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { incidentKey } from "@/lib/domain/ids";
 import { renderLessons } from "@/lib/domain/lessons";
 import { stamp, word } from "@/lib/format";
+
+export const metadata: Metadata = { title: "Memory" };
 
 const HEALTH: Record<string, [string, Tone]> = { healthy: ["Healthy", "pass"], flaky: ["Flaky", "dashed"], failing: ["Failing on main", "solidFail"] };
 

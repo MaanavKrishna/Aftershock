@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { VerdictPill } from "@/components/ui/Pill";
 import { Strip, toCells } from "@/components/ui/Strip";
 import type { CheckVerdict } from "@/lib/db/schema";
+
+export const metadata: Metadata = { title: "Pull requests" };
 
 const FILTERS: [string, string][] = [["all", "All"], ["recur", "Recur"], ["safe", "Safe"], ["inconclusive", "Inconclusive"], ["skipped", "Skipped"]];
 

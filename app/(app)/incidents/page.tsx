@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
@@ -8,6 +9,8 @@ import { SOURCES } from "@/components/app/sources";
 import { incidentKey } from "@/lib/domain/ids";
 import { timeAgo } from "@/lib/format";
 import type { IncidentSource, IncidentStatus } from "@/lib/db/schema";
+
+export const metadata: Metadata = { title: "Incidents" };
 
 const TABS: [IncidentStatus | "all", string][] = [["all", "All"], ["awaiting_fix", "Awaiting fix"], ["traveling", "Time traveling"], ["proven", "Proven"], ["unproven", "Unproven"]];
 

@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/Logo";
 
+export const metadata: Metadata = { title: "Sign in" };
+
 const ERRORS: Record<string, string> = {
-  github_not_configured: "GitHub sign-in is not configured on this server yet. Use the demo workspace, or set AUTH_GITHUB_ID and AUTH_GITHUB_SECRET.",
+  github_not_configured: "GitHub sign-in is not configured on this server yet. An administrator needs to finish setup at /setup/github.",
   github_failed: "GitHub sign-in did not complete. Try again.",
 };
 

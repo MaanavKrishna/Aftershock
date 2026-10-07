@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
@@ -7,6 +8,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { CheckRow, DOT } from "@/components/app/bits";
 import { incidentKey } from "@/lib/domain/ids";
 import { timeAgo, word } from "@/lib/format";
+
+export const metadata: Metadata = { title: "Overview" };
 
 export default async function Overview() {
   const { scope } = await currentScope();

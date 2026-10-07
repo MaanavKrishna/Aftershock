@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -12,6 +13,11 @@ import { AutoRefresh } from "@/components/app/AutoRefresh";
 import { incidentKey } from "@/lib/domain/ids";
 import { stamp } from "@/lib/format";
 import { addNote, linkFix } from "../../actions";
+
+export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
+  const { number } = await params;
+  return { title: `Incident ${number}` };
+}
 
 export default async function IncidentPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ error?: string }> }) {
   const { number } = await params;

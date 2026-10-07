@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar } from "@/components/app/TopBar";
 import { Wizard } from "./Wizard";
+
+export const metadata: Metadata = { title: "Get started" };
 
 export default async function Onboarding() {
   const { scope } = await currentScope();

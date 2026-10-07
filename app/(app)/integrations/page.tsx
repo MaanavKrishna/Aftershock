@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
@@ -5,6 +6,8 @@ import { Card, CardHead } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { timeAgo } from "@/lib/format";
 import { AlertForms, ModelForm } from "./forms";
+
+export const metadata: Metadata = { title: "Integrations" };
 
 const KINDS = {
   github: { name: "GitHub App", text: "Repos, issues, checks and bot pull requests.", icon: "M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4" },

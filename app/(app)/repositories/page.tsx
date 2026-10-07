@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { Card, CardHead } from "@/components/ui/Card";
 import { setRepoSetting } from "../actions";
 import { hours, timeAgo } from "@/lib/format";
 import type { RepositoryRow } from "@/lib/db/schema";
+
+export const metadata: Metadata = { title: "Repositories" };
 
 function Segment({ repo, field, label, options, value }: { repo: RepositoryRow; field: string; label: string; options: [string, string][]; value: string }) {
   return (

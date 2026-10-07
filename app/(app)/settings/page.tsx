@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar } from "@/components/app/TopBar";
@@ -5,6 +6,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { revokeToken } from "../actions";
 import { WorkspaceForm, TokenForm } from "./forms";
 import { hours, timeAgo } from "@/lib/format";
+
+export const metadata: Metadata = { title: "Settings" };
 
 const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["danger", "Danger zone"]] as const;
 const sectionCls = "overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]";
