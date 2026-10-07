@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --experimental-strip-types scripts/migrate.ts",
+    "db:migrate": "node --experimental-strip-types scripts/migrate.mts",
     "build:cli": "esbuild cli/aftershock.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/aftershock.mjs --alias:@=. --banner:js='#!/usr/bin/env node'",
     "vercel-build": "node scripts/vercel-build.mjs"
   },
@@ -22,6 +22,7 @@
     "@octokit/webhooks-methods": "^6.0.0",
     "@vercel/blob": "^2.8.1",
     "@vercel/sandbox": "^3.5.1",
+    "diff": "^8.0.4",
     "drizzle-orm": "^0.45.3",
     "geist": "^1.7.2",
     "jose": "^6.2.12",
@@ -47,5 +48,16 @@
   },
   "bin": {
     "aftershock": "./dist/aftershock.mjs"
-  }
+  },
+  "overrides": {
+    "devalue": "^5.9.4",
+    "source-map-js": "^1.2.2",
+    "@workflow/core": {
+      "nanoid": "^5.1.16"
+    },
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    }
+  },
+  "type": "module"
 }
