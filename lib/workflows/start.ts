@@ -54,3 +54,8 @@ export async function startPrCheck(checkId: string): Promise<void> {
   const { prCheck } = await import("./prCheck");
   await launch(prCheck, [checkId], "pull request check");
 }
+
+export async function startNightly(memoryTestId: string): Promise<void> {
+  const { nightly } = await import("./nightly");
+  await launch(nightly, [memoryTestId], "nightly re-check");
+}

@@ -9,6 +9,8 @@ export type GithubApi = {
   createCheckRun(workspaceId: string, fullName: string, headSha: string): Promise<number | null>;
   completeCheckRun(workspaceId: string, fullName: string, id: number | null, conclusion: "success" | "failure" | "neutral", summary: string, url: string): Promise<void>;
   upsertComment(workspaceId: string, fullName: string, pr: number, body: string, existing: number | null): Promise<number | null>;
+  /** Open PR numbers, or null when GitHub is not connected (callers fall back to recent checks). */
+  openPullRequests(workspaceId: string, fullName: string): Promise<number[] | null>;
 };
 
 const split = (fullName: string) => {
@@ -72,6 +74,12 @@ const real: GithubApi = {
     const { data } = await ok.request("POST /repos/{owner}/{repo}/issues/{issue_number}/comments", { ...split(fullName), issue_number: pr, body });
     return Number(data.id);
   },
+  async openPullRequests(workspaceId, fullName) {
+    const ok = await octokitFor(workspaceId);
+    if (!ok) return null;
+    const { data } = await ok.request("GET /repos/{owner}/{repo}/pulls", { ...split(fullName), state: "open", per_page: 100 });
+    return data.map((p) => p.number);
+  },
 };
 
 const noop: GithubApi = {
@@ -81,6 +89,7 @@ const noop: GithubApi = {
   createCheckRun: async () => null,
   completeCheckRun: async () => undefined,
   upsertComment: async () => null,
+  openPullRequests: async () => null,
 };
 
 let override: Partial<GithubApi> | null = null;
