@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.84"><testcase classname="tests.aftershock.test_x" name="test_x" time="0.02"><failure message="assert 201 == 400">def test_x():
+&gt;       assert retry.status_code == 400
+E       assert 201 == 400</failure></testcase></testsuite></testsuites>

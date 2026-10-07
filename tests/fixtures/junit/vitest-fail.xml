@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="1" failures="1" errors="0" time="0.3">
+    <testsuite name="tests/aftershock/inc-17.test.ts" timestamp="2026-10-08T10:00:00" hostname="x" tests="1" failures="1" errors="0" skipped="0" time="0.3">
+        <testcase classname="tests/aftershock/inc-17.test.ts" name="applies a discount once" time="0.004">
+            <failure message="expected 80 to be 90" type="AssertionError">AssertionError: expected 80 to be 90</failure>
+        </testcase>
+    </testsuite>
+</testsuites>
