@@ -64,6 +64,8 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
   try {
     const token = await (await deps()).tokenFor(repo);
     const dir = await git.gitDirFor(repo.cloneUrl, token);
+    const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
+    const cfg = applyRepoConfig(repo, await loadRepoConfig(dir, repo.defaultBranch));
     let fixRef = inc.fixSha;
     if (!fixRef && inc.fixPr) {
       const { mergeCommitForPr } = await import("@/lib/github/pulls");
@@ -71,7 +73,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
       if (!fixRef) return fail(`Pull request #${inc.fixPr} is not merged yet. Time travel starts when it merges.`);
     }
     const resolved = await git.resolveFix(dir, fixRef!, token);
-    const context = await git.draftContext(dir, resolved.parentSha, resolved.changedFiles, repo.framework);
+    const context = await git.draftContext(dir, resolved.parentSha, resolved.changedFiles, cfg.framework);
     const { sql } = await import("drizzle-orm");
     const [{ max }] = await db.select({ max: sql<number>`coalesce(max(${s.timeTravelRuns.attempt}), 0)` }).from(s.timeTravelRuns).where(eq(s.timeTravelRuns.incidentId, inc.id));
     await db
@@ -84,7 +86,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
       ctx: {
         incidentId: inc.id, workspaceId: inc.workspaceId, repoId: repo.id, repoUrl: repo.cloneUrl, fullName: repo.fullName, key,
         incident: { title: inc.title, trigger: inc.trigger, observed: inc.observed, expected: inc.expected },
-        framework: repo.framework, install: repo.installCmd, testDir: repo.testDir,
+        framework: cfg.framework, install: cfg.installCmd, testDir: cfg.testDir,
         fixSha: resolved.fixSha, parentSha: resolved.parentSha, fixTitle: resolved.title,
         changedFiles: resolved.changedFiles, diff: resolved.diff, context, firstAttempt: Number(max) + 1,
       },

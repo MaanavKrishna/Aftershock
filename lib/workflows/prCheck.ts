@@ -53,12 +53,17 @@ async function plan(checkId: string): Promise<Plan> {
   const awaiting = await db.select().from(s.incidents).where(and(eq(s.incidents.repoId, repo.id), eq(s.incidents.status, "awaiting_fix")));
   for (const a of awaiting) skips.push({ incidentId: a.id, reason: "Awaiting fix — no proven test yet" });
   const usage = await scoped(ws.id).usage();
-  const choice = pickRunner(repo, { remainingCpuMs: SANDBOX_ALLOWANCE_MS - usage.sandboxCpuMs }, false);
+  const git = await import("@/lib/git/local");
+  const { deps } = await import("@/lib/timetravel/deps");
+  const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
+  const dir = await git.gitDirFor(repo.cloneUrl, await (await deps()).tokenFor(repo)).catch(() => null);
+  const cfg = dir ? applyRepoConfig(repo, await loadRepoConfig(dir, repo.defaultBranch)) : repo;
+  const choice = pickRunner(cfg, { remainingCpuMs: SANDBOX_ALLOWANCE_MS - usage.sandboxCpuMs }, false);
   const mode = choice === "actions" ? "actions" : choice === "unavailable" ? "unavailable" : "run";
   await db.update(s.prChecks).set({ status: "running", runner: mode === "actions" ? "actions" : mode === "run" ? "sandbox" : null }).where(eq(s.prChecks.id, checkId));
   return {
     ok: true, checkId, workspaceId: ws.id, headSha: check.headSha, mode, selected, skips,
-    repo: { id: repo.id, url: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd, mode: repo.checkMode },
+    repo: { id: repo.id, url: repo.cloneUrl, fullName: repo.fullName, framework: cfg.framework, install: cfg.installCmd, mode: cfg.checkMode },
   };
 }
 
@@ -72,7 +77,7 @@ async function runSelected(p: Extract<Plan, { ok: true }>, t: Selected): Promise
 }
 
 /** Saves results, sets the verdict, updates the GitHub check run and the one PR comment. Also used by the Actions report endpoint. */
-export async function finalizeCheck(checkId: string, results: { selected: Selected; runs: RunResult[] }[], skips: { incidentId: string; reason: string }[], runner: string, cpuMs: number): Promise<void> {
+export async function finalizeCheck(checkId: string, results: { selected: Selected; runs: RunResult[] }[], skips: { incidentId: string; reason: string }[], runner: string, cpuMs: number, mode?: "blocking" | "advisory"): Promise<void> {
   "use step";
   const { eq, sql } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
@@ -107,7 +112,7 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
     verdict, skipped: skips.length, url, runner,
     results: results.map(({ selected, runs }, i) => ({ key: selected.key, title: selected.title, testPath: selected.path, verdict: rows[i].verdict, passed: runs.filter((r) => r.outcome === "passed").length, runs: runs.length, failure: rows[i].failureExcerpt ?? undefined })),
   });
-  const conclusion = verdict === "recur" ? (repo.checkMode === "blocking" ? "failure" : "neutral") : verdict === "inconclusive" ? "neutral" : "success";
+  const conclusion = verdict === "recur" ? ((mode ?? repo.checkMode) === "blocking" ? "failure" : "neutral") : verdict === "inconclusive" ? "neutral" : "success";
   await github.completeCheckRun(check.workspaceId, repo.fullName, check.checkRunId, conclusion, body, url);
   if (verdict !== "skipped" || check.commentId) {
     const commentId = await github.upsertComment(check.workspaceId, repo.fullName, check.prNumber, body, check.commentId);
@@ -137,5 +142,5 @@ export async function prCheck(checkId: string): Promise<void> {
     kind = r.kind;
     results.push({ selected: t, runs: r.runs });
   }
-  await finalizeCheck(checkId, results, p.skips, p.mode === "unavailable" ? "none" : kind, cpuMs);
+  await finalizeCheck(checkId, results, p.skips, p.mode === "unavailable" ? "none" : kind, cpuMs, p.repo.mode);
 }
