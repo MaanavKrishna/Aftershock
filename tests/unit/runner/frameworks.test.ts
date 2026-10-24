@@ -48,3 +48,22 @@ test("missing-code errors cover every language", () => {
   expect(MISSING_CODE.test("Cannot find module './cart'")).toBe(true);
   expect(MISSING_CODE.test("assert 1 == 2")).toBe(false);
 });
+
+test("Playwright: flagged, junit output, drafts are .spec.ts files", () => {
+  const d = frameworkDef("playwright");
+  expect(d.flag).toBe("langPlaywright");
+  expect(d.command("e2e/aftershock/inc_3.spec.ts", "out.xml")).toContain("PLAYWRIGHT_JUNIT_OUTPUT_NAME='out.xml' npx playwright test 'e2e/aftershock/inc_3.spec.ts' --reporter=junit,line --workers=1");
+  expect(d.setup("npm ci")).toMatch(/^npm ci && export PLAYWRIGHT_BROWSERS_PATH=.*playwright install/);
+  expect(d.checkDraftPath("e2e/aftershock/inc_3.spec.ts", "e2e/aftershock")).toBeNull();
+  expect(d.checkDraftPath("e2e/aftershock/inc_3.test.py", "e2e/aftershock")).toMatch(/spec\.ts/);
+  expect(d.definesTest('test("cart totals", async ({ page }) => {})')).toBe(true);
+  expect(d.missingCode.test("net::ERR_CONNECTION_REFUSED")).toBe(false);
+});
+
+test("Playwright is detected when it is the only JavaScript test runner, with drafts under its testDir", async () => {
+  const pkg = JSON.stringify({ devDependencies: { "@playwright/test": "1.55.0" } });
+  expect(await detectFramework(reader({ "package.json": pkg, "playwright.config.ts": "export default defineConfig({ testDir: './tests/e2e', webServer: {} })" }))).toEqual({ framework: "playwright", install: "npm install", language: "TypeScript", testDir: "tests/e2e/aftershock" });
+  expect(await detectFramework(reader({ "package.json": pkg }))).toEqual({ framework: "playwright", install: "npm install", language: "TypeScript", testDir: "e2e/aftershock" });
+  const both = JSON.stringify({ devDependencies: { "@playwright/test": "1", vitest: "3" } });
+  expect((await detectFramework(reader({ "package.json": both }))).framework).toBe("vitest");
+});

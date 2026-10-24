@@ -5,7 +5,7 @@
 
 export const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
-export const FRAMEWORK_IDS = ["pytest", "vitest", "jest", "go", "junit", "rspec"] as const;
+export const FRAMEWORK_IDS = ["pytest", "vitest", "jest", "go", "junit", "rspec", "playwright"] as const;
 export type Framework = (typeof FRAMEWORK_IDS)[number];
 
 type Read = (path: string) => Promise<string | null>;
@@ -220,7 +220,33 @@ const rspec: FrameworkDef = {
   lockfiles: ["Gemfile", "Gemfile.lock", ".ruby-version"],
 };
 
-const DEFS: Record<Framework, FrameworkDef> = { pytest, vitest: js("vitest"), jest: js("jest"), go, junit, rspec };
+// Playwright: browser tests of the app itself; the repository's playwright.config (webServer) starts it.
+// Browsers live in the checkout, so the test phase (a separate container in Docker) finds what install downloaded.
+const PW_ENV = 'export PLAYWRIGHT_BROWSERS_PATH="$PWD/.aftershock-pw"';
+const playwrightRun = (t: string, j: string) => `${PW_ENV} && PLAYWRIGHT_JUNIT_OUTPUT_NAME=${q(j)} npx playwright test ${q(t)} --reporter=junit,line --workers=1`;
+const playwright: FrameworkDef = {
+  id: "playwright",
+  label: "Playwright",
+  language: "TypeScript",
+  dockerImage: "mcr.microsoft.com/playwright:v1.55.0-noble",
+  sandboxImage: "vercel/sandbox/universal",
+  flag: "langPlaywright",
+  defaultTestDir: "e2e/aftershock",
+  // Browsers download during install, while the network is open; system libraries need sudo on the sandbox image.
+  setup: (install) => `${install} && ${PW_ENV} && (npx playwright install --with-deps chromium >/dev/null 2>&1 || npx playwright install chromium)`,
+  command: playwrightRun,
+  inPlaceCommand: playwrightRun,
+  isTestFile: (p) => /\.(spec|test)\.[cm]?[jt]sx?$/.test(p),
+  isSetupFile: (p) => /playwright\.config\.[cm]?[jt]s$/.test(p) || /(^|\/)(global-setup|fixtures)\.[jt]s$/.test(p),
+  definesTest: (code) => /\btest(\.(only|describe|step))?\s*\(/.test(code),
+  testName: (code) => code.match(/\btest\(\s*["'`]([^"'`]+)/)?.[1],
+  checkDraftPath: (p, dir) => under(p, dir) ?? (/\.spec\.[jt]s$/.test(p) ? null : "Playwright drafts must be *.spec.ts files"),
+  draftHint: (dir) => `${dir}/<name>.spec.ts (import { test, expect } from "@playwright/test"; use page and baseURL)`,
+  missingCode: /Cannot find module|is not a function|is not exported/i,
+  lockfiles: ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb", ".npmrc", "playwright.config.ts", "playwright.config.js"],
+};
+
+const DEFS: Record<Framework, FrameworkDef> = { pytest, vitest: js("vitest"), jest: js("jest"), go, junit, rspec, playwright };
 
 export function frameworkDef(id: Framework): FrameworkDef {
   return DEFS[id];
@@ -233,7 +259,7 @@ export function isFramework(x: unknown): x is Framework {
 export const MISSING_CODE = new RegExp(Object.values(DEFS).map((d) => d.missingCode.source).join("|"), "i");
 
 /** Picks the framework and install command from the repository's manifests. */
-export async function detectFramework(read: Read): Promise<{ framework: Framework; install: string; language: string }> {
+export async function detectFramework(read: Read): Promise<{ framework: Framework; install: string; language: string; testDir?: string }> {
   const pkg = await read("package.json");
   if (pkg) {
     let deps: Record<string, unknown> = {};
@@ -244,7 +270,14 @@ export async function detectFramework(read: Read): Promise<{ framework: Framewor
       // unreadable package.json: fall through to the defaults below
     }
     const lock = (await read("package-lock.json")) !== null;
-    return { framework: deps.vitest ? "vitest" : "jest", install: lock ? "npm ci" : "npm install", language: "TypeScript" };
+    const install = lock ? "npm ci" : "npm install";
+    if (deps["@playwright/test"] && !deps.vitest && !deps.jest) {
+      // Playwright only finds tests inside its configured testDir, so drafts go there.
+      const cfg = (await read("playwright.config.ts")) ?? (await read("playwright.config.js")) ?? "";
+      const dir = cfg.match(/testDir\s*:\s*["'`]\.?\/?([^"'`]*?)\/?["'`]/)?.[1];
+      return { framework: "playwright", install, language: "TypeScript", testDir: dir ? `${dir}/aftershock` : "e2e/aftershock" };
+    }
+    return { framework: deps.vitest ? "vitest" : "jest", install, language: "TypeScript" };
   }
   if ((await read("pom.xml")) !== null || (await read("build.gradle")) !== null || (await read("build.gradle.kts")) !== null) return { framework: "junit", install: "true", language: "Java" };
   if ((await read("Gemfile")) !== null) return { framework: "rspec", install: "bundle install", language: "Ruby" };

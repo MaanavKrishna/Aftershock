@@ -1,6 +1,6 @@
 import { octokitFor } from "./app";
 
-export type Detected = { framework: import("@/lib/runner/frameworks").Framework; install: string; language: string };
+export type Detected = { framework: import("@/lib/runner/frameworks").Framework; install: string; language: string; testDir?: string };
 
 export type GithubApi = {
   detectFramework(workspaceId: string, fullName: string): Promise<Detected>;

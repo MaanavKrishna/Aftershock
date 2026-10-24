@@ -164,3 +164,22 @@ export const monoRepo = () =>
     { "README.md": "# shop\n", "package.json": '{"name":"web"}\n', "services/api/go.mod": "module example.com/api\n\ngo 1.22\n", "services/api/cart/cart.go": GO_CART(false) },
     { "services/api/cart/cart.go": GO_CART(true) },
   );
+
+const SHOP_SERVER = (fixed: boolean) => `const http = require("http");
+const items = [{ price: 0.1 }, { price: 0.2 }];
+const total = ${fixed ? "(items.reduce((s, i) => s + Math.round(i.price * 100), 0) / 100).toFixed(2)" : "String(items.reduce((s, i) => s + i.price, 0))"};
+http.createServer((req, res) => { res.setHeader("content-type", "text/html"); res.end("<h1>Cart</h1><p id=total>" + total + "</p>"); }).listen(4173);
+`;
+const PW_CONFIG = `module.exports = { testDir: "./e2e", use: { baseURL: "http://127.0.0.1:4173" }, webServer: { command: "node server.js", url: "http://127.0.0.1:4173", reuseExistingServer: false, timeout: 30000 } };
+`;
+/** A tiny web shop whose cart page shows 0.30000000000000004 until the fix rounds it. */
+export const playwrightRepo = () =>
+  makeRepo({ "package.json": JSON.stringify({ name: "shop", private: true, devDependencies: { "@playwright/test": "1.55.0" } }), "playwright.config.js": PW_CONFIG, "server.js": SHOP_SERVER(false) }, { "server.js": SHOP_SERVER(true) });
+
+export const PLAYWRIGHT_TEST = `const { test, expect } = require("@playwright/test");
+
+test("cart total shows cents", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#total")).toHaveText("0.30");
+});
+`;

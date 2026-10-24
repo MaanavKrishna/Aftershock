@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { DockerRunner } from "@/lib/runner/docker";
-import { dockerAvailable, goRepo, GO_TEST, mavenRepo, JAVA_TEST, rubyRepo, RUBY_SPEC, monoRepo } from "../support/fixtureRepo";
+import { dockerAvailable, goRepo, GO_TEST, mavenRepo, JAVA_TEST, rubyRepo, RUBY_SPEC, monoRepo, playwrightRepo, PLAYWRIGHT_TEST } from "../support/fixtureRepo";
 import type { RunSpec } from "@/lib/runner/types";
 
 const prove = async (spec: Omit<RunSpec, "sha" | "runs" | "timeoutMs">, parent: string, fix: string) => {
@@ -11,6 +11,12 @@ const prove = async (spec: Omit<RunSpec, "sha" | "runs" | "timeoutMs">, parent: 
 };
 
 describe.skipIf(!dockerAvailable())("languages, proven in Docker", () => {
+  test("Playwright: a browser test of the app fails before the fix and passes on it", async () => {
+    const repo = playwrightRepo();
+    const r = await prove({ repoUrl: repo.dir, framework: "playwright", install: "npm install --no-audit --no-fund", testPath: "e2e/aftershock/cart_total.spec.js", testCode: PLAYWRIGHT_TEST }, repo.parent, repo.fix);
+    expect(r, r.log.slice(-3000)).toMatchObject({ before: ["failed"], after: ["passed"] });
+  }, 1_200_000);
+
   test("Go: the drafted test fails before the fix and passes on it", async () => {
     const repo = goRepo();
     const r = await prove({ repoUrl: repo.dir, framework: "go", install: "go mod download", testPath: "cart/aftershock_negative_total_test.go", testCode: GO_TEST }, repo.parent, repo.fix);

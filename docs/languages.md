@@ -9,6 +9,7 @@ Aftershock proves a test by running it in a fresh environment: once on the commi
 | Go `go test` *(Labs)* | `go.mod` | `<package>/aftershock_<name>_test.go`, function `TestAftershock<Name>` | Only `TestAftershock*` runs; JUnit via `gotestsum` |
 | JUnit, Maven or Gradle *(Labs)* | `pom.xml`, `build.gradle(.kts)` | `src/test/java/<package>/Aftershock<Name>Test.java` (or Kotlin under `src/test/kotlin`) | Gradle uses the repository's `./gradlew` |
 | RSpec *(Labs)* | `Gemfile` | `spec/aftershock/<name>_spec.rb` | No extra gems needed |
+| Playwright *(Labs)* | `package.json` with `@playwright/test` and no vitest or jest | `<playwright testDir>/aftershock/<name>.spec.ts` | Frontend incidents: a browser test against the app your `playwright.config` `webServer` starts. Chromium is installed while the network is open; the test runs offline |
 
 Frameworks marked *Labs* are turned on per workspace in **Settings → Labs**. Until then, time travel explains how to turn them on and pull request checks skip their tests with the reason.
 
