@@ -58,7 +58,9 @@ export const repositories = pgTable("repositories", {
 });
 
 export type IncidentStatus = "awaiting_fix" | "traveling" | "proven" | "rejected" | "unproven";
-export type IncidentSource = "issue" | "postmortem" | "form" | "sentry" | "pagerduty";
+/** Alert and ticket sources that deliver over webhooks (lib/integrations/sources.ts). */
+export type IntakeKind = "sentry" | "pagerduty" | "incidentio" | "linear" | "rootly" | "opsgenie" | "datadog" | "jira" | "webhook";
+export type IncidentSource = "issue" | "postmortem" | "form" | IntakeKind;
 export type Epicenter = { sha: string; prNumber?: number; title?: string; testedCommits: number; arrivedWithCode?: boolean } | { unavailable: string };
 
 export const incidents = pgTable(
@@ -221,7 +223,7 @@ export const integrations = pgTable(
   {
     id: id(),
     workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-    kind: text("kind").$type<"sentry" | "pagerduty" | "model">().notNull(),
+    kind: text("kind").$type<IntakeKind | "model">().notNull(),
     config: jsonb("config").$type<Record<string, string>>().notNull().default({}),
     secretCiphertext: text("secret_ciphertext"),
     enabled: boolean("enabled").notNull().default(true),

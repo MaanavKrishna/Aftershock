@@ -69,3 +69,65 @@ describe("PagerDuty", () => {
     expect(await w.incidents()).toEqual([]);
   });
 });
+
+describe("intake registry", async () => {
+  const { POST: dynamic } = await import("@/app/api/webhooks/[source]/route");
+  const { signStandardWebhook } = await import("@/lib/integrations/signatures");
+  const secret = "whsec_" + Buffer.from("incident-io-secret-for-tests").toString("base64");
+  const call = (source: string, login: string, body: string, headers: Record<string, string>) =>
+    dynamic(new NextRequest(`http://localhost/api/webhooks/${source}?workspace=${login}`, { method: "POST", body, headers }), { params: Promise.resolve({ source }) });
+  const incBody = JSON.stringify({ event_type: "public_incident.incident_created_v2", "public_incident.incident_created_v2": { id: "01HX", name: "Checkout totals overflow", summary: "500 on /checkout", permalink: "https://app.incident.io/x", incident_type: { name: "checkout" } } });
+  const signed = (body: string, ts = Math.floor(Date.now() / 1000)) => ({ "webhook-id": "msg_1", "webhook-timestamp": String(ts), "webhook-signature": signStandardWebhook("msg_1", String(ts), body, secret) });
+
+  async function labsWorld(flag: boolean) {
+    const w = await world();
+    const db = await getDb();
+    await db.update(s.workspaces).set({ settings: { flags: { intakeExtra: flag } } }).where(eq(s.workspaces.id, w.ws.id));
+    await db.insert(s.integrations).values([
+      { workspaceId: w.ws.id, kind: "incidentio", config: { types: "checkout:ecommerce-api" }, secretCiphertext: encrypt(secret) },
+      { workspaceId: w.ws.id, kind: "datadog", config: {}, secretCiphertext: encrypt("dd-token") },
+    ]);
+    return w;
+  }
+
+  test("a signed incident.io incident opens an incident once the Labs flag is on", async () => {
+    const w = await labsWorld(true);
+    expect((await call("incidentio", w.ws.login, incBody, signed(incBody))).status).toBe(200);
+    expect((await call("incidentio", w.ws.login, incBody, signed(incBody))).status).toBe(200);
+    const incs = await w.incidents();
+    expect(incs).toHaveLength(1);
+    expect(incs[0]).toMatchObject({ source: "incidentio", fingerprint: "incidentio-01HX", repoId: w.repo.id, status: "awaiting_fix" });
+    expect(incs[0].statusReason).toContain("incident.io");
+  });
+  test("with the flag off, new sources answer 404 and store nothing", async () => {
+    const w = await labsWorld(false);
+    expect((await call("incidentio", w.ws.login, incBody, signed(incBody))).status).toBe(404);
+    expect(await w.incidents()).toEqual([]);
+    expect(await w.deliveries("incidentio")).toEqual([]);
+  });
+  test("a replayed delivery outside the five-minute window is rejected", async () => {
+    const w = await labsWorld(true);
+    expect((await call("incidentio", w.ws.login, incBody, signed(incBody, Math.floor(Date.now() / 1000) - 600))).status).toBe(401);
+    expect(await w.incidents()).toEqual([]);
+  });
+  test("bodies over 256 KiB are refused before verification", async () => {
+    const w = await labsWorld(true);
+    const big = JSON.stringify({ pad: "x".repeat(300_000) });
+    expect((await call("incidentio", w.ws.login, big, signed(big))).status).toBe(413);
+  });
+  test("a correctly signed body that is not JSON is a 400", async () => {
+    const w = await labsWorld(true);
+    expect((await call("incidentio", w.ws.login, "not json", signed("not json"))).status).toBe(400);
+  });
+  test("Datadog authenticates with the workspace token", async () => {
+    const w = await labsWorld(true);
+    const body = JSON.stringify({ id: "agg-9", title: "[Triggered] checkout p99", message: "p99 > 2s", transition: "Triggered", tags: "service:ecommerce-api" });
+    expect((await call("datadog", w.ws.login, body, { authorization: "Bearer wrong" })).status).toBe(401);
+    expect((await call("datadog", w.ws.login, body, { authorization: "Bearer dd-token" })).status).toBe(200);
+    expect((await w.incidents())[0]).toMatchObject({ source: "datadog", fingerprint: "datadog-agg-9", repoId: w.repo.id });
+  });
+  test("an unknown source is a 404", async () => {
+    const w = await labsWorld(true);
+    expect((await call("myspace", w.ws.login, "{}", {})).status).toBe(404);
+  });
+});

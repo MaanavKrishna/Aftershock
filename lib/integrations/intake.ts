@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { decrypt } from "@/lib/crypto";
 import { incidentKey } from "@/lib/domain/ids";
+import { SOURCES } from "./sources";
 
 export type Alert = { fingerprint: string; title: string; observed: string; target: string; link?: string; event: string };
 
@@ -16,7 +17,7 @@ export function parseMapping(raw: string | undefined): Record<string, string> {
   );
 }
 
-export async function integrationFor(login: string, kind: "sentry" | "pagerduty") {
+export async function integrationFor(login: string, kind: s.IntakeKind) {
   const db = await getDb();
   const [ws] = await db.select().from(s.workspaces).where(eq(s.workspaces.login, login));
   if (!ws) return null;
@@ -30,10 +31,11 @@ export async function logDelivery(workspaceId: string, kind: string, event: stri
 }
 
 /** Opens an Awaiting fix incident for an alert, once per fingerprint. */
-export async function intakeAlert(ws: typeof s.workspaces.$inferSelect, source: "sentry" | "pagerduty", mapping: Record<string, string>, a: Alert): Promise<{ created: boolean; key?: string }> {
+export async function intakeAlert(ws: typeof s.workspaces.$inferSelect, source: s.IntakeKind, mapping: Record<string, string>, a: Alert): Promise<{ created: boolean; key?: string }> {
   const db = await getDb();
   const [dupe] = await db.select().from(s.incidents).where(and(eq(s.incidents.workspaceId, ws.id), eq(s.incidents.fingerprint, a.fingerprint)));
   if (dupe) return { created: false, key: incidentKey(ws.incidentPrefix, dupe.number) };
+  const label = SOURCES[source].label;
   const repos = await db.select().from(s.repositories).where(eq(s.repositories.workspaceId, ws.id));
   const repoName = mapping[a.target] ?? a.target;
   const repo = repos.find((r) => r.name === repoName) ?? (repos.length === 1 ? repos[0] : undefined);
@@ -41,8 +43,8 @@ export async function intakeAlert(ws: typeof s.workspaces.$inferSelect, source: 
   const number = await scoped(ws.id).nextIncidentNumber();
   const [inc] = await db
     .insert(s.incidents)
-    .values({ workspaceId: ws.id, repoId: repo?.id ?? null, number, title: a.title.slice(0, 200), observed: a.observed.slice(0, 4000), source, sourceRef: a.link ?? null, fingerprint: a.fingerprint, status: "awaiting_fix", statusReason: `Opened from ${source === "sentry" ? "Sentry" : "PagerDuty"}. Time travel starts when a pull request mentioning ${incidentKey(ws.incidentPrefix, number)} merges.` })
+    .values({ workspaceId: ws.id, repoId: repo?.id ?? null, number, title: a.title.slice(0, 200), observed: a.observed.slice(0, 4000), source, sourceRef: a.link ?? null, fingerprint: a.fingerprint, status: "awaiting_fix", statusReason: `Opened from ${label}. Time travel starts when a pull request mentioning ${incidentKey(ws.incidentPrefix, number)} merges.` })
     .returning();
-  await db.insert(s.activity).values({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, number)} opened from ${source === "sentry" ? "Sentry" : "PagerDuty"} alert`, detail: "Awaiting fix", tone: "neutral" });
+  await db.insert(s.activity).values({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, number)} opened from ${label}`, detail: "Awaiting fix", tone: "neutral" });
   return { created: true, key: incidentKey(ws.incidentPrefix, number) };
 }
