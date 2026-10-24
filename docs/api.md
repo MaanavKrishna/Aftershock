@@ -2,14 +2,16 @@
 
 ## HTTP API
 
-Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) or a browser session. Limit: 120 requests per minute per caller.
+Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) or a browser session. Tokens are **read only** or **read and write**; POST endpoints need write access and answer 403 otherwise. Limit: 120 requests per minute per caller.
 
 | Method | Path | |
 |---|---|---|
 | GET | `/api/v1/incidents` | Incidents and their status |
 | POST | `/api/v1/incidents` | Create: `{ title, repository, trigger?, observed?, expected?, fix? }` |
 | POST | `/api/v1/incidents/:number/verify` | Start time travel (needs a linked fix) |
-| GET | `/api/v1/runs/:id/evidence` | One time-travel attempt with its evidence (`evidence.json`) |
+| GET | `/api/v1/incidents/:number/evidence` | Signed evidence bundle for audits ([Audit evidence](evidence.md)) |
+| GET | `/api/v1/runs/:id/evidence` | One time-travel attempt with its full log (`evidence.json`) |
+| GET | `/.well-known/aftershock-jwks.json` | Public keys for verifying evidence (no auth) |
 | GET | `/api/v1/memory` | Admitted tests with health and guard counts |
 | GET | `/api/v1/lessons` | `LESSONS.md` for coding agents |
 | POST | `/api/v1/checks/report` | Results from your own runner (below) |

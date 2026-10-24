@@ -55,6 +55,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
           </div>
           <div className="flex flex-wrap gap-2">
             {runs.length > 0 && <ButtonLink href={`/incidents/${inc.number}/travel`} variant="secondary">View time travel</ButtonLink>}
+            {runs.length > 0 && <ButtonLink href={`/incidents/${inc.number}/evidence`} variant="secondary">Evidence</ButtonLink>}
             {mem?.botPr && <a href={repo ? `https://github.com/${repo.fullName}/pull/${mem.botPr}` : "#"} className="inline-flex min-h-[42px] items-center rounded-[9px] bg-ink px-3.5 text-[13.5px] font-semibold text-white no-underline">{mem.botPrState === "open" ? `Review bot PR #${mem.botPr}` : `Bot PR #${mem.botPr} · ${mem.botPrState}`}</a>}
           </div>
         </div>
