@@ -150,6 +150,8 @@ export const memoryTests = pgTable("memory_tests", {
   guardCheckedAt: timestamp("guard_checked_at", { withTimezone: true }),
   guardSha: text("guard_sha"),
   guardDetail: text("guard_detail").notNull().default(""),
+  /** Mutation testing: share of small changes to the fixed lines that this test catches (lib/domain/mutation.ts). */
+  strength: jsonb("strength").$type<import("@/lib/domain/mutation").Strength>(),
 });
 
 /** guarding: fails with the fix undone. weak: passes anyway. drifted: the fix can no longer be undone on the current code. */

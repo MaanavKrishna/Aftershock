@@ -453,3 +453,15 @@ export async function addAnotherTest(form: FormData): Promise<void> {
   await startTimeTravel(inc.id, { additional: true, hint });
   redirect(`/incidents/${inc.number}/travel`);
 }
+
+/** Measures (again) how many small changes to the fixed lines a memory test catches. */
+export async function measureStrength(form: FormData): Promise<void> {
+  const { session, allowed } = await authorize("manageRepositories");
+  if (!allowed) return;
+  const db = await getDb();
+  const [t] = await db.select().from(s.memoryTests).where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)));
+  if (!t) return;
+  const { startStrength } = await import("@/lib/workflows/start");
+  await startStrength(t.id);
+  revalidatePath("/memory");
+}

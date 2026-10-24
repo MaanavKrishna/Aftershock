@@ -82,3 +82,8 @@ export async function startBackfill(workspaceId: string, limit: number): Promise
   const { backfill } = await import("./backfill");
   await launch(backfill, [workspaceId, limit], "backfill");
 }
+
+export async function startStrength(memoryTestId: string): Promise<void> {
+  const { strength } = await import("./strength");
+  await launch(strength, [memoryTestId], "test strength");
+}

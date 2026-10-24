@@ -20,3 +20,12 @@ Turn on **Weekly still-guarding re-proof** in **Settings → Labs**. Re-proofs r
 Tests that are failing on main, or quarantined, are skipped until they are healthy again. Status changes to Weak or Drifted are written to the activity feed and sent as the `test.weakened` notification.
 
 Re-proofs on the hosted sandbox count toward sandbox hours, like every other run.
+
+## Test strength
+
+A test can pass the proof and still be loose: it fails on the old bug but would also accept a slightly wrong fix. With **Test strength by mutation after each proof** on in Labs, Aftershock makes small changes (mutants) to the lines the fix added. It flips comparisons (`<` and `<=`, `==` and `!=`), `and` and `or`, `in` and `not in`, booleans, `+` and `-`, and nudges numbers. Each mutant runs on the fix commit:
+
+- The test **fails**: the mutant is caught.
+- The test **passes**: the mutant survived, so the test doesn't notice that change.
+
+**Strength** is the share caught, shown on the Memory page with the first change it misses. Below 60% the test is called out in the activity feed. **Prove another test** on the incident, with a focus such as "check the exact status code", adds a second proven test beside it. Up to 12 mutants are run per test, one run each, metered like any other run. Environment errors don't count either way.

@@ -10,6 +10,7 @@ export const FLAGS = {
   mcp: "MCP server for coding agents",
   badge: "Public README badge",
   reproof: "Weekly still-guarding re-proof",
+  testStrength: "Test strength by mutation after each proof",
   mergeQueue: "Merge queue checks",
   quarantineEnforce: "Skip quarantined tests on pull requests",
   planEnforce: "Enforce plan limits",

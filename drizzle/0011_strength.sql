@@ -1,0 +1,1 @@
+ALTER TABLE "memory_tests" ADD COLUMN "strength" jsonb;

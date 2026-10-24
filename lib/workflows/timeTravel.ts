@@ -265,9 +265,15 @@ async function proposeTest(runId: string, memoryTestId: string, ctx: TravelConte
 
 async function afterProven(memoryTestId: string): Promise<void> {
   "use step";
-  const { startRetroCheck, startEpicenter } = await import("./start");
+  const { startRetroCheck, startEpicenter, startStrength } = await import("./start");
   await startEpicenter(memoryTestId);
   await startRetroCheck(memoryTestId);
+  const { eq } = await import("drizzle-orm");
+  const { getDb } = await import("@/lib/db/client");
+  const s = await import("@/lib/db/schema");
+  const { flagEnabled } = await import("@/lib/flags");
+  const [row] = await (await getDb()).select({ settings: s.workspaces.settings }).from(s.memoryTests).innerJoin(s.workspaces, eq(s.workspaces.id, s.memoryTests.workspaceId)).where(eq(s.memoryTests.id, memoryTestId));
+  if (row && flagEnabled("testStrength", row.settings)) await startStrength(memoryTestId);
 }
 
 async function markUnproven(ctx: TravelContext, reason: string, additional = false): Promise<void> {

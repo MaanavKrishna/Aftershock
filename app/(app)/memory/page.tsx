@@ -8,7 +8,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { incidentKey } from "@/lib/domain/ids";
 import { renderLessons } from "@/lib/domain/lessons";
 import { stamp, timeAgo, word } from "@/lib/format";
-import { releaseQuarantine, reproveNow } from "../actions";
+import { measureStrength, releaseQuarantine, reproveNow } from "../actions";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SyncLessons } from "@/components/app/SyncLessons";
 import { flagEnabled } from "@/lib/flags";
@@ -24,6 +24,7 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
   const [ws, all, repos] = await Promise.all([scope.workspace(), scope.memory(), scope.repos()]);
   const quarantineEnforced = flagEnabled("quarantineEnforce", ws?.settings);
   const reproofOn = flagEnabled("reproof", ws?.settings);
+  const strengthOn = flagEnabled("testStrength", ws?.settings);
   const prefix = ws?.incidentPrefix ?? "INC";
   const rows = all.filter((r) => !sp.repo || r.repo.name === sp.repo);
   const sel = rows.find((r) => r.test.id === sp.test) ?? rows[0];
@@ -79,12 +80,19 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
               <aside className="flex min-w-0 flex-[1_1_380px] flex-col gap-4">
                 <Card>
                   <div className="flex flex-col gap-1.5 border-b border-[#EDEEE9] px-[22px] py-[18px]">
-                    <div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs text-muted">{incidentKey(prefix, sel.incident.number)} · {sel.repo.name}</span><Pill tone={HEALTH[sel.test.health][1]}>{HEALTH[sel.test.health][0]}</Pill>{sel.test.quarantined && <Pill tone="dashed">Quarantined</Pill>}{sel.test.guardStatus && <Pill tone={GUARD[sel.test.guardStatus][1]}>{GUARD[sel.test.guardStatus][0]}</Pill>}</div>
+                    <div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs text-muted">{incidentKey(prefix, sel.incident.number)} · {sel.repo.name}</span><Pill tone={HEALTH[sel.test.health][1]}>{HEALTH[sel.test.health][0]}</Pill>{sel.test.quarantined && <Pill tone="dashed">Quarantined</Pill>}{sel.test.guardStatus && <Pill tone={GUARD[sel.test.guardStatus][1]}>{GUARD[sel.test.guardStatus][0]}</Pill>}{sel.test.strength && <Pill tone={sel.test.strength.score >= 60 ? "pass" : "dashed"} mono>{`strength ${sel.test.strength.score}%`}</Pill>}</div>
                     {sel.test.quarantined && (
                       <form action={releaseQuarantine} className="flex flex-wrap items-center gap-3 rounded-[10px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px]">
                         <input type="hidden" name="memoryTestId" value={sel.test.id} />
                         <span className="flex-[1_1_220px] text-muted">{sel.test.quarantineReason}. {quarantineEnforced ? "It is skipped on pull requests until seven green nights." : "Recorded only: turn on quarantine in Labs to skip it on pull requests."}</span>
                         <SubmitButton className="min-h-9 cursor-pointer rounded-[8px] border border-line-strong bg-white px-3 font-semibold" pendingLabel="Releasing…">Release</SubmitButton>
+                      </form>
+                    )}
+                    {strengthOn && (
+                      <form action={measureStrength} className="flex flex-wrap items-center gap-3 rounded-[10px] border border-line px-3 py-2.5 text-[12.5px]">
+                        <input type="hidden" name="memoryTestId" value={sel.test.id} />
+                        <span className="flex-[1_1_220px] text-muted">{sel.test.strength ? `Catches ${sel.test.strength.killed} of ${sel.test.strength.total} small changes to the fixed lines.${sel.test.strength.survivors[0] ? ` Misses: ${sel.test.strength.survivors[0].file}:${sel.test.strength.survivors[0].line} → “${sel.test.strength.survivors[0].to.trim()}”.` : ""}` : "Strength not measured yet: small changes are made to the fixed lines and this test should catch them."}</span>
+                        <SubmitButton className="min-h-9 cursor-pointer rounded-[8px] border border-line-strong bg-white px-3 font-semibold" pendingLabel="Starting…">Measure strength</SubmitButton>
                       </form>
                     )}
                     {reproofOn && (
