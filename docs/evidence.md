@@ -20,8 +20,8 @@ curl -H "Authorization: Bearer $AFTERSHOCK_TOKEN" https://aftershock-mk.vercel.a
 | `incident` | Key, title, severity, source, status, what was observed and expected, when it opened |
 | `fix` | Fix commit, the commit before it, the pull request |
 | `proof[]` | Each time-travel attempt: outcomes on the commit before the fix and on the fix, the runner, SHA-256 of the test code and of the run log |
-| `memoryTest` | The admitted test (path and SHA-256), nightly health, quarantine state, the last still-guarding re-proof |
-| `guard[]` | Every pull request and merge-queue entry the test ran on: the commit tested, the verdict, overrides with their reasons |
+| `memoryTests[]` | Each admitted test (path and SHA-256), nightly health, quarantine state, the last still-guarding re-proof |
+| `guard[]` | Every pull request and merge-queue entry a test ran on (`test` names which): the commit tested, the verdict, overrides with their reasons |
 | `epicenter` | The commit that introduced the bug, if found |
 
 Run logs are kept for 30 days. Older bundles still carry the log's hash (`logSha256` is null once the log is gone, and `logRetained` says so). Hashes from an earlier download stay comparable.

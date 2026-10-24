@@ -12,7 +12,7 @@ export async function openBotPr(i: BotPrInput): Promise<number | null> {
   const [repo] = await db.select().from(s.repositories).where(eq(s.repositories.id, i.repoId));
   const [owner, name] = repo.fullName.split("/");
   const base = repo.defaultBranch;
-  const branch = `aftershock/${i.key.toLowerCase()}`;
+  const branch = i.branch ?? `aftershock/${i.key.toLowerCase()}`;
   const { data: ref } = await ok.request("GET /repos/{owner}/{repo}/git/ref/{ref}", { owner, repo: name, ref: `heads/${base}` });
   await ok.request("POST /repos/{owner}/{repo}/git/refs", { owner, repo: name, ref: `refs/heads/${branch}`, sha: ref.object.sha }).catch(() => undefined);
   const yaml = [`id: ${i.key}`, `title: ${JSON.stringify(i.title)}`, `test: ${i.path}`, `proven:`, `  fails_on: ${i.parentSha}`, `  passes_on: ${i.fixSha}`, ""].join("\n");
@@ -27,7 +27,7 @@ export async function openBotPr(i: BotPrInput): Promise<number | null> {
     await ok.request("PUT /repos/{owner}/{repo}/contents/{path}", { owner, repo: name, path, branch, message, content: Buffer.from(content).toString("base64"), ...(sha ? { sha } : {}) });
   };
   await put(i.path, i.code, `test: add proven regression test for ${i.key}`);
-  await put(`.aftershock/incidents/${i.key}.yaml`, yaml, `chore: record ${i.key} proof`);
+  await put(`.aftershock/incidents/${i.branch ? i.branch.split("/").pop()!.toUpperCase() : i.key}.yaml`, yaml, `chore: record ${i.key} proof`);
   return openOrReusePr(ok as unknown as Client, {
     owner, repo: name, head: branch, base,
     title: `Add proven regression test for ${i.key}`,

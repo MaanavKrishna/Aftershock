@@ -442,3 +442,14 @@ export async function dismissSuggestedFix(form: FormData): Promise<void> {
   await db.update(s.incidents).set({ suggestedFix: null }).where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)));
   revalidatePath("/incidents");
 }
+
+/** Proves one more test for an already proven incident (another level, another angle). */
+export async function addAnotherTest(form: FormData): Promise<void> {
+  const { scope } = await currentScope();
+  const inc = await scope.getIncidentById(String(form.get("incidentId") ?? ""));
+  if (!inc || inc.status !== "proven") return;
+  const hint = String(form.get("hint") ?? "").trim().slice(0, 500) || undefined;
+  const { startTimeTravel } = await import("@/lib/workflows/start");
+  await startTimeTravel(inc.id, { additional: true, hint });
+  redirect(`/incidents/${inc.number}/travel`);
+}

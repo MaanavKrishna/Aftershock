@@ -26,7 +26,19 @@ export type TravelContext = {
   diff: string;
   context: { name: string; note: string; content: string }[];
   firstAttempt: number;
+  /** Paths of the incident's memory tests already admitted. */
+  existingTests: string[];
 };
+
+export type TravelOptions = { hint?: string; additional?: boolean };
+
+/** test_inc_3.py → test_inc_3_2.py: an additional test never overwrites an existing file. */
+export function nextTestPath(path: string, taken: string[]): string {
+  if (!taken.includes(path)) return path;
+  const dot = path.lastIndexOf(".");
+  const [stem, ext] = dot > path.lastIndexOf("/") ? [path.slice(0, dot), path.slice(dot)] : [path, ""];
+  for (let n = 2; ; n++) if (!taken.includes(`${stem}_${n}${ext}`)) return `${stem}_${n}${ext}`;
+}
 
 const STEP_KEYS: [string, string][] = [
   ["load", "Load incident and fix"],
@@ -104,6 +116,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
         framework, install, testDir, workdir,
         fixSha: resolved.fixSha, parentSha: resolved.parentSha, fixTitle: resolved.title,
         changedFiles: resolved.changedFiles, diff: resolved.diff, context, firstAttempt: Number(max) + 1,
+        existingTests: (await db.select({ path: s.memoryTests.path }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, inc.id))).map((m) => m.path),
       },
     };
   } catch (err) {
@@ -209,7 +222,7 @@ async function finishAttempt(runId: string, status: "proven" | "rejected" | "unp
   await db.update(s.timeTravelRuns).set({ status, reason, feedback: feedback ?? null, log: log.slice(-20_000), steps, finishedAt: new Date() }).where(eq(s.timeTravelRuns.id, runId));
 }
 
-async function admit(runId: string, ctx: TravelContext, draft: { path: string; code: string }): Promise<string> {
+async function admit(runId: string, ctx: TravelContext, draft: { path: string; code: string }, additional = false): Promise<string> {
   "use step";
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
@@ -220,8 +233,11 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
   const def = frameworkDef(ctx.framework);
   // Watched files are the code the fix changed, not its tests.
   const watched = ctx.changedFiles.filter((f) => !def.isTestFile(f) && !(ctx.testDir && f.startsWith(ctx.testDir)) && !/(^|\/)(tests?|__tests__|spec)\//.test(f));
-  // One memory test per incident: a newer proof replaces the old test.
-  const [existing] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, ctx.incidentId));
+  // A new proof replaces the incident's test (the one at the same path, else the first); an additional test is added beside it.
+  const { and } = await import("drizzle-orm");
+  const [samePath] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(and(eq(s.memoryTests.incidentId, ctx.incidentId), eq(s.memoryTests.path, draft.path)));
+  const [first] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, ctx.incidentId));
+  const existing = additional ? samePath : (samePath ?? first);
   const values = { repoId: ctx.repoId, runId, path: draft.path, fn, code: draft.code, health: "healthy" as const, nights: [], workdir: ctx.workdir, framework: ctx.framework, installCmd: ctx.install };
   const [mem] = existing
     ? await db.update(s.memoryTests).set(values).where(eq(s.memoryTests.id, existing.id)).returning()
@@ -232,14 +248,14 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
   return mem.id;
 }
 
-async function proposeTest(runId: string, memoryTestId: string, ctx: TravelContext, draft: { path: string; code: string }): Promise<void> {
+async function proposeTest(runId: string, memoryTestId: string, ctx: TravelContext, draft: { path: string; code: string }, additional = false): Promise<void> {
   "use step";
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
   const { deps } = await import("@/lib/timetravel/deps");
   const db = await getDb();
-  const pr = await (await deps()).openBotPr({ workspaceId: ctx.workspaceId, repoId: ctx.repoId, incidentId: ctx.incidentId, key: ctx.key, title: ctx.incident.title, path: draft.path, code: draft.code, parentSha: ctx.parentSha, fixSha: ctx.fixSha });
+  const pr = await (await deps()).openBotPr({ workspaceId: ctx.workspaceId, repoId: ctx.repoId, incidentId: ctx.incidentId, key: ctx.key, title: ctx.incident.title, path: draft.path, code: draft.code, parentSha: ctx.parentSha, fixSha: ctx.fixSha, ...(additional ? { branch: `aftershock/${ctx.key.toLowerCase()}-${ctx.existingTests.length + 1}` } : {}) });
   if (pr) {
     await db.update(s.memoryTests).set({ botPr: pr, botPrState: "open" }).where(eq(s.memoryTests.id, memoryTestId));
     await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `Bot opened PR #${pr} with the test`, detail: draft.path, tone: "neutral" });
@@ -254,12 +270,18 @@ async function afterProven(memoryTestId: string): Promise<void> {
   await startRetroCheck(memoryTestId);
 }
 
-async function markUnproven(ctx: TravelContext, reason: string): Promise<void> {
+async function markUnproven(ctx: TravelContext, reason: string, additional = false): Promise<void> {
   "use step";
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
   const db = await getDb();
+  if (additional && ctx.existingTests.length) {
+    // The incident stays proven by the tests it already has.
+    await db.update(s.incidents).set({ status: "proven", statusReason: null, updatedAt: new Date() }).where(eq(s.incidents.id, ctx.incidentId));
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `Additional test for ${ctx.key} not proven`, detail: reason, tone: "neutral" });
+    return;
+  }
   await db.update(s.incidents).set({ status: "unproven", statusReason: reason, updatedAt: new Date() }).where(eq(s.incidents.id, ctx.incidentId));
   await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `${ctx.key} unproven`, detail: reason, tone: "neutral", event: "incident.unproven" as const });
 }
@@ -276,12 +298,13 @@ async function abandonTravel(incidentId: string, reason: string): Promise<void> 
   const s = await import("@/lib/db/schema");
   const db = await getDb();
   const msg = `Time travel could not finish: ${reason.slice(0, 300)}`;
-  const [inc] = await db.update(s.incidents).set({ status: "unproven", statusReason: msg, updatedAt: new Date() }).where(and(eq(s.incidents.id, incidentId), eq(s.incidents.status, "traveling"))).returning();
+  const [hasTest] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, incidentId)).limit(1);
+  const [inc] = await db.update(s.incidents).set({ status: hasTest ? "proven" : "unproven", statusReason: hasTest ? null : msg, updatedAt: new Date() }).where(and(eq(s.incidents.id, incidentId), eq(s.incidents.status, "traveling"))).returning();
   if (inc) await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: inc.workspaceId, incidentId, title: "Time travel stopped", detail: msg, tone: "fail", event: "incident.unproven" as const });
   (await import("@/lib/obs/log")).log.error("time travel abandoned", { incidentId, reason });
 }
 
-export async function timeTravel(incidentId: string, opts: { hint?: string }): Promise<{ status: string }> {
+export async function timeTravel(incidentId: string, opts: TravelOptions): Promise<{ status: string }> {
   "use workflow";
   try {
     return await travel(incidentId, opts);
@@ -291,17 +314,22 @@ export async function timeTravel(incidentId: string, opts: { hint?: string }): P
   }
 }
 
-async function travel(incidentId: string, opts: { hint?: string }): Promise<{ status: string }> {
+async function travel(incidentId: string, opts: TravelOptions): Promise<{ status: string }> {
   const prepared = await prepare(incidentId);
   if (!prepared.ok) return { status: "not_reproducible" };
   const ctx = prepared.ctx;
   let feedback: string | undefined;
   let previous: string | undefined;
   let lastReason = "Every draft passed before the fix.";
+  const additional = Boolean(opts.additional && ctx.existingTests.length);
+  const hint = additional
+    ? [`Write a different test from the existing one${ctx.existingTests.length === 1 ? "" : "s"} (${ctx.existingTests.join(", ")}): cover the same incident another way, for example at the API or integration level instead of a unit. Use a new file name and new test names.`, opts.hint].filter(Boolean).join("\n")
+    : opts.hint;
   for (let i = 0; i < DRAFTS_PER_TRAVEL; i++) {
     const attempt = ctx.firstAttempt + i;
     const runId = await startAttempt(ctx, attempt);
-    const draft = await draftTest(runId, ctx, feedback, i === 0 ? opts.hint : undefined, previous);
+    const drafted = await draftTest(runId, ctx, feedback, i === 0 ? hint : additional ? hint : undefined, previous);
+    const draft = drafted.ok && additional ? { ...drafted, path: nextTestPath(drafted.path, ctx.existingTests) } : drafted;
     if (!draft.ok) {
       await finishAttempt(runId, "unproven", draft.reason, undefined, "");
       lastReason = draft.reason;
@@ -322,8 +350,8 @@ async function travel(incidentId: string, opts: { hint?: string }): Promise<{ st
     const decision = decideAdmission(before.results, fix.results, RUNS_PER_COMMIT);
     await finishAttempt(runId, decision.status, decision.reason, decision.feedback, `${before.log}\n\n${fix.log}`);
     if (decision.status === "proven") {
-      const memoryTestId = await admit(runId, ctx, draft);
-      await proposeTest(runId, memoryTestId, ctx, draft);
+      const memoryTestId = await admit(runId, ctx, draft, additional);
+      await proposeTest(runId, memoryTestId, ctx, draft, additional);
       await afterProven(memoryTestId);
       return { status: "proven" };
     }
@@ -332,6 +360,6 @@ async function travel(incidentId: string, opts: { hint?: string }): Promise<{ st
     feedback = decision.feedback;
     previous = draft.code;
   }
-  await markUnproven(ctx, lastReason);
+  await markUnproven(ctx, lastReason, additional);
   return { status: "unproven" };
 }

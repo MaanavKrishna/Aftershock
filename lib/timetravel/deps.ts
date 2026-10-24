@@ -19,7 +19,7 @@ export type Draft = { path: string; code: string; model: string; tokens?: number
 export interface Drafter {
   draft(input: DraftInput): Promise<Draft>;
 }
-export type BotPrInput = { workspaceId: string; repoId: string; incidentId: string; key: string; title: string; path: string; code: string; parentSha: string; fixSha: string };
+export type BotPrInput = { workspaceId: string; repoId: string; incidentId: string; key: string; title: string; path: string; code: string; parentSha: string; fixSha: string; /** Defaults to aftershock/<key>. */ branch?: string };
 
 export type Deps = {
   runner: () => Runner;

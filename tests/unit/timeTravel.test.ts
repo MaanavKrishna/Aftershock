@@ -189,4 +189,31 @@ describe("languages behind Labs flags", () => {
     await timeTravel(w.incident.id, {});
     expect((await w.reload()).statusReason).toMatch(/Labs/);
   });
+
+  test("an additional test is added next to the first one, in its own file and bot branch", async () => {
+    const w = await ledgerWorld();
+    setDeps({ runner: () => fakeRunner((s) => (s.sha === w.git.parent ? "failed" : "passed")), drafter: () => fakeDrafter(["UNIT"]), openBotPr: async () => 1 });
+    await timeTravel(w.incident.id, {});
+    const drafter = fakeDrafter(["INTEGRATION"]);
+    const branches: string[] = [];
+    setDeps({ runner: () => fakeRunner((s) => (s.sha === w.git.parent ? "failed" : "passed")), drafter: () => drafter, openBotPr: async (i) => (branches.push(i.branch ?? "default"), 2) });
+    expect(await timeTravel(w.incident.id, { additional: true })).toEqual({ status: "proven" });
+    const mem = await w.memory();
+    expect(mem.map((m) => m.code).sort()).toEqual(["INTEGRATION", "UNIT"]);
+    expect(mem.map((m) => m.path).sort()).toEqual(["tests/aftershock/test_inc_1.py", "tests/aftershock/test_inc_1_2.py"]);
+    expect(drafter.inputs[0].hint).toMatch(/different test/i);
+    expect(drafter.inputs[0].hint).toContain("tests/aftershock/test_inc_1.py");
+    expect(branches).toEqual(["aftershock/inc-1-2"]);
+  });
+
+  test("an additional test that can't be proven leaves the incident proven with its first test", async () => {
+    const w = await ledgerWorld();
+    setDeps({ runner: () => fakeRunner((s) => (s.sha === w.git.parent ? "failed" : "passed")), drafter: () => fakeDrafter(["UNIT"]), openBotPr: async () => null });
+    await timeTravel(w.incident.id, {});
+    setDeps({ runner: () => fakeRunner(() => "passed"), drafter: () => fakeDrafter(["WEAK"]), openBotPr: async () => null });
+    expect(await timeTravel(w.incident.id, { additional: true })).toEqual({ status: "unproven" });
+    expect((await w.reload()).status).toBe("proven");
+    expect((await w.memory()).map((m) => m.code)).toEqual(["UNIT"]);
+  });
 });
+

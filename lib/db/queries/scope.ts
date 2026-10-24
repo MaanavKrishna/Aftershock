@@ -131,6 +131,11 @@ export function scoped(workspaceId: string) {
       return db.select().from(s.timeTravelRuns).where(eq(s.timeTravelRuns.incidentId, inc.id)).orderBy(asc(s.timeTravelRuns.attempt));
     },
 
+    async memoryTestsForIncident(incidentId: string) {
+      const db = await getDb();
+      return db.select().from(s.memoryTests).where(and(eq(s.memoryTests.workspaceId, workspaceId), eq(s.memoryTests.incidentId, incidentId)));
+    },
+
     async memoryForIncident(incidentId: string) {
       const db = await getDb();
       const [m] = await db.select().from(s.memoryTests).where(and(eq(s.memoryTests.workspaceId, workspaceId), eq(s.memoryTests.incidentId, incidentId)));

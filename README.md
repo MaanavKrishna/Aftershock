@@ -28,8 +28,9 @@ Supported: Python (pytest) and TypeScript or JavaScript (vitest, jest), plus Go,
 |---|---|
 | **Capture** | Incidents come from labelled GitHub issues, pasted postmortems, a form, or alerts and tickets (Sentry, PagerDuty, and more in Labs). Alerts wait in *Awaiting fix* until a pull request that mentions the incident merges. |
 | **Time travel** | A model drafts one test. It is admitted only if it fails before the fix and passes on it. Rejected drafts are redrafted with the failure as feedback, up to 3 times. |
-| **Memory** | Proven tests land in your repository through a pull request. They re-run nightly on the default branch, marked Healthy, Flaky or Failing on main, and export as `LESSONS.md` for coding agents. |
-| **Guard** | Each pull request runs only the relevant memory tests: those whose files it changes, plus any the model's triage adds. It gets one check and one comment: *Recur*, *Safe*, *Inconclusive* or *Skipped*. |
+| **Memory** | Proven tests land in your repository through a pull request. An incident can have several, each proven on its own (for example a unit and an API test). They re-run nightly on the default branch, marked Healthy, Flaky or Failing on main, and export as `LESSONS.md` for coding agents. |
+| **Guard** | Each pull request runs only the relevant memory tests: those whose files it changes, plus any the model's triage adds. It gets one check and one comment: *Recur*, *Safe*, *Inconclusive* or *Skipped*, plus a recurrence *risk* (low, medium, high) from the code it touches, even when no test runs. |
+| **Seen it before** | A new alert or issue that looks like a past incident (same files, similar error) is linked to it, with one click to re-run that incident's test on main. A merged pull request that changes the files an open alert points at is suggested as its fix. |
 | **Still guarding** | Weekly, the fix is undone on today's default branch and each memory test must fail again. Tests that pass anyway are flagged *Weak*; fixes that can no longer be undone are *Drifted* (Labs). |
 | **Merge queue** | Queued pull requests are checked on GitHub's merge-queue commit before they land (Labs). |
 | **Epicenter** | Bisects history with the proven test to find the commit and pull request that introduced the bug. |

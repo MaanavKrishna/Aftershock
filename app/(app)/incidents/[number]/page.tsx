@@ -13,7 +13,7 @@ import { SOURCES } from "@/components/app/sources";
 import { AutoRefresh } from "@/components/app/AutoRefresh";
 import { incidentKey } from "@/lib/domain/ids";
 import { stamp } from "@/lib/format";
-import { acceptSuggestedFix, addNote, deleteIncidentAction, dismissSuggestedFix, linkFix, rerunRelated, retryTimeTravel, searchEpicenter } from "../../actions";
+import { acceptSuggestedFix, addAnotherTest, addNote, deleteIncidentAction, dismissSuggestedFix, linkFix, rerunRelated, retryTimeTravel, searchEpicenter } from "../../actions";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { can } from "@/lib/auth/roles";
 
@@ -28,6 +28,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
   const { scope, session } = await currentScope();
   const inc = await scope.getIncident(Number(number));
   if (!inc) notFound();
+  const tests = await scope.memoryTestsForIncident(inc.id);
   const [ws, repo, runs, mem, checks, notes, trail] = await Promise.all([
     scope.workspace(), inc.repoId ? scope.repo(inc.repoId) : null, scope.runs(inc.id), scope.memoryForIncident(inc.id), scope.checksForIncident(inc.id), scope.notes(inc.id), scope.trail(inc.id),
   ]);
@@ -103,6 +104,14 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                       <input type="hidden" name="incidentId" value={inc.id} />
                       <span className="flex flex-[1_1_260px] flex-col"><span className="font-mono text-[11.5px] tracking-[0.04em] text-muted">EPICENTER</span><span className="text-[13px] text-body">{epicMissing ?? "Searching history for the commit that introduced the bug…"}</span></span>
                       {epicMissing && <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Starting…">Search again</SubmitButton>}
+                    </form>
+                  )}
+                  {mem && inc.status === "proven" && (
+                    <form action={addAnotherTest} className="flex w-full flex-wrap items-end gap-3 border-t border-line-soft px-[22px] py-4">
+                      <input type="hidden" name="incidentId" value={inc.id} />
+                      <span className="flex flex-[1_1_100%] flex-col gap-0.5"><span className="font-mono text-[11.5px] tracking-[0.04em] text-muted">MEMORY TESTS</span><span className="font-mono text-[12.5px] text-body">{tests.map((x) => x.path).join(" · ")}</span></span>
+                      <label className="flex flex-[1_1_320px] flex-col gap-1.5 text-[13px] font-semibold">Another test (optional focus)<input name="hint" maxLength={500} placeholder="e.g. cover it through the HTTP API" className="min-h-[42px] rounded-[9px] border border-field px-3 font-normal" /></label>
+                      <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Starting…">Prove another test</SubmitButton>
                     </form>
                   )}
                   {inc.status === "awaiting_fix" && (

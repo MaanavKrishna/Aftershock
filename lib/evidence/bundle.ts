@@ -22,9 +22,9 @@ export async function buildEvidence(workspaceId: string, number: number) {
   const [ws] = await db.select().from(s.workspaces).where(eq(s.workspaces.id, workspaceId));
   const [repo] = inc.repoId ? await db.select().from(s.repositories).where(eq(s.repositories.id, inc.repoId)) : [];
   const runs = await db.select().from(s.timeTravelRuns).where(eq(s.timeTravelRuns.incidentId, inc.id)).orderBy(asc(s.timeTravelRuns.attempt));
-  const [mem] = await db.select().from(s.memoryTests).where(eq(s.memoryTests.incidentId, inc.id));
-  const guarded = mem
-    ? await db.select({ r: s.prCheckResults, c: s.prChecks }).from(s.prCheckResults).innerJoin(s.prChecks, eq(s.prChecks.id, s.prCheckResults.checkId)).where(eq(s.prCheckResults.memoryTestId, mem.id)).orderBy(asc(s.prChecks.createdAt))
+  const mems = await db.select().from(s.memoryTests).where(eq(s.memoryTests.incidentId, inc.id));
+  const guarded = mems.length
+    ? await db.select({ r: s.prCheckResults, c: s.prChecks }).from(s.prCheckResults).innerJoin(s.prChecks, eq(s.prChecks.id, s.prCheckResults.checkId)).where(inArray(s.prCheckResults.memoryTestId, mems.map((m) => m.id))).orderBy(asc(s.prChecks.createdAt))
     : [];
   const overrides = guarded.length ? await db.select().from(s.overrides).where(inArray(s.overrides.checkId, guarded.map((g) => g.c.id))) : [];
   const key = incidentKey(ws.incidentPrefix, inc.number);
@@ -44,12 +44,10 @@ export async function buildEvidence(workspaceId: string, number: number) {
       logSha256: r.log ? sha256(r.log) : null, logRetained: Boolean(r.log),
       startedAt: iso(r.createdAt), finishedAt: iso(r.finishedAt),
     })),
-    memoryTest: mem
-      ? { path: mem.path, codeSha256: sha256(mem.code), provenAt: iso(mem.provenAt), health: mem.health, recentNights: mem.nights, quarantined: mem.quarantined, guardStatus: mem.guardStatus, guardCheckedAt: iso(mem.guardCheckedAt), guardSha: mem.guardSha }
-      : null,
+    memoryTests: mems.map((mem) => ({ path: mem.path, codeSha256: sha256(mem.code), provenAt: iso(mem.provenAt), health: mem.health, recentNights: mem.nights, quarantined: mem.quarantined, guardStatus: mem.guardStatus, guardCheckedAt: iso(mem.guardCheckedAt), guardSha: mem.guardSha })),
     guard: guarded.map(({ r, c }) => {
       const o = overrides.find((x) => x.checkId === c.id);
-      return { prNumber: c.prNumber, mergeQueue: Boolean(c.mergeGroupRef), headSha: c.headSha, testedSha: c.testedSha ?? c.headSha, verdict: r.verdict, outcomes: r.runs.map((x) => x.outcome), at: iso(c.createdAt), overridden: c.overridden, overrideReason: o?.reason ?? null, overriddenAt: iso(o?.createdAt) };
+      return { test: mems.find((m) => m.id === r.memoryTestId)?.path ?? null, prNumber: c.prNumber, mergeQueue: Boolean(c.mergeGroupRef), headSha: c.headSha, testedSha: c.testedSha ?? c.headSha, verdict: r.verdict, outcomes: r.runs.map((x) => x.outcome), at: iso(c.createdAt), overridden: c.overridden, overrideReason: o?.reason ?? null, overriddenAt: iso(o?.createdAt) };
     }),
     epicenter: inc.epicenter ?? null,
   };

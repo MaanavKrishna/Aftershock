@@ -39,8 +39,8 @@ test("the evidence bundle records the proof, the guard history and overrides, si
   const p = bundle.payload;
   expect(p).toMatchObject({ schema: "aftershock.evidence/v1", workspace: w.ws.login, repository: w.repo.fullName, incident: { key: "INC-1", status: "proven" }, fix: { sha: w.git.fix, parentSha: w.git.parent, pr: 7 } });
   expect(p.proof[0]).toMatchObject({ attempt: 1, status: "proven", beforeTheFix: { sha: w.git.parent, outcomes: ["failed", "failed", "failed"] }, onTheFix: { sha: w.git.fix, outcomes: ["passed", "passed", "passed"] }, testSha256: createHash("sha256").update(LEDGER_TEST).digest("hex"), logSha256: createHash("sha256").update("pytest output").digest("hex") });
-  expect(p.memoryTest).toMatchObject({ path: "tests/aftershock/test_inc_1.py", guardStatus: "guarding" });
-  expect(p.guard).toEqual([expect.objectContaining({ prNumber: 41, testedSha: "c".repeat(40), verdict: "recur", overridden: true, overrideReason: "hotfix, reviewed by two people" })]);
+  expect(p.memoryTests).toEqual([expect.objectContaining({ path: "tests/aftershock/test_inc_1.py", guardStatus: "guarding" })]);
+  expect(p.guard).toEqual([expect.objectContaining({ test: "tests/aftershock/test_inc_1.py", prNumber: 41, testedSha: "c".repeat(40), verdict: "recur", overridden: true, overrideReason: "hotfix, reviewed by two people" })]);
 
   const { GET: keys } = await import("@/app/.well-known/aftershock-jwks.json/route");
   const jwks = await (await keys()).json();

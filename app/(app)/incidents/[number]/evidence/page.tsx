@@ -58,20 +58,20 @@ export default async function Evidence({ params }: { params: Promise<{ number: s
             <Row key={p.attempt} k={`Attempt ${p.attempt} · ${p.status}`} v={<span className="font-mono text-[12.5px]">before the fix {short(p.beforeTheFix.sha)}: {p.beforeTheFix.outcomes.join(" ") || "—"} · on the fix {short(p.onTheFix.sha)}: {p.onTheFix.outcomes.join(" ") || "—"} · test sha256 {p.testSha256?.slice(0, 12) ?? "—"} · {p.runner} · {when(p.finishedAt)}</span>} />
           ))}
         </Card>
-        {e.memoryTest && (
-          <Card>
+        {e.memoryTests.map((m) => (
+          <Card key={m.path}>
             <CardHead>Memory test</CardHead>
-            <Row k="Path" v={<span className="font-mono">{e.memoryTest.path}</span>} />
-            <Row k="Proven" v={when(e.memoryTest.provenAt)} />
-            <Row k="Health on main" v={`${e.memoryTest.health}${e.memoryTest.quarantined ? " · quarantined" : ""}`} />
-            <Row k="Still guarding" v={e.memoryTest.guardStatus ? `${e.memoryTest.guardStatus} at ${short(e.memoryTest.guardSha)} · ${when(e.memoryTest.guardCheckedAt)}` : "not re-proved"} />
+            <Row k="Path" v={<span className="font-mono">{m.path}</span>} />
+            <Row k="Proven" v={when(m.provenAt)} />
+            <Row k="Health on main" v={`${m.health}${m.quarantined ? " · quarantined" : ""}`} />
+            <Row k="Still guarding" v={m.guardStatus ? `${m.guardStatus} at ${short(m.guardSha)} · ${when(m.guardCheckedAt)}` : "not re-proved"} />
           </Card>
-        )}
+        ))}
         <Card>
           <CardHead>Pull requests guarded</CardHead>
           {e.guard.length === 0 && <p className="m-0 px-[22px] py-4 text-muted">No pull request has run this test yet.</p>}
           {e.guard.map((g, i) => (
-            <Row key={i} k={`${g.mergeQueue ? "Merge queue" : "PR"} #${g.prNumber}`} v={<span>{g.verdict} on <span className="font-mono">{short(g.testedSha)}</span> · {when(g.at)}{g.overridden ? ` · overridden: ${g.overrideReason ?? "no reason"}` : ""}</span>} />
+            <Row key={i} k={`${g.mergeQueue ? "Merge queue" : "PR"} #${g.prNumber}`} v={<span><span className="font-mono">{g.test}</span>: {g.verdict} on <span className="font-mono">{short(g.testedSha)}</span> · {when(g.at)}{g.overridden ? ` · overridden: ${g.overrideReason ?? "no reason"}` : ""}</span>} />
           ))}
         </Card>
         <p className="m-0 text-[12.5px] text-muted">The JSON download is signed with Ed25519 (key <span className="font-mono">{kid}</span>) over its RFC 8785 canonical form. Verify it against <span className="font-mono">/.well-known/aftershock-jwks.json</span>; see the evidence docs.</p>

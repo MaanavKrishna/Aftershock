@@ -30,7 +30,7 @@ async function launch<A extends unknown[]>(fn: (...args: A) => Promise<unknown>,
   void fn(...args).catch((err) => log.error("workflow failed", { workflow: label, id: String(args[0]), err }));
 }
 
-export async function startTimeTravel(incidentId: string, opts: { hint?: string } = {}): Promise<void> {
+export async function startTimeTravel(incidentId: string, opts: { hint?: string; additional?: boolean } = {}): Promise<void> {
   const db = await getDb();
   await db.update(s.incidents).set({ status: "traveling", statusReason: null, updatedAt: new Date() }).where(eq(s.incidents.id, incidentId));
   const { timeTravel } = await import("./timeTravel");
