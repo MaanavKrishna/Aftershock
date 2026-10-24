@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { Framework } from "@/lib/runner/types";
+import { frameworkDef } from "@/lib/runner/frameworks";
 
 export class InvalidModelOutput extends Error {
   name = "InvalidModelOutput";
@@ -45,16 +46,12 @@ export function validateDraft(out: unknown, cfg: { framework: Framework; testDir
   }
   if (typeof o.path !== "string" || typeof o.code !== "string") throw new InvalidModelOutput("The draft needs a path and code");
   const norm = path.posix.normalize(o.path.replace(/\\/g, "/"));
-  const dir = cfg.testDir.replace(/\/$/, "");
+  const def = frameworkDef(cfg.framework);
   if (norm.startsWith("/") || norm.split("/").includes("..") || o.path.split("/").includes("..")) throw new InvalidModelOutput("The draft path must stay inside the repository");
-  if (!norm.startsWith(dir + "/")) throw new InvalidModelOutput(`The draft must live under ${dir}/`);
-  const base = path.posix.basename(norm);
-  if (cfg.framework === "pytest" ? !/^(test_\w+|\w+_test)\.py$/.test(base) : !/\.(test|spec)\.[cm]?[jt]sx?$/.test(base)) {
-    throw new InvalidModelOutput(cfg.framework === "pytest" ? "pytest drafts must be test_*.py files" : `${cfg.framework} drafts must be *.test.ts or *.test.js files`);
-  }
+  const pathProblem = def.checkDraftPath(norm, cfg.testDir);
+  if (pathProblem) throw new InvalidModelOutput(pathProblem);
   if (o.code.length > 30_000) throw new InvalidModelOutput("The draft is larger than 30 KB");
-  const hasTest = cfg.framework === "pytest" ? /^\s*(async\s+)?def test_\w+\s*\(/m.test(o.code) : /\b(test|it)(\.each\([^)]*\))?\s*\(/.test(o.code);
-  if (!hasTest) throw new InvalidModelOutput("The draft defines no test");
+  if (!def.definesTest(o.code)) throw new InvalidModelOutput("The draft defines no test");
   if (!balanced(o.code)) throw new InvalidModelOutput("The draft has unbalanced brackets");
   return { path: norm, code: o.code };
 }

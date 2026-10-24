@@ -1,7 +1,8 @@
+import { isFramework, type Framework } from "@/lib/runner/frameworks";
 import type { GitSource } from "@/lib/git/types";
 
 export type RepoSettings = {
-  framework: "pytest" | "vitest" | "jest";
+  framework: Framework;
   installCmd: string;
   testDir: string;
   runner: "sandbox" | "actions";
@@ -31,7 +32,7 @@ export function parseRepoConfig(text: string): RepoConfig {
     if (!indent) section = "";
   }
   const out: RepoConfig = {};
-  if (["pytest", "vitest", "jest"].includes(flat.framework)) out.framework = flat.framework as RepoSettings["framework"];
+  if (isFramework(flat.framework)) out.framework = flat.framework;
   if (["sandbox", "actions"].includes(flat.runner)) out.runner = flat.runner as RepoSettings["runner"];
   if (["blocking", "advisory"].includes(flat["check.mode"])) out.checkMode = flat["check.mode"] as RepoSettings["checkMode"];
   if (flat.install && flat.install.length <= 300) out.installCmd = flat.install;

@@ -10,7 +10,7 @@ type Plan =
       ok: true;
       checkId: string;
       workspaceId: string;
-      repo: { id: string; url: string; fullName: string; framework: "pytest" | "vitest" | "jest"; install: string; mode: "blocking" | "advisory" };
+      repo: { id: string; url: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string; mode: "blocking" | "advisory" };
       headSha: string;
       testedSha: string;
       mode: "run" | "actions" | "unavailable";

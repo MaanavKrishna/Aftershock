@@ -6,7 +6,7 @@ type Plan =
       ok: true;
       fixId: string;
       workspaceId: string;
-      repo: { url: string; fullName: string; framework: "pytest" | "vitest" | "jest"; install: string };
+      repo: { url: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string };
       headSha: string;
       tests: { id: string; path: string; code: string }[];
       prompt: { file: string; content: string; failing: string; failure: string; diff: string };

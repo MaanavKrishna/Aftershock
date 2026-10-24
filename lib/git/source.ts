@@ -1,6 +1,7 @@
 import path from "node:path";
 import { GithubSource } from "./github";
 import type { GitSource } from "./types";
+import { frameworkDef, type Framework } from "@/lib/runner/frameworks";
 
 export { NotReproducible, type GitSource, type Resolved } from "./types";
 
@@ -12,10 +13,11 @@ export async function sourceFor(repo: { cloneUrl: string; fullName: string }, to
 }
 
 /** Context the drafter reads: test setup files and the tests nearest the changed files. */
-export async function draftContext(src: GitSource, parentSha: string, changed: string[], framework: string): Promise<{ name: string; note: string; content: string }[]> {
+export async function draftContext(src: GitSource, parentSha: string, changed: string[], framework: Framework): Promise<{ name: string; note: string; content: string }[]> {
   const files = await src.listFiles(parentSha);
-  const isTest = (f: string) => (framework === "pytest" ? /(^|\/)(test_[^/]+|[^/]+_test)\.py$/.test(f) : /\.(test|spec)\.[cm]?[jt]sx?$/.test(f));
-  const setup = files.filter((f) => (framework === "pytest" ? /(^|\/)conftest\.py$/.test(f) : /(vitest|jest)\.config\.[cm]?[jt]s$/.test(f) || /(^|\/)setup(Tests)?\.[jt]s$/.test(f))).slice(0, 2);
+  const def = frameworkDef(framework);
+  const isTest = (f: string) => def.isTestFile(f);
+  const setup = files.filter((f) => def.isSetupFile(f)).slice(0, 2);
   const words = new Set(changed.flatMap((c) => path.basename(c).replace(/\.[^.]+$/, "").split(/[_\-.]/)).filter((w) => w.length > 2).map((w) => w.toLowerCase()));
   const tests = files
     .filter(isTest)

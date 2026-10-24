@@ -1,7 +1,9 @@
 import type { PrVerdict } from "@/lib/domain/verdict";
 import { aggregatePr } from "@/lib/domain/verdict";
 
-export type Framework = "pytest" | "vitest" | "jest";
+import { FRAMEWORK_IDS, isFramework, type Framework } from "@/lib/runner/frameworks";
+
+export type { Framework };
 export type Args =
   | { command: "prove"; fix: string; test: string; repo: string; framework?: Framework; install?: string; runs: number }
   | { command: "check"; head: string; repo: string; tests: string; framework?: Framework; install?: string; runs: number; inPlace: boolean; pr?: number; report: boolean }
@@ -37,7 +39,7 @@ export function parseArgs(argv: string[]): Args {
   const runs = Number(str("--runs") ?? 3);
   if (!Number.isInteger(runs) || runs < 1 || runs > 10) throw new Error("--runs must be between 1 and 10");
   const framework = str("--framework") as Framework | undefined;
-  if (framework && !["pytest", "vitest", "jest"].includes(framework)) throw new Error("--framework must be pytest, vitest or jest");
+  if (framework && !isFramework(framework)) throw new Error(`--framework must be one of: ${FRAMEWORK_IDS.join(", ")}`);
 
   if (command === "verify") {
     const m = positional[0]?.match(/^[A-Za-z]+-(\d+)$|^(\d+)$/);

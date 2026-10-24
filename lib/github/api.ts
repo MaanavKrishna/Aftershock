@@ -1,6 +1,6 @@
 import { octokitFor } from "./app";
 
-export type Detected = { framework: "pytest" | "vitest" | "jest"; install: string; language: string };
+export type Detected = { framework: import("@/lib/runner/frameworks").Framework; install: string; language: string };
 
 export type GithubApi = {
   detectFramework(workspaceId: string, fullName: string): Promise<Detected>;
@@ -39,15 +39,8 @@ const real: GithubApi = {
         return null;
       }
     };
-    const pkg = await read("package.json");
-    if (pkg) {
-      const json = JSON.parse(pkg);
-      const deps = { ...json.dependencies, ...json.devDependencies };
-      const lock = (await read("package-lock.json")) !== null;
-      return { framework: deps.vitest ? "vitest" : "jest", install: lock ? "npm ci" : "npm install", language: "TypeScript" };
-    }
-    const req = await read("requirements.txt");
-    return { framework: "pytest", install: req !== null ? "pip install -r requirements.txt" : "pip install -e .", language: "Python" };
+    const { detectFramework } = await import("@/lib/runner/frameworks");
+    return detectFramework(read);
   },
   async closingCommit(workspaceId, fullName, issue) {
     const ok = await octokitFor(workspaceId);

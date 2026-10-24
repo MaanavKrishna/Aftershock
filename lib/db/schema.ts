@@ -1,3 +1,4 @@
+import type { Framework } from "@/lib/runner/frameworks";
 import { pgTable, text, integer, boolean, jsonb, timestamp, uniqueIndex, primaryKey, bigint } from "drizzle-orm/pg-core";
 import type { RunResult } from "@/lib/domain/verdict";
 
@@ -43,7 +44,7 @@ export const repositories = pgTable("repositories", {
   cloneUrl: text("clone_url").notNull(),
   defaultBranch: text("default_branch").notNull().default("main"),
   language: text("language").notNull().default("Python"),
-  framework: text("framework").$type<"pytest" | "vitest" | "jest">().notNull(),
+  framework: text("framework").$type<Framework>().notNull(),
   installCmd: text("install_cmd").notNull(),
   testDir: text("test_dir").notNull().default("tests/aftershock"),
   runner: text("runner").$type<"sandbox" | "actions">().notNull().default("sandbox"),

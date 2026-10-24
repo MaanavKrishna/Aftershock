@@ -40,3 +40,9 @@ test("a test whose imports fail is marked as missing code", async () => {
   expect(codeAbsent({ outcome: "failed", durationMs: 0, message: "assert 1 == 3" })).toBe(false);
   expect(codeAbsent({ outcome: "passed", durationMs: 0 })).toBe(false);
 });
+test("several JUnit files concatenated into one report are read as one run", () => {
+  const a = `<?xml version="1.0"?><testsuite name="A"><testcase name="ok"/></testsuite>`;
+  const b = `<?xml version="1.0"?><testsuite name="B"><testcase name="bad"><failure message="expected 3 but was 1"/></testcase></testsuite>`;
+  expect(parseJUnit(a + "\n" + b, 5)).toEqual({ outcome: "failed", durationMs: 5, message: "expected 3 but was 1" });
+  expect(parseJUnit(a + "\n" + a, 5).outcome).toBe("passed");
+});

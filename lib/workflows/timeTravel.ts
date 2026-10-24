@@ -199,7 +199,8 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
   const db = await getDb();
-  const fn = draft.code.match(/def (test_\w+)/)?.[1] ?? draft.code.match(/\b(?:test|it)\(\s*["'`]([^"'`]+)/)?.[1] ?? draft.path.split("/").pop()!;
+  const { frameworkDef } = await import("@/lib/runner/frameworks");
+  const fn = frameworkDef(ctx.framework).testName(draft.code) ?? draft.path.split("/").pop()!;
   const watched = ctx.changedFiles.filter((f) => !f.startsWith(ctx.testDir) && !/(^|\/)(tests?|__tests__)\//.test(f));
   // One memory test per incident: a newer proof replaces the old test.
   const [existing] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, ctx.incidentId));

@@ -1,6 +1,8 @@
 import type { RunResult } from "@/lib/domain/verdict";
 
-export type Framework = "pytest" | "vitest" | "jest";
+import type { Framework } from "./frameworks";
+
+export type { Framework };
 
 export type RunSpec = {
   /** Git URL, or an absolute local path to a git repository. */

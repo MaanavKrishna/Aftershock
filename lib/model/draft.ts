@@ -3,10 +3,11 @@ import { complete } from "./provider";
 import { fence } from "./fence";
 import { DRAFT_SYSTEM } from "./prompts";
 import { parseModelJson, validateDraft } from "./validate";
+import { frameworkDef } from "@/lib/runner/frameworks";
 
 export function draftPrompt(i: DraftInput): string {
   const parts = [
-    `Incident ${i.key}. Framework: ${i.framework}. Put the test under ${i.testDir}/ (for pytest: ${i.testDir}/test_<name>.py; otherwise ${i.testDir}/<name>.test.ts).`,
+    `Incident ${i.key}. Framework: ${i.framework}. Put the test at ${frameworkDef(i.framework).draftHint(i.testDir)}.`,
     fence("incident", `Title: ${i.incident.title}\nTrigger: ${i.incident.trigger}\nObserved: ${i.incident.observed}\nExpected: ${i.incident.expected}`),
     fence("fix diff", `Fix commit: ${i.fixTitle}\nChanged files: ${i.changedFiles.join(", ")}\n\n${i.diff}`),
     ...i.context.map((c) => fence(`file ${c.name} (${c.note})`, c.content)),
