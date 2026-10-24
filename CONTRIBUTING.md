@@ -15,10 +15,8 @@ Docker (Docker Desktop or Colima) is needed for the runner tests and for real ti
 ## Before you open a pull request
 
 ```bash
-npm run typecheck
-npm test
+npm run verify      # typecheck, unit + integration tests, production build (compiles workflows), CLI, audit
 npm run test:e2e
-npm run build
 ```
 
 - Write the failing test first, then the fix. Bugs need a regression test.

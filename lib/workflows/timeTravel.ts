@@ -182,8 +182,8 @@ async function runOn(runId: string, ctx: TravelContext, which: "before" | "fix",
 }
 
 async function finishAttempt(runId: string, status: "proven" | "rejected" | "unproven", reason: string, feedback: string | undefined, log: string): Promise<void> {
-  (await import("@/lib/obs/log")).log.info("time travel attempt finished", { runId, status, reason: reason.slice(0, 300) });
   "use step";
+  (await import("@/lib/obs/log")).log.info("time travel attempt finished", { runId, status, reason: reason.slice(0, 300) });
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
