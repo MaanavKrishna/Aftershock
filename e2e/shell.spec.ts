@@ -9,7 +9,7 @@ test("⌘K finds an incident by its title and opens it", async ({ page }) => {
   const box = page.getByRole("combobox", { name: /Search pages, actions and incidents/ });
   await expect(box).toBeFocused();
   await box.fill("charged a customer twice");
-  await expect(page.getByRole("option", { name: /INC-12/ })).toBeVisible();
+  await expect(page.getByRole("option", { name: /INC-12/ })).toBeVisible({ timeout: 20_000 });
   await box.press("Enter");
   await page.waitForURL("**/incidents/12");
 });

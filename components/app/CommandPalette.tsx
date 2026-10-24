@@ -26,16 +26,27 @@ export function CommandPalette() {
   const [active, setActive] = useState(0);
   const [incidents, setIncidents] = useState<Item[]>([]);
 
+  const load = useCallback(() => {
+    fetch("/api/v1/incidents")
+      .then((r) => (r.ok ? r.json() : { incidents: [] }))
+      .then((d: { incidents: { key: string; number: number; title: string; status: string }[] }) => setIncidents(d.incidents.slice(0, 300).map((i) => ({ id: `inc-${i.number}`, label: `${i.key} ${i.title}`, hint: i.status.replace("_", " "), href: `/incidents/${i.number}` }))))
+      .catch(() => undefined);
+  }, []);
+
+  // Incidents load once the page is idle, so the palette is ready when it opens; opening refreshes them.
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    if (w.requestIdleCallback) w.requestIdleCallback(load);
+    else setTimeout(load, 800);
+  }, [load]);
+
   const open = useCallback(() => {
     setQ("");
     setActive(0);
     dialog.current?.showModal();
     input.current?.focus();
-    fetch("/api/v1/incidents")
-      .then((r) => (r.ok ? r.json() : { incidents: [] }))
-      .then((d: { incidents: { key: string; number: number; title: string; status: string }[] }) => setIncidents(d.incidents.slice(0, 300).map((i) => ({ id: `inc-${i.number}`, label: `${i.key} ${i.title}`, hint: i.status.replace("_", " "), href: `/incidents/${i.number}` }))))
-      .catch(() => setIncidents([]));
-  }, []);
+    load();
+  }, [load]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
