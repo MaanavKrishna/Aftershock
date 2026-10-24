@@ -20,7 +20,7 @@ incident ──► model drafts a test ──► time travel: before fix ✕✕�
 4. **Link the fix.** Give the fix commit or pull request, or mention the incident in the PR (`Fixes INC-12`). Time travel starts when it merges.
 5. **Merge the test.** When the test is proven, Aftershock opens a pull request that adds it under `tests/aftershock/`. From then on, every pull request that could bring the bug back is checked.
 
-Supported today: Python (pytest) and TypeScript or JavaScript (vitest, jest) repositories on GitHub.
+Supported: Python (pytest) and TypeScript or JavaScript (vitest, jest), plus Go, Java/Kotlin (JUnit with Maven or Gradle) and Ruby (RSpec) in Labs. See [Languages](docs/languages.md).
 
 ## What it does
 
