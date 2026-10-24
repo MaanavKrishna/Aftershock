@@ -26,10 +26,12 @@ Supported: Python (pytest) and TypeScript or JavaScript (vitest, jest), plus Go,
 
 | | |
 |---|---|
-| **Capture** | Incidents come from labelled GitHub issues, pasted postmortems, a form, or Sentry and PagerDuty alerts. Alerts wait in *Awaiting fix* until a pull request that mentions the incident merges. |
+| **Capture** | Incidents come from labelled GitHub issues, pasted postmortems, a form, or alerts and tickets (Sentry, PagerDuty, and more in Labs). Alerts wait in *Awaiting fix* until a pull request that mentions the incident merges. |
 | **Time travel** | A model drafts one test. It is admitted only if it fails before the fix and passes on it. Rejected drafts are redrafted with the failure as feedback, up to 3 times. |
 | **Memory** | Proven tests land in your repository through a pull request. They re-run nightly on the default branch, marked Healthy, Flaky or Failing on main, and export as `LESSONS.md` for coding agents. |
 | **Guard** | Each pull request runs only the relevant memory tests: those whose files it changes, plus any the model's triage adds. It gets one check and one comment: *Recur*, *Safe*, *Inconclusive* or *Skipped*. |
+| **Still guarding** | Weekly, the fix is undone on today's default branch and each memory test must fail again. Tests that pass anyway are flagged *Weak*; fixes that can no longer be undone are *Drifted* (Labs). |
+| **Merge queue** | Queued pull requests are checked on GitHub's merge-queue commit before they land (Labs). |
 | **Epicenter** | Bisects history with the proven test to find the commit and pull request that introduced the bug. |
 | **Retro-check** | A newly proven test runs at once against every open pull request. |
 | **Suggested fix** | On a *Recur* check, a fix is posted only if it passes every memory test for the repository. A person applies it. |
@@ -54,6 +56,7 @@ Rules that never bend:
 - [Self-hosting and setup](docs/setup.md): GitHub App, Neon, Vercel, model, alerts, roles
 - [Integrations](docs/integrations.md): every alert and ticket source, authentication, payloads
 - [Notifications](docs/notifications.md): Slack, signed webhooks, events, retries
+- [Still guarding](docs/still-guarding.md): weekly re-proofs, Weak and Drifted tests
 - [API and CLI](docs/api.md): HTTP API, `aftershock` command line, GitHub Actions runner, `.aftershock/config.yaml`
 - [Architecture](docs/architecture.md): flows, code layout, security model
 - [Operations](docs/operations.md): logs, kill switch, feature flags, migrations, rollback

@@ -14,8 +14,9 @@ Aftershock can tell Slack, or any service that accepts a signed webhook, when so
 | `nightly.failing` | A memory test started failing on the default branch |
 | `test.quarantined` | A memory test was quarantined as flaky |
 | `check.overridden` | Someone overrode a failing check |
+| `test.weakened` | A weekly re-proof found a memory test Weak or Drifted ([Still guarding](still-guarding.md)) |
 
-Each target picks its own events. New targets start with everything except `incident.opened` and `check.overridden`.
+Each target picks its own events. New targets start with every event except `incident.opened` and `check.overridden`.
 
 ## Slack
 

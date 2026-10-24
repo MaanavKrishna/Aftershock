@@ -27,7 +27,7 @@ One GitHub App handles both “Sign in with GitHub” and repository access.
 | Setup URL | `APP_URL/onboarding` |
 | Webhook URL | `APP_URL/api/webhooks/github`, with a long random **Webhook secret** |
 | Repository permissions | Contents **read & write**, Issues **read**, Metadata **read**, Checks **read & write**, Pull requests **read & write** |
-| Events | Issues, Pull request, Check run (installation events are always sent) |
+| Events | Issues, Pull request, Check run, Merge group (installation events are always sent) |
 
 3. After creating it, generate a **private key** and a **client secret**, then add these to Vercel (Production) and redeploy:
 
@@ -79,6 +79,16 @@ Under **Integrations**, connect Sentry or PagerDuty (and, from **Settings → La
 4. **Send test delivery** to check authentication end to end.
 
 Alerts open incidents in *Awaiting fix*. When a PR that mentions the incident (for example “Fixes INC-16”) merges, time travel starts. Per-source details: [Integrations](integrations.md).
+
+## Merge queue
+
+If the repository uses a [GitHub merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue):
+
+1. In the GitHub App settings → **Permissions & events**, tick the **Merge group** event and save. Installations are asked to accept the change.
+2. Turn on **Merge queue checks** in **Settings → Labs**.
+3. In the branch ruleset, make the **Aftershock** check required. The queue then waits for it.
+
+Each queue entry runs the relevant memory tests on the queue's commit (the pull request merged onto everything ahead of it). The verdict is posted on the check run only, with no comment.
 
 ## Roles
 
