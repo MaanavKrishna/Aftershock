@@ -57,25 +57,25 @@ export default async function IncidentPage({ params, searchParams }: { params: P
           <div className="flex flex-wrap gap-2">
             {runs.length > 0 && <ButtonLink href={`/incidents/${inc.number}/travel`} variant="secondary">View time travel</ButtonLink>}
             {runs.length > 0 && <ButtonLink href={`/incidents/${inc.number}/evidence`} variant="secondary">Evidence</ButtonLink>}
-            {mem?.botPr && <a href={repo ? `https://github.com/${repo.fullName}/pull/${mem.botPr}` : "#"} className="inline-flex min-h-[42px] items-center rounded-[9px] bg-ink px-3.5 text-[13.5px] font-semibold text-white no-underline">{mem.botPrState === "open" ? `Review bot PR #${mem.botPr}` : `Bot PR #${mem.botPr} · ${mem.botPrState}`}</a>}
+            {mem?.botPr && <a href={repo ? `https://github.com/${repo.fullName}/pull/${mem.botPr}` : "#"} className="inline-flex min-h-[42px] items-center rounded-[9px] bg-ink px-3.5 text-[13.5px] font-semibold text-paper no-underline">{mem.botPrState === "open" ? `Review bot PR #${mem.botPr}` : `Bot PR #${mem.botPr} · ${mem.botPrState}`}</a>}
           </div>
         {inc.related.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-[#E8C4B0] bg-fail-tint px-4 py-3 text-[13.5px] text-fail-ink">
+          <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-fail-line bg-fail-tint px-4 py-3 text-[13.5px] text-fail-ink">
             <span className="flex-[1_1_320px]"><strong>Looks like <Link href={`/incidents/${inc.related[0].key.split("-").pop()}`} className="text-inherit">{inc.related[0].key}</Link> again</strong> · {inc.related[0].why}{inc.related.length > 1 ? ` · also similar: ${inc.related.slice(1).map((r) => r.key).join(", ")}` : ""}</span>
-            <form action={rerunRelated}><input type="hidden" name="incidentId" value={inc.related[0].id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] border border-[#E8C4B0] bg-white px-3.5 font-semibold text-fail-ink" pendingLabel="Starting…">{`Re-run ${inc.related[0].key}'s test on main`}</SubmitButton></form>
+            <form action={rerunRelated}><input type="hidden" name="incidentId" value={inc.related[0].id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] border border-fail-line bg-card px-3.5 font-semibold text-fail-ink" pendingLabel="Starting…">{`Re-run ${inc.related[0].key}'s test on main`}</SubmitButton></form>
           </div>
         )}
         {inc.suggestedFix && inc.status === "awaiting_fix" && (
           <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-line bg-pass-wash px-4 py-3 text-[13.5px] text-pass-deep">
             <span className="flex-[1_1_320px]"><strong>PR #{inc.suggestedFix.pr} probably fixed this</strong> · {inc.suggestedFix.title} · {inc.suggestedFix.why}</span>
-            <form action={acceptSuggestedFix}><input type="hidden" name="incidentId" value={inc.id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] bg-ink px-3.5 font-semibold text-white" pendingLabel="Starting…">Link and time travel</SubmitButton></form>
-            <form action={dismissSuggestedFix}><input type="hidden" name="incidentId" value={inc.id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] border border-line-strong bg-white px-3.5 font-semibold text-ink" pendingLabel="…">Not this one</SubmitButton></form>
+            <form action={acceptSuggestedFix}><input type="hidden" name="incidentId" value={inc.id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] bg-ink px-3.5 font-semibold text-paper" pendingLabel="Starting…">Link and time travel</SubmitButton></form>
+            <form action={dismissSuggestedFix}><input type="hidden" name="incidentId" value={inc.id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] border border-line-strong bg-card px-3.5 font-semibold text-ink" pendingLabel="…">Not this one</SubmitButton></form>
           </div>
         )}
         </div>
 
         {inc.statusReason && (inc.status === "awaiting_fix" || inc.status === "unproven" || inc.status === "rejected") && (
-          <p className="m-0 rounded-xl border border-line bg-white px-5 py-3.5 text-body">{inc.statusReason}</p>
+          <p className="m-0 rounded-xl border border-line bg-card px-5 py-3.5 text-body">{inc.statusReason}</p>
         )}
 
         <div className="flex flex-wrap items-start gap-4">
@@ -103,7 +103,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                     <form action={searchEpicenter} className="flex w-full flex-wrap items-center gap-3 border-t border-line-soft px-[22px] py-4">
                       <input type="hidden" name="incidentId" value={inc.id} />
                       <span className="flex flex-[1_1_260px] flex-col"><span className="font-mono text-[11.5px] tracking-[0.04em] text-muted">EPICENTER</span><span className="text-[13px] text-body">{epicMissing ?? "Searching history for the commit that introduced the bug…"}</span></span>
-                      {epicMissing && <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Starting…">Search again</SubmitButton>}
+                      {epicMissing && <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-card px-4 font-semibold text-ink" pendingLabel="Starting…">Search again</SubmitButton>}
                     </form>
                   )}
                   {mem && inc.status === "proven" && (
@@ -111,19 +111,19 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                       <input type="hidden" name="incidentId" value={inc.id} />
                       <span className="flex flex-[1_1_100%] flex-col gap-0.5"><span className="font-mono text-[11.5px] tracking-[0.04em] text-muted">MEMORY TESTS</span><span className="font-mono text-[12.5px] text-body">{tests.map((x) => x.path).join(" · ")}</span></span>
                       <label className="flex flex-[1_1_320px] flex-col gap-1.5 text-[13px] font-semibold">Another test (optional focus)<input name="hint" maxLength={500} placeholder="e.g. cover it through the HTTP API" className="min-h-[42px] rounded-[9px] border border-field px-3 font-normal" /></label>
-                      <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Starting…">Prove another test</SubmitButton>
+                      <SubmitButton className="min-h-[42px] cursor-pointer rounded-[9px] border border-field bg-card px-4 font-semibold text-ink" pendingLabel="Starting…">Prove another test</SubmitButton>
                     </form>
                   )}
                   {inc.status === "awaiting_fix" && (
                     <div className="flex w-full flex-wrap items-end gap-3 border-t border-line-soft px-[22px] py-4">
                       <form action={retryTimeTravel}>
                         <input type="hidden" name="incidentId" value={inc.id} />
-                        <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white" pendingLabel="Starting…">Start time travel</SubmitButton>
+                        <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-paper" pendingLabel="Starting…">Start time travel</SubmitButton>
                       </form>
                       <form action={linkFix} className="flex flex-[1_1_320px] flex-wrap items-end gap-3">
                         <input type="hidden" name="incidentId" value={inc.id} />
                         <label className="flex flex-[1_1_220px] flex-col gap-1.5 text-[13px] font-semibold">Or link a different fix<input name="fix" required placeholder="SHA, #PR or GitHub URL" className="min-h-[46px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal" /></label>
-                        <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] border border-field bg-white px-4 font-semibold text-ink" pendingLabel="Linking…">Link fix</SubmitButton>
+                        <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] border border-field bg-card px-4 font-semibold text-ink" pendingLabel="Linking…">Link fix</SubmitButton>
                       </form>
                     </div>
                   )}
@@ -132,7 +132,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                 <form action={linkFix} className="flex flex-wrap items-end gap-3 px-[22px] py-5">
                   <input type="hidden" name="incidentId" value={inc.id} />
                   <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-[13px] font-semibold">Fix commit or pull request<input name="fix" required placeholder="SHA, #PR or GitHub URL" className="min-h-[46px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal" /></label>
-                  <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white" pendingLabel="Starting…">Link fix and time travel</SubmitButton>
+                  <SubmitButton className="min-h-[46px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-paper" pendingLabel="Starting…">Link fix and time travel</SubmitButton>
                   {error === "fix" && <p role="alert" className="m-0 w-full text-[13px] text-fail-deep">Enter a commit SHA, a PR number like #44, or a GitHub URL.</p>}
                 </form>
               )}
@@ -142,7 +142,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
               <Card dark>
                 <CardHead dark aside={<Pill tone="passDark" mono>PROVEN · attempt {proven.attempt}</Pill>}><span className="font-mono text-[13px]">{proven.testPath}</span></CardHead>
                 <div className="flex flex-wrap">
-                  <pre className="m-0 min-w-0 flex-[1.5_1_420px] overflow-x-auto px-[22px] py-[18px] font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{proven.testCode}</pre>
+                  <pre tabIndex={0} className="m-0 min-w-0 flex-[1.5_1_420px] overflow-x-auto px-[22px] py-[18px] font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{proven.testCode}</pre>
                   <div className="flex flex-[1_1_220px] flex-col justify-center gap-3.5 border-l border-[#222C38] px-[22px] py-[18px]">
                     <div className="flex flex-col gap-1.5"><span className="flex justify-between text-xs text-on-dark-muted"><span>Before the fix</span><span className="font-mono text-fail-dark">{proven.beforeResults.filter((r) => r.outcome === "failed").length}/{proven.beforeResults.length} fail</span></span><Strip cells={toCells(proven.beforeResults)} height={14} /></div>
                     <div className="flex flex-col gap-1.5"><span className="flex justify-between text-xs text-on-dark-muted"><span>On the fix</span><span className="font-mono text-pass-dark">{proven.fixResults.filter((r) => r.outcome === "passed").length}/{proven.fixResults.length} pass</span></span><Strip cells={toCells(proven.fixResults)} height={14} /></div>
@@ -161,7 +161,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
             <Card>
               <CardHead aside={<span className="font-mono text-xs text-muted-2">{checks.length}</span>}>Pull requests this test has guarded</CardHead>
               {checks.map(({ check, result }) => (
-                <Link key={check.id} href={`/pulls/${check.prNumber}`} className="flex flex-wrap items-center gap-x-[18px] gap-y-2.5 border-b border-line-soft px-[22px] py-[15px] text-inherit no-underline hover:bg-[#FAFAF8]">
+                <Link key={check.id} href={`/pulls/${check.prNumber}`} className="flex flex-wrap items-center gap-x-[18px] gap-y-2.5 border-b border-line-soft px-[22px] py-[15px] text-inherit no-underline hover:bg-card-2">
                   <span className="min-w-0 flex-[1_1_240px]"><span className="block font-semibold">#{check.prNumber} {check.title}</span><span className="font-mono text-xs text-muted-2">{check.runner} · {stamp(check.createdAt)}</span></span>
                   <Strip cells={toCells(result.runs, 3)} width={72} />
                   <VerdictPill verdict={result.verdict} />
@@ -182,7 +182,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                 <form action={addNote} className="flex flex-col gap-2">
                   <input type="hidden" name="incidentId" value={inc.id} />
                   <label className="flex flex-col gap-1.5 text-[13px] font-semibold">Add a note<textarea name="text" rows={2} placeholder="Context for the next person who sees this test fail" className="resize-y rounded-[9px] border border-line-strong px-3 py-2.5 font-normal" /></label>
-                  <SubmitButton className="min-h-10 cursor-pointer self-end rounded-[9px] border border-line-strong bg-white px-4 text-[13px] font-semibold" pendingLabel="Adding…">Add note</SubmitButton>
+                  <SubmitButton className="min-h-10 cursor-pointer self-end rounded-[9px] border border-line-strong bg-card px-4 text-[13px] font-semibold" pendingLabel="Adding…">Add note</SubmitButton>
                 </form>
               </div>
             </Card>

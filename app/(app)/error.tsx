@@ -6,7 +6,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
       <span className="font-mono text-[11.5px] text-fail-deep">ERROR</span>
       <h1 className="m-0 text-[26px] font-semibold tracking-[-0.025em]">Something failed while loading this page.</h1>
       <p className="m-0 max-w-[640px] text-body">Nothing was changed and nothing was marked proven. {error.digest ? `Reference: ${error.digest}.` : ""}</p>
-      <button type="button" onClick={reset} className="min-h-[42px] cursor-pointer self-start rounded-[9px] bg-ink px-4 font-semibold text-white">Retry</button>
+      <button type="button" onClick={reset} className="min-h-[42px] cursor-pointer self-start rounded-[9px] bg-ink px-4 font-semibold text-paper">Retry</button>
     </main>
   );
 }

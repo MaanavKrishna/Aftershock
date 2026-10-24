@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-const input = "min-h-[46px] rounded-[9px] border border-field bg-white px-3 font-normal text-ink";
+const input = "min-h-[46px] rounded-[9px] border border-field bg-card px-3 font-normal text-ink";
 
 export function TextField({ label, mono, ...props }: ComponentProps<"input"> & { label: string; mono?: boolean }) {
   return (
@@ -15,7 +15,7 @@ export function TextArea({ label, ...props }: ComponentProps<"textarea"> & { lab
   return (
     <label className="flex flex-1 basis-[200px] flex-col gap-1.5 text-[13px] font-semibold">
       {label}
-      <textarea rows={3} {...props} className="resize-y rounded-[9px] border border-field bg-white px-3 py-2.5 font-normal text-ink" />
+      <textarea rows={3} {...props} className="resize-y rounded-[9px] border border-field bg-card px-3 py-2.5 font-normal text-ink" />
     </label>
   );
 }

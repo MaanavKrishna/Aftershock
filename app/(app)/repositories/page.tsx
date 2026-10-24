@@ -13,11 +13,11 @@ export const metadata: Metadata = { title: "Repositories" };
 
 function Segment({ repo, field, label, options, value }: { repo: RepositoryRow; field: string; label: string; options: [string, string][]; value: string }) {
   return (
-    <form action={setRepoSetting} role="group" aria-label={`${label} for ${repo.name}`} className="inline-flex justify-self-start rounded-lg border border-line bg-[#FAFAF8] p-[3px]">
+    <form action={setRepoSetting} role="group" aria-label={`${label} for ${repo.name}`} className="inline-flex justify-self-start rounded-lg border border-line bg-card-2 p-[3px]">
       <input type="hidden" name="repoId" value={repo.id} />
       <input type="hidden" name="field" value={field} />
       {options.map(([v, l]) => (
-        <button key={v} type="submit" name="value" value={v} aria-pressed={value === v} className={`min-h-8 cursor-pointer rounded-md px-3 text-[12.5px] font-semibold ${value === v ? "bg-ink text-white" : "bg-transparent text-muted"}`}>{l}</button>
+        <button key={v} type="submit" name="value" value={v} aria-pressed={value === v} className={`min-h-8 cursor-pointer rounded-md px-3 text-[12.5px] font-semibold ${value === v ? "bg-ink text-paper" : "bg-transparent text-muted"}`}>{l}</button>
       ))}
     </form>
   );
@@ -32,19 +32,19 @@ export default async function Repositories({ searchParams }: { searchParams: Pro
   const cols = "grid-cols-[minmax(0,1.8fr)_1fr_1.5fr_1.4fr_90px]";
   const parts = [...byRepo.checks.map((c) => ({ name: c.repo, ms: c.ms })), { name: "time travel", ms: byRepo.travelMs }].filter((p) => p.ms > 0);
   const partTotal = parts.reduce((a, p) => a + p.ms, 0) || 1;
-  const COLORS = ["bg-ink", "bg-pass", "bg-[#9AA1A9]", "bg-fail"];
+  const COLORS = ["bg-ink", "bg-pass", "bg-muted-2", "bg-fail"];
   const installUrl = process.env.GITHUB_APP_SLUG ? `https://github.com/apps/${process.env.GITHUB_APP_SLUG}/installations/new` : null;
   return (
     <>
       <TopBar title="Repositories">
-        {installUrl && <a href={installUrl} className="inline-flex min-h-10 items-center rounded-[9px] border border-line-strong bg-white px-3.5 text-[13.5px] font-semibold text-ink no-underline">Add on GitHub</a>}
+        {installUrl && <a href={installUrl} className="inline-flex min-h-10 items-center rounded-[9px] border border-line-strong bg-card px-3.5 text-[13.5px] font-semibold text-ink no-underline">Add on GitHub</a>}
       </TopBar>
       <Main>
         <PageTitle title="Where checks run, and how hard they push back." sub="Each repository picks a runner and whether a recurrence blocks the merge." />
         <Card>
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
-              <div className={`grid ${cols} gap-4 border-b border-[#EDEEE9] bg-[#FAFAF8] px-[22px] py-[11px] text-xs text-muted-2`}><span>Repository</span><span>Tests</span><span>Runner</span><span>On recurrence</span><span>Memory</span></div>
+              <div className={`grid ${cols} gap-4 border-b border-line-soft bg-card-2 px-[22px] py-[11px] text-xs text-muted-2`}><span>Repository</span><span>Tests</span><span>Runner</span><span>On recurrence</span><span>Memory</span></div>
               {repos.map((r) => (
                 <div key={r.id} className={`grid ${cols} items-center gap-4 border-b border-line-soft px-[22px] py-3.5`}>
                   <a href={`/repositories?repo=${r.name}`} className="flex min-w-0 flex-col text-inherit no-underline"><span className="font-mono font-semibold">{r.name}</span><span className="text-xs text-muted-2">{r.language} · last check {timeAgo(r.lastCheckAt).toLowerCase()}</span></a>
@@ -67,7 +67,7 @@ export default async function Repositories({ searchParams }: { searchParams: Pro
                 return (
                   <div key={r.id} className="flex flex-col gap-1">
                     <span className="font-mono text-[12.5px] font-semibold">{r.name}</span>
-                    <code className="break-all rounded-md bg-[#FAFAF8] px-2.5 py-2 font-mono text-[12px]">{`[![Incidents remembered](${url})](https://aftershock-mk.vercel.app)`}</code>
+                    <code className="break-all rounded-md bg-card-2 px-2.5 py-2 font-mono text-[12px]">{`[![Incidents remembered](${url})](https://aftershock-mk.vercel.app)`}</code>
                   </div>
                 );
               })}
@@ -91,7 +91,7 @@ export default async function Repositories({ searchParams }: { searchParams: Pro
           {sel && (
             <Card dark className="min-w-0 flex-[1_1_380px]">
               <CardHead dark sub="Commit this file to the default branch to keep these settings with your code. It overrides the settings above.">.aftershock/config.yaml · {sel.name}</CardHead>
-              <pre className="m-0 overflow-x-auto px-[22px] py-4 font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{`framework: ${sel.framework}\nrunner: ${sel.runner}\ninstall: ${sel.installCmd}\ntest_dir: ${sel.testDir}\ncheck:\n  mode: ${sel.checkMode}\n  runs: 3\nincidents:\n  issue_label: ${ws?.settings.issueLabel ?? "incident"}`}</pre>
+              <pre tabIndex={0} className="m-0 overflow-x-auto px-[22px] py-4 font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{`framework: ${sel.framework}\nrunner: ${sel.runner}\ninstall: ${sel.installCmd}\ntest_dir: ${sel.testDir}\ncheck:\n  mode: ${sel.checkMode}\n  runs: 3\nincidents:\n  issue_label: ${ws?.settings.issueLabel ?? "incident"}`}</pre>
             </Card>
           )}
           {sel && admin && (

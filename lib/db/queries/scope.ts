@@ -183,6 +183,18 @@ export function scoped(workspaceId: string) {
         .orderBy(asc(s.activity.createdAt));
     },
 
+    /** Recent activity with the incident number for linking (the inbox). */
+    async inbox(limit = 12) {
+      const db = await getDb();
+      return db
+        .select({ id: s.activity.id, title: s.activity.title, detail: s.activity.detail, tone: s.activity.tone, createdAt: s.activity.createdAt, number: s.incidents.number })
+        .from(s.activity)
+        .leftJoin(s.incidents, eq(s.incidents.id, s.activity.incidentId))
+        .where(eq(s.activity.workspaceId, workspaceId))
+        .orderBy(desc(s.activity.createdAt))
+        .limit(limit);
+    },
+
     async activity(limit = 6) {
       const db = await getDb();
       return db.select().from(s.activity).where(eq(s.activity.workspaceId, workspaceId)).orderBy(desc(s.activity.createdAt)).limit(limit);

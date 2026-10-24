@@ -9,6 +9,8 @@ import { AutoRefresh } from "@/components/app/AutoRefresh";
 import { incidentKey } from "@/lib/domain/ids";
 import { duration, stamp } from "@/lib/format";
 import { retryTimeTravel } from "../../../actions";
+import { RunCells } from "@/components/app/RunCells";
+import { LogViewer } from "@/components/app/LogViewer";
 import type { RunResult } from "@/lib/domain/verdict";
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
@@ -17,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
 }
 
 const VERDICT = {
-  proven: ["PROVEN", "bg-pass-dark text-ink"],
+  proven: ["PROVEN", "bg-pass-dark text-chrome"],
   rejected: ["REJECTED", "bg-on-dark text-ink"],
   unproven: ["UNPROVEN", "border border-dashed border-on-dark-muted text-on-dark"],
   running: ["RUNNING", "bg-on-dark text-ink"],
@@ -30,24 +32,13 @@ function Lane({ sha, name, must, runs, detail }: { sha: string; name: string; mu
         <span className="flex flex-col"><span className="font-mono font-semibold text-white">{sha}</span><span className="text-[12.5px] text-on-dark-muted">{name}</span></span>
         <span className="flex flex-col items-end"><span className="text-xs text-[#7D8896]">must</span><span className={`font-semibold ${must === "fail" ? "text-fail-dark" : "text-pass-dark"}`}>{must}</span></span>
       </div>
-      <div className="flex gap-2">
-        {[0, 1, 2].map((i) => {
-          const r = runs[i];
-          const cls = !r ? "border border-dashed border-ink-line text-[#56616E]" : r.outcome === "failed" ? "border-[1.5px] border-fail-dark text-fail-dark" : r.outcome === "passed" ? "bg-pass text-white" : "border-[1.5px] border-dashed border-on-dark-muted text-on-dark-muted";
-          return (
-            <span key={i} className={`flex flex-1 flex-col gap-0.5 rounded-lg px-3 py-2.5 ${cls}`}>
-              <span className="font-mono text-[11.5px]">run {i + 1}</span>
-              <span className="text-[13px] font-semibold">{r ? (r.outcome === "error" ? "error" : r.outcome) : "pending"}</span>
-            </span>
-          );
-        })}
-      </div>
+      <RunCells runs={[0, 1, 2].map((i) => runs[i])} />
       <span className="font-mono text-xs text-[#8792A0]">{detail}</span>
     </div>
   );
 }
 
-const STEP_DOT = { ok: "bg-pass", bad: "bg-fail", skip: "border-2 border-field", running: "bg-[#9AA1A9] animate-pulse", pending: "border-2 border-line" } as const;
+const STEP_DOT = { ok: "bg-pass", bad: "bg-fail", skip: "border-2 border-field", running: "bg-muted-2 animate-pulse", pending: "border-2 border-line" } as const;
 
 export default async function TravelPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ attempt?: string }> }) {
   const { number } = await params;
@@ -88,10 +79,10 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
       {/* A proven run still stores the test and opens the bot PR; keep refreshing until every step settles. */}
       <AutoRefresh active={run.status === "running" || inc.status === "traveling" || (run.status === "proven" && run.steps.some((st) => st.state === "running" || st.state === "pending"))} />
       <TopBar crumbs={[{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }]}>
-        <a href={`/api/v1/runs/${run.id}/evidence`} className="inline-flex min-h-[38px] items-center rounded-lg border border-line-strong bg-white px-3 text-[13px] font-semibold text-ink no-underline">Download evidence.json</a>
+        <a href={`/api/v1/runs/${run.id}/evidence`} className="inline-flex min-h-[38px] items-center rounded-lg border border-line-strong bg-card px-3 text-[13px] font-semibold text-ink no-underline">Download evidence.json</a>
       </TopBar>
       <Main>
-        <section className="overflow-hidden rounded-2xl bg-ink text-on-dark">
+        <section className="overflow-hidden rounded-2xl bg-chrome text-on-dark">
           <div className="flex flex-wrap items-end justify-between gap-[18px] px-7 pb-2 pt-[26px]">
             <div className="flex flex-[1_1_460px] flex-col gap-2.5">
               <div className="flex flex-wrap items-center gap-2"><span className={`rounded-md px-2.5 py-1 font-mono text-xs font-semibold ${tagCls}`}>{label}</span><span className="text-[12.5px] text-on-dark-muted">Attempt {run.attempt} of {runs.length} · {stamp(run.createdAt)}{run.wallMs ? ` · ${duration(run.wallMs)}` : ""}</span></div>
@@ -111,7 +102,7 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
           </div>
         </section>
 
-        {run.reason && run.status !== "proven" && <p className="m-0 rounded-xl border border-line bg-white px-5 py-3.5 text-body">{run.reason}</p>}
+        {run.reason && run.status !== "proven" && <p className="m-0 rounded-xl border border-line bg-card px-5 py-3.5 text-body">{run.reason}</p>}
 
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex min-w-0 flex-[1.7_1_560px] flex-col gap-4">
@@ -130,14 +121,14 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
             {run.testCode && (
               <Card dark>
                 <CardHead dark aside={<span className={`font-mono text-xs ${proven ? "text-pass-dark" : "text-on-dark-muted"}`}>{proven ? "admitted" : `${run.status} draft`}</span>}><span className="font-mono text-[12.5px]">{run.testPath}</span></CardHead>
-                <pre className="m-0 overflow-x-auto px-[22px] py-[18px] font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{run.testCode}</pre>
+                <pre tabIndex={0} className="m-0 overflow-x-auto px-[22px] py-[18px] font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{run.testCode}</pre>
                 {(run.feedback || proven) && <div className="border-t border-[#222C38] px-[22px] py-3.5 text-[13px] text-on-dark-muted">{proven ? "Why it is trusted: it fails on the commit before the fix and passes on the fix, on every run." : `Fed into the next draft: ${run.feedback}`}</div>}
               </Card>
             )}
             {run.log && (
               <Card dark>
                 <CardHead dark aside={<span className="font-mono text-xs text-[#7D8896]">trimmed to the failure</span>}>Sandbox output</CardHead>
-                <pre className="m-0 overflow-x-auto px-[22px] py-4 font-mono text-xs leading-[1.75] text-on-dark-muted">{run.log}</pre>
+                <LogViewer log={run.log} />
               </Card>
             )}
           </div>
@@ -156,10 +147,10 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
             </Card>
             <Card>
               <CardHead>Reproduce locally</CardHead>
-              <pre className="m-0 overflow-x-auto bg-[#FAFAF8] px-5 py-3.5 font-mono text-xs">{`curl -fsSLo aftershock.mjs https://raw.githubusercontent.com/MaanavKrishna/Aftershock/main/action/dist/aftershock.mjs\nnode aftershock.mjs prove --fix ${inc.fixSha?.slice(0, 7) ?? "<fix>"} --test ${run.testPath ?? "<test file>"}`}</pre>
+              <pre tabIndex={0} className="m-0 overflow-x-auto bg-card-2 px-5 py-3.5 font-mono text-xs">{`curl -fsSLo aftershock.mjs https://raw.githubusercontent.com/MaanavKrishna/Aftershock/main/action/dist/aftershock.mjs\nnode aftershock.mjs prove --fix ${inc.fixSha?.slice(0, 7) ?? "<fix>"} --test ${run.testPath ?? "<test file>"}`}</pre>
             </Card>
             {run.status !== "running" && !proven && (
-              <form action={retryTimeTravel} className="flex flex-col gap-3 rounded-[14px] bg-ink p-5 text-on-dark">
+              <form action={retryTimeTravel} className="flex flex-col gap-3 rounded-[14px] bg-chrome p-5 text-on-dark">
                 <input type="hidden" name="incidentId" value={inc.id} />
                 <span className="font-semibold">Not convinced?</span>
                 <span className="text-[13px] text-on-dark-muted">Give the model a hint. The new draft faces the same time travel.</span>

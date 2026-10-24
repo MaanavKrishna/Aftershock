@@ -40,7 +40,7 @@ export default async function Incidents({ searchParams }: { searchParams: Promis
           {TABS.map(([id, label]) => {
             const on = (status ?? "all") === id;
             return (
-              <Link key={id} href={q({ status: id })} aria-current={on ? "page" : undefined} className={`flex flex-col items-start gap-0.5 rounded-xl bg-white px-4 py-3 text-inherit no-underline ${on ? "border-2 border-ink" : "border border-line"}`}>
+              <Link key={id} href={q({ status: id })} aria-current={on ? "page" : undefined} className={`flex flex-col items-start gap-0.5 rounded-xl bg-card px-4 py-3 text-inherit no-underline ${on ? "border-2 border-ink" : "border border-line"}`}>
                 <span className={`text-[12.5px] ${id === "awaiting_fix" ? "text-fail-deep" : "text-muted"}`}>{label}</span>
                 <span className="font-mono text-2xl font-semibold tracking-[-0.02em]">{counts[id] ?? 0}</span>
               </Link>
@@ -52,21 +52,21 @@ export default async function Incidents({ searchParams }: { searchParams: Promis
           {([["all", "All"], ...Object.entries(SOURCES).map(([k, v]) => [k, v[0]])] as [string, string][]).map(([id, label]) => {
             const on = (source ?? "all") === id;
             return (
-              <Link key={id} href={q({ source: id })} aria-current={on ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3 text-[13px] no-underline ${on ? "border border-ink bg-ink text-white" : "border border-line-strong bg-white text-body"}`}>{label}</Link>
+              <Link key={id} href={q({ source: id })} aria-current={on ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full px-3 text-[13px] no-underline ${on ? "border border-ink bg-ink text-paper" : "border border-line-strong bg-card text-body"}`}>{label}</Link>
             );
           })}
         </nav>
         <section className="overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]">
           <div className="overflow-x-auto">
             <div className="min-w-[820px]">
-              <div className="grid grid-cols-[76px_minmax(0,2.6fr)_1.2fr_1.1fr_1fr_110px] gap-3.5 border-b border-[#EDEEE9] bg-[#FAFAF8] px-5 py-[11px] text-xs text-muted-2">
+              <div className="grid grid-cols-[76px_minmax(0,2.6fr)_1.2fr_1.1fr_1fr_110px] gap-3.5 border-b border-line-soft bg-card-2 px-5 py-[11px] text-xs text-muted-2">
                 <span>ID</span><span>Incident</span><span>Source</span><span>Proof</span><span>Status</span><span>Updated</span>
               </div>
               {rows.map(({ incident: i, repo, run }) => {
                 const href = i.status === "traveling" || i.status === "unproven" || i.status === "rejected" ? `/incidents/${i.number}/travel` : `/incidents/${i.number}`;
                 const cells: Cell[] = run ? [...toCells(run.beforeResults, 3).map((c) => (c === "pass" ? ("pass" as Cell) : c)), ...toCells(run.fixResults, 3)] : Array(6).fill("none");
                 return (
-                  <Link key={i.id} href={href} className="grid grid-cols-[76px_minmax(0,2.6fr)_1.2fr_1.1fr_1fr_110px] items-center gap-3.5 border-b border-line-soft px-5 py-3.5 text-inherit no-underline hover:bg-[#FAFAF8]">
+                  <Link key={i.id} href={href} className="grid grid-cols-[76px_minmax(0,2.6fr)_1.2fr_1.1fr_1fr_110px] items-center gap-3.5 border-b border-line-soft px-5 py-3.5 text-inherit no-underline hover:bg-card-2">
                     <span className="font-mono text-[12.5px] text-muted">{incidentKey(ws?.incidentPrefix ?? "INC", i.number)}</span>
                     <span className="flex min-w-0 flex-col"><span className="truncate font-semibold">{i.title}</span><span className="font-mono text-xs text-muted-2">{repo?.name ?? "no repository"}</span></span>
                     <span className="inline-flex items-center gap-2 text-[13px] text-body">

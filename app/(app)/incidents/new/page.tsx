@@ -30,7 +30,7 @@ export default async function NewIncident({ searchParams }: { searchParams: Prom
         <PageTitle title="Bring an incident in." sub="However it was written down, Aftershock needs three things: what broke, where, and the commit that fixed it." />
         <nav aria-label="Incident source" className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-2">
           {TABS.map(([id, label, sub, icon]) => (
-            <Link key={id} href={`/incidents/new?tab=${id}`} aria-current={tab === id ? "page" : undefined} className={`flex min-h-16 items-center gap-3 rounded-xl bg-white px-4 py-3 text-ink no-underline ${tab === id ? "border-2 border-ink" : "border border-line"}`}>
+            <Link key={id} href={`/incidents/new?tab=${id}`} aria-current={tab === id ? "page" : undefined} className={`flex min-h-16 items-center gap-3 rounded-xl bg-card px-4 py-3 text-ink no-underline ${tab === id ? "border-2 border-ink" : "border border-line"}`}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icon} /></svg>
               <span className="flex flex-col"><span className="font-semibold">{label}</span><span className="text-xs text-muted">{sub}</span></span>
             </Link>
@@ -56,17 +56,17 @@ export default async function NewIncident({ searchParams }: { searchParams: Prom
                 )}
                 {issues.length > 0 && (
                   <div className="flex flex-wrap justify-end gap-2.5">
-                    <button type="submit" name="intent" value="save" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-white px-4 font-semibold">Save only</button>
-                    <button type="submit" name="intent" value="travel" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] bg-ink px-[18px] font-semibold text-white">Save and time travel</button>
+                    <button type="submit" name="intent" value="save" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-card px-4 font-semibold">Save only</button>
+                    <button type="submit" name="intent" value="travel" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] bg-ink px-[18px] font-semibold text-paper">Save and time travel</button>
                   </div>
                 )}
               </form>
             )}
             {tab === "issue" && issues.length > 1 && (
-              <form action={backfillAction} className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDEEE9] px-6 py-4">
+              <form action={backfillAction} className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-6 py-4">
                 <input type="hidden" name="limit" value={Math.min(issues.length, 25)} />
                 <span className="flex-[1_1_300px] text-[13px] text-muted">Import all {Math.min(issues.length, 25)} at once. Those closed by a fix start time travel, three at a time.</span>
-                <button type="submit" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-white px-4 font-semibold">Import all and time travel</button>
+                <button type="submit" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-card px-4 font-semibold">Import all and time travel</button>
               </form>
             )}
             {tab === "postmortem" && <PostmortemForm repos={repoOpts} />}
@@ -90,7 +90,7 @@ export default async function NewIncident({ searchParams }: { searchParams: Prom
               </div>
             )}
           </section>
-          <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4 rounded-[14px] bg-ink p-[22px] text-on-dark">
+          <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4 rounded-[14px] bg-chrome p-[22px] text-on-dark">
             <span className="font-semibold">What happens next</span>
             {[["01", "Draft", "The model reads the incident, the fix diff and nearby tests."], ["02", "Before the fix", "The draft runs 3 times on the parent commit. It must fail."], ["03", "On the fix", "It runs 3 times on the fix commit. It must pass."], ["04", "Bot PR", "The proven test is proposed to your repo for review."]].map(([n, t, d]) => (
               <div key={n} className="flex gap-3"><span className="w-[22px] shrink-0 font-mono text-[12.5px] text-pass-dark">{n}</span><span className="flex flex-col gap-0.5"><span className="text-[13.5px] font-semibold">{t}</span><span className="text-[12.5px] text-on-dark-muted">{d}</span></span></div>

@@ -21,7 +21,7 @@ const sectionCls = "overflow-hidden rounded-[14px] border border-line bg-card sh
 
 function Head({ title, sub, children }: { title: string; sub: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EDEEE9] px-6 py-[18px]">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-6 py-[18px]">
       <span className="flex flex-col gap-0.5"><h2 className="m-0 text-lg font-semibold">{title}</h2><span className="text-[13px] text-muted">{sub}</span></span>
       {children}
     </div>
@@ -42,11 +42,11 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   return (
     <>
       <TopBar title="Settings" />
-      <main className="flex flex-wrap items-start gap-7 px-8 pb-16 pt-7 max-sm:px-4">
+      <main id="main" className="flex flex-wrap items-start gap-7 px-8 pb-16 pt-7 max-sm:px-4">
         <h1 className="sr-only">Settings · {TABS.find(([id]) => id === tab)![1]}</h1>
         <nav aria-label="Settings sections" className="flex max-w-full flex-[1_1_200px] flex-col gap-0.5">
           {TABS.map(([id, label]) => (
-            <Link key={id} href={`/settings?tab=${id}`} aria-current={tab === id ? "page" : undefined} className={`flex min-h-[42px] items-center rounded-lg px-3 text-sm no-underline ${tab === id ? "bg-white font-semibold text-ink shadow-[inset_0_0_0_1px_#E2E3DD]" : id === "danger" ? "text-fail-deep" : "text-body"}`}>{label}</Link>
+            <Link key={id} href={`/settings?tab=${id}`} aria-current={tab === id ? "page" : undefined} className={`flex min-h-[42px] items-center rounded-lg px-3 text-sm no-underline ${tab === id ? "bg-card font-semibold text-ink shadow-[inset_0_0_0_1px_var(--color-line)]" : id === "danger" ? "text-fail-deep" : "text-body"}`}>{label}</Link>
           ))}
         </nav>
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
@@ -66,8 +66,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                         <span className="flex flex-[1_1_220px] flex-col"><span className="font-semibold">{t.name} <span className="font-normal text-muted">· {t.kind === "slack" ? "Slack" : "Signed webhook"}</span></span><span className="font-mono text-xs text-muted">{t.urlHint}</span></span>
                         <span className={`text-[12.5px] ${t.enabled ? "text-pass" : "text-fail-deep"}`}>{t.enabled ? (t.lastDeliveryAt ? `last ${t.lastStatus} ${timeAgo(t.lastDeliveryAt).toLowerCase()}` : "on") : "off"}</span>
                         <TestTargetButton targetId={t.id} />
-                        <form action={updateTarget}><input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value={t.enabled ? "disable" : "enable"} /><button type="submit" className="min-h-[38px] cursor-pointer rounded-lg border border-line-strong bg-white px-3 font-semibold">{t.enabled ? "Turn off" : "Turn on"}</button></form>
-                        <form action={updateTarget}><input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value="remove" /><button type="submit" aria-label={`Remove ${t.name}`} className="min-h-[38px] cursor-pointer rounded-lg border border-[#E8C4B0] bg-white px-3 font-semibold text-fail-deep">Remove</button></form>
+                        <form action={updateTarget}><input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value={t.enabled ? "disable" : "enable"} /><button type="submit" className="min-h-[38px] cursor-pointer rounded-lg border border-line-strong bg-card px-3 font-semibold">{t.enabled ? "Turn off" : "Turn on"}</button></form>
+                        <form action={updateTarget}><input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value="remove" /><button type="submit" aria-label={`Remove ${t.name}`} className="min-h-[38px] cursor-pointer rounded-lg border border-fail-line bg-card px-3 font-semibold text-fail-deep">Remove</button></form>
                       </div>
                       {t.disabledReason && <p className="m-0 text-[12.5px] text-fail-deep">{t.disabledReason}</p>}
                       <form action={updateTarget} className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -75,7 +75,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                         {NOTIFY_EVENT_IDS.map((e) => (
                           <label key={e} className="flex min-h-8 cursor-pointer items-center gap-1.5 text-[12.5px]"><input type="checkbox" name="events" value={e} defaultChecked={t.events.includes(e)} className="h-4 w-4 accent-ink" />{NOTIFY_EVENTS[e]}</label>
                         ))}
-                        <button type="submit" className="min-h-[34px] cursor-pointer rounded-lg border border-line-strong bg-white px-3 text-[12.5px] font-semibold">Save events</button>
+                        <button type="submit" className="min-h-[34px] cursor-pointer rounded-lg border border-line-strong bg-card px-3 text-[12.5px] font-semibold">Save events</button>
                       </form>
                     </div>
                   ))}
@@ -130,7 +130,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <Head title="Admission rules" sub="How strict time travel and pull request checks are." />
               <div className="px-6 py-2">
                 {[["Runs per commit", "Time travel runs the draft this many times before and after the fix.", "3"], ["Drafts per incident", "Redrafts with failure feedback before giving up as Unproven.", "3"], ["Pull request runs", "Runs per relevant test on the head commit.", "3"], ["Fail before, pass after", "The admission rule itself.", "always on"], ["Mixed results", "How a check that passes some runs is shown.", "inconclusive"]].map(([k, d, v]) => (
-                  <div key={k} className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-b border-line-soft py-4"><span className="flex flex-[1_1_280px] flex-col"><span className="font-semibold">{k}</span><span className="text-[12.5px] text-muted">{d}</span></span><span className="rounded-lg bg-ink px-3 py-1.5 font-mono text-[13px] font-semibold text-white">{v}</span></div>
+                  <div key={k} className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-b border-line-soft py-4"><span className="flex flex-[1_1_280px] flex-col"><span className="font-semibold">{k}</span><span className="text-[12.5px] text-muted">{d}</span></span><span className="rounded-lg bg-ink px-3 py-1.5 font-mono text-[13px] font-semibold text-paper">{v}</span></div>
                 ))}
                 <p className="m-0 py-4 text-[12.5px] text-muted">These values are fixed so every workspace’s “Proven” means the same thing.</p>
               </div>
@@ -147,13 +147,13 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                   {owner ? (
                     <form action={changeMember} className="flex flex-wrap items-center gap-2">
                       <input type="hidden" name="userId" value={user.id} />
-                      <select name="role" aria-label="Role" defaultValue={role} className="min-h-[38px] rounded-[8px] border border-field bg-white px-2 text-[13px]">
+                      <select name="role" aria-label="Role" defaultValue={role} className="min-h-[38px] rounded-[8px] border border-field bg-card px-2 text-[13px]">
                         <option value="owner">Owner</option>
                         <option value="admin">Admin</option>
                         <option value="member">Member</option>
                         <option value="remove">Remove from workspace</option>
                       </select>
-                      <button type="submit" className="min-h-[38px] cursor-pointer rounded-[8px] border border-line-strong bg-white px-3 text-[13px] font-semibold">Update role</button>
+                      <button type="submit" className="min-h-[38px] cursor-pointer rounded-[8px] border border-line-strong bg-card px-3 text-[13px] font-semibold">Update role</button>
                     </form>
                   ) : (
                     <span className="rounded-md bg-neutral-tint px-2.5 py-1 text-[12.5px] font-semibold capitalize">{role}</span>
@@ -170,7 +170,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 <div key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-line-soft px-6 py-3.5">
                   <span className="flex flex-[1_1_200px] flex-col"><span className="font-semibold">{t.name}</span><span className="font-mono text-xs text-muted">{t.prefix} · {t.scope === "read" ? "read only" : "read and write"}</span></span>
                   <span className="text-[12.5px] text-muted">{t.lastUsedAt ? `used ${timeAgo(t.lastUsedAt).toLowerCase()}` : "never used"}</span>
-                  <form action={revokeToken}><input type="hidden" name="tokenId" value={t.id} /><button type="submit" className="min-h-[38px] cursor-pointer rounded-lg border border-[#E8C4B0] bg-white px-3 font-semibold text-fail-deep">Revoke</button></form>
+                  <form action={revokeToken}><input type="hidden" name="tokenId" value={t.id} /><button type="submit" className="min-h-[38px] cursor-pointer rounded-lg border border-fail-line bg-card px-3 font-semibold text-fail-deep">Revoke</button></form>
                 </div>
               ))}
             </section>
@@ -210,10 +210,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             </section>
           )}
           {tab === "danger" && (
-            <section className="overflow-hidden rounded-[14px] border border-[#E8C4B0] bg-card">
-              <div className="flex flex-col gap-0.5 border-b border-[#F3DCCF] px-6 py-[18px]"><h2 className="m-0 text-lg font-semibold text-fail-deep">Danger zone</h2><span className="text-[13px] text-muted">Tests already merged into your repositories stay there.</span></div>
+            <section className="overflow-hidden rounded-[14px] border border-fail-line bg-card">
+              <div className="flex flex-col gap-0.5 border-b border-fail-line px-6 py-[18px]"><h2 className="m-0 text-lg font-semibold text-fail-deep">Danger zone</h2><span className="text-[13px] text-muted">Tests already merged into your repositories stay there.</span></div>
               <div className="px-6 py-2">
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-b border-line-soft py-4"><span className="flex flex-[1_1_280px] flex-col"><span className="font-semibold">Export everything</span><span className="text-[12.5px] text-muted">Incidents, evidence and run history as JSON.</span></span><a href="/api/v1/export" className="inline-flex min-h-[42px] items-center rounded-[9px] border border-line-strong bg-white px-4 font-semibold text-ink no-underline">Download export</a></div>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-b border-line-soft py-4"><span className="flex flex-[1_1_280px] flex-col"><span className="font-semibold">Export everything</span><span className="text-[12.5px] text-muted">Incidents, evidence and run history as JSON.</span></span><a href="/api/v1/export" className="inline-flex min-h-[42px] items-center rounded-[9px] border border-line-strong bg-card px-4 font-semibold text-ink no-underline">Download export</a></div>
                 <div className="flex flex-col gap-2.5 border-b border-line-soft py-4"><span className="flex flex-col"><span className="font-semibold">Delete workspace</span><span className="text-[12.5px] text-muted">Removes every incident, proof, check and setting in {ws.login}. Owners only. This cannot be undone.</span></span>{owner ? <ConfirmDelete action={deleteWorkspaceAction} fields={{}} expected={ws.login} button="Delete workspace" description="Everything in this workspace is deleted immediately. The GitHub App stays installed until you uninstall it on GitHub." /> : <span className="text-[12.5px] text-muted">Ask an owner.</span>}</div>
                 <div className="flex flex-col gap-2.5 py-4"><span className="flex flex-col"><span className="font-semibold">Delete your account</span><span className="text-[12.5px] text-muted">Removes you from every workspace. Workspaces where you are the only member are deleted with it.</span></span><ConfirmDelete action={deleteAccountAction} fields={{}} expected="delete my account" button="Delete your account" description="Your notes and overrides stay on their incidents without your name." /></div>
               </div>

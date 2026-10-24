@@ -8,6 +8,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { CheckRow, DOT } from "@/components/app/bits";
 import { incidentKey } from "@/lib/domain/ids";
 import { timeAgo, word } from "@/lib/format";
+import { SOURCES } from "@/components/app/sources";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -38,9 +39,15 @@ export default async function Overview() {
     })),
     ...rows.filter((r) => r.incident.status === "awaiting_fix").map((r) => ({
       tag: <Pill tone="warn">Awaiting fix</Pill>, ref: key(r.incident.number), title: r.incident.title,
-      sub: `Opened from ${r.incident.source === "sentry" ? "Sentry" : r.incident.source === "pagerduty" ? "PagerDuty" : "a report"} ${timeAgo(r.incident.createdAt).toLowerCase()}. Link the fix when it lands.`,
+      sub: `Opened from ${SOURCES[r.incident.source]?.[0] ?? "a report"} ${timeAgo(r.incident.createdAt).toLowerCase()}. Link the fix when it lands.`,
       cta: "Link a fix", href: `/incidents/${r.incident.number}`, primary: false,
     })),
+  ];
+  const steps = [
+    { label: "Install the GitHub App on a repository", done: repos.length > 0, href: "/repositories" },
+    { label: "Bring in your first incident", done: rows.length > 0, href: "/incidents/new" },
+    { label: "Prove a test with time travel", done: memory.length > 0, href: "/incidents" },
+    { label: "See a pull request checked", done: history.length > 0, href: "/pulls" },
   ];
   const week = Date.now() - 7 * 86_400_000;
   const recentChecks = checks.filter((c) => c.check.createdAt.getTime() > week);
@@ -71,6 +78,22 @@ export default async function Overview() {
           eyebrow={`${new Date().toLocaleDateString("en-US", { weekday: "long" })} · ${repos.length} repositories`}
           title={n === 0 ? "Nothing is waiting on you." : `${word(n)} ${n === 1 ? "decision is" : "decisions are"} waiting on you.`}
         />
+        {steps.some((s) => !s.done) && (
+          <section aria-labelledby="start-h" className="rounded-[14px] border border-line bg-card px-5 py-4">
+            <h2 id="start-h" className="m-0 mb-2 text-[15px] font-semibold">Getting started</h2>
+            <ol className="m-0 grid list-none gap-1 p-0 sm:grid-cols-2 lg:grid-cols-4">
+              {steps.map((s, i) => (
+                <li key={s.label}>
+                  <Link href={s.href} className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-[13.5px] text-ink no-underline hover:bg-neutral-tint">
+                    <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${s.done ? "bg-pass text-on-accent" : "border border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
+                    <span className={s.done ? "text-muted line-through" : ""}>{s.label}</span>
+                    <span className="sr-only">{s.done ? "(done)" : "(to do)"}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         {n > 0 && (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-3">
             {decisions.slice(0, 3).map((d, i) => (
@@ -86,7 +109,7 @@ export default async function Overview() {
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(200px,100%),1fr))] overflow-hidden rounded-[14px] border border-line bg-card">
           {stats.map((s) => (
-            <Link key={s.k} href={s.href} className="flex flex-col gap-1 border-r border-line-soft px-[22px] py-[18px] text-inherit no-underline hover:bg-[#FAFAF8]">
+            <Link key={s.k} href={s.href} className="flex flex-col gap-1 border-r border-line-soft px-[22px] py-[18px] text-inherit no-underline hover:bg-card-2">
               <span className="text-[12.5px] text-muted">{s.k}</span>
               <span className={`font-mono text-[28px] font-semibold tracking-[-0.02em] ${s.fail ? "text-fail" : ""}`}>{s.v}</span>
               <span className="text-xs text-muted-2">{s.sub}</span>
@@ -110,7 +133,7 @@ export default async function Overview() {
                     {traveling.run.steps.slice(2, 7).map((st) => (
                       <span key={st.key} className="flex flex-1 flex-col gap-1.5">
                         <span className={`h-1.5 rounded-[3px] ${st.state === "ok" ? "bg-pass-dark" : st.state === "running" ? "bg-on-dark" : "bg-ink-line"}`} />
-                        <span className={`truncate font-mono text-[11.5px] ${st.state === "pending" ? "text-[#56616E]" : "text-[#C9D1DA]"}`}>{st.label.replace("Run before the fix ×3", "Before ×3").replace("Run on the fix ×3", "Fix ×3").replace("Draft test", "Draft").replace("Admit to memory", "Admit").replace("Open bot pull request", "Bot PR")}</span>
+                        <span className={`truncate font-mono text-[11.5px] ${st.state === "pending" ? "text-on-dark-muted" : "text-[#C9D1DA]"}`}>{st.label.replace("Run before the fix ×3", "Before ×3").replace("Run on the fix ×3", "Fix ×3").replace("Draft test", "Draft").replace("Admit to memory", "Admit").replace("Open bot pull request", "Bot PR")}</span>
                       </span>
                     ))}
                   </div>
@@ -135,7 +158,7 @@ export default async function Overview() {
               <ol className="m-0 list-none px-5 pb-1 pt-4">
                 {activity.map((a) => (
                   <li key={a.id} className="flex gap-3">
-                    <span className="flex shrink-0 flex-col items-center"><span className={`mt-[5px] h-2.5 w-2.5 rounded-full ${DOT[a.tone]}`} /><span className="min-h-3.5 w-0.5 flex-1 bg-[#EDEEE9]" /></span>
+                    <span className="flex shrink-0 flex-col items-center"><span className={`mt-[5px] h-2.5 w-2.5 rounded-full ${DOT[a.tone]}`} /><span className="min-h-3.5 w-0.5 flex-1 bg-line-soft" /></span>
                     <span className="flex min-w-0 flex-col pb-3.5"><span className="text-[13.5px] font-semibold">{a.title}</span><span className="text-xs text-muted-2">{timeAgo(a.createdAt)}</span></span>
                   </li>
                 ))}

@@ -10,7 +10,7 @@ export function AskPanel() {
       <form action={action} className="flex flex-wrap gap-2">
         <label className="sr-only" htmlFor="ask-q">Question</label>
         <input id="ask-q" name="question" defaultValue={state.question} maxLength={500} placeholder="What breaks when we touch checkout?" className="min-h-[44px] flex-[1_1_320px] rounded-[9px] border border-field px-3" />
-        <button type="submit" disabled={pending} className="min-h-[44px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white">{pending ? "Thinking…" : "Ask"}</button>
+        <button type="submit" disabled={pending} className="min-h-[44px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-paper">{pending ? "Thinking…" : "Ask"}</button>
       </form>
       {state.error && <p role="alert" className="m-0 text-[13px] text-fail-deep">{state.error}</p>}
       {state.result && (

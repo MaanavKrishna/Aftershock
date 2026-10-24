@@ -19,22 +19,22 @@ export function AlertForms({ kind, label, auth, secretFrom, mappingLabel, placeh
   const [t, test, p3] = useActionState<FormState, FormData>(testDelivery, {});
   const input = "min-h-[44px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal";
   return (
-    <div className="flex flex-col gap-4 border-t border-[#EDEEE9] pt-4">
+    <div className="flex flex-col gap-4 border-t border-line-soft pt-4">
       <form action={saveM} className="flex flex-col gap-2">
         <input type="hidden" name="kind" value={kind} />
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">{mappingLabel}<input name="mapping" defaultValue={mapping} placeholder={placeholder} className={input} /></label>
-        <div className="flex items-center gap-3"><button type="submit" disabled={p1} className={`${btn} bg-ink text-white`}>Save mapping</button><Status s={m} /></div>
+        <div className="flex items-center gap-3"><button type="submit" disabled={p1} className={`${btn} bg-ink text-paper`}>Save mapping</button><Status s={m} /></div>
       </form>
       {secretFrom === "provider" && (
         <form action={keep} className="flex flex-col gap-2">
           <input type="hidden" name="kind" value={kind} />
           <label className="flex flex-col gap-1.5 text-[13px] font-semibold">Signing secret from {label}<input name="secret" type="password" autoComplete="off" spellCheck={false} placeholder="Paste the secret" className={input} /></label>
-          <div className="flex items-center gap-3"><button type="submit" disabled={p4} className={`${btn} border border-line-strong bg-white`}>Save signing secret</button><Status s={k} /></div>
+          <div className="flex items-center gap-3"><button type="submit" disabled={p4} className={`${btn} border border-line-strong bg-card`}>Save signing secret</button><Status s={k} /></div>
         </form>
       )}
       <div className="flex flex-wrap items-start gap-3">
-        {secretFrom === "aftershock" && <form action={rotate}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p2} className={`${btn} border border-line-strong bg-white`}>{auth === "token" ? "Generate token" : "Generate signing secret"}</button></form>}
-        <form action={test}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p3} className={`${btn} border border-line-strong bg-white`}>Send test delivery</button></form>
+        {secretFrom === "aftershock" && <form action={rotate}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p2} className={`${btn} border border-line-strong bg-card`}>{auth === "token" ? "Generate token" : "Generate signing secret"}</button></form>}
+        <form action={test}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p3} className={`${btn} border border-line-strong bg-card`}>Send test delivery</button></form>
       </div>
       <Status s={r} />
       <Status s={t} />
@@ -47,7 +47,7 @@ export function ModelForm({ provider, model, baseUrl }: { provider: string; mode
   const [t, test, p2] = useActionState<FormState, FormData>(async () => testModel(), {});
   const input = "min-h-[44px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal";
   return (
-    <div className="flex flex-col gap-4 border-t border-[#EDEEE9] pt-4">
+    <div className="flex flex-col gap-4 border-t border-line-soft pt-4">
       <form action={save} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">Provider<select name="provider" defaultValue={provider} className={`${input} font-sans`}><option value="muse">Muse (server key)</option><option value="gateway">Vercel AI Gateway</option><option value="custom">Custom OpenAI-compatible endpoint</option></select></label>
         <div className="flex flex-wrap gap-3">
@@ -55,9 +55,9 @@ export function ModelForm({ provider, model, baseUrl }: { provider: string; mode
           <label className="flex flex-[2_1_260px] flex-col gap-1.5 text-[13px] font-semibold">Base URL (custom only)<input name="baseUrl" defaultValue={baseUrl} placeholder="https://your-endpoint/v1" className={input} /></label>
         </div>
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">API key<input name="apiKey" type="password" autoComplete="off" placeholder="Leave empty to keep the current key" className={`${input} font-sans`} /></label>
-        <div className="flex items-center gap-3"><button type="submit" disabled={p1} className={`${btn} bg-ink text-white`}>Save model</button><Status s={s} /></div>
+        <div className="flex items-center gap-3"><button type="submit" disabled={p1} className={`${btn} bg-ink text-paper`}>Save model</button><Status s={s} /></div>
       </form>
-      <form action={test} className="flex items-center gap-3"><button type="submit" disabled={p2} className={`${btn} border border-line-strong bg-white`}>{p2 ? "Testing…" : "Test connection"}</button><Status s={t} /></form>
+      <form action={test} className="flex items-center gap-3"><button type="submit" disabled={p2} className={`${btn} border border-line-strong bg-card`}>{p2 ? "Testing…" : "Test connection"}</button><Status s={t} /></form>
     </div>
   );
 }

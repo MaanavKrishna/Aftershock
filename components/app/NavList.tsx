@@ -27,14 +27,14 @@ export function NavList({ items }: { items: NavItem[] }) {
             key={n.id}
             href={href}
             aria-current={on ? "page" : undefined}
-            className={`flex min-h-[42px] items-center gap-[11px] rounded-lg px-2.5 text-sm no-underline ${on ? "bg-paper font-semibold text-ink" : "font-medium text-[#AEB8C4] hover:bg-ink-2 hover:text-on-dark"}`}
+            className={`flex min-h-[42px] items-center gap-[11px] rounded-lg px-2.5 text-sm no-underline ${on ? "bg-on-dark font-semibold text-chrome" : "font-medium text-[#AEB8C4] hover:bg-ink-2 hover:text-on-dark"}`}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={ICONS[n.id]} />
             </svg>
             <span className="flex-1">{n.label}</span>
             {n.badge ? (
-              <span className={`rounded-[10px] px-[7px] py-px font-mono text-[11px] font-semibold ${n.hot ? "bg-fail text-white" : on ? "bg-line text-ink" : "bg-ink-line text-[#C9D1DA]"}`}>{n.badge}</span>
+              <span className={`rounded-[10px] px-[7px] py-px font-mono text-[11px] font-semibold ${n.hot ? "bg-fail text-on-accent" : on ? "bg-chrome/10 text-chrome" : "bg-ink-line text-[#C9D1DA]"}`}>{n.badge}</span>
             ) : null}
           </Link>
         );

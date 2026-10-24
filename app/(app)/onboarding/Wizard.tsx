@@ -10,20 +10,20 @@ export function Wizard({ repos, installUrl }: { repos: Repo[]; installUrl: strin
   const [step, setStep] = useState(0);
   const [runner, setRunner] = useState<"sandbox" | "actions">("sandbox");
   const [provider, setProvider] = useState<"muse" | "gateway" | "custom">("muse");
-  const card = (on: boolean) => `flex w-full cursor-pointer gap-3.5 rounded-xl bg-white text-left text-ink ${on ? "border-2 border-ink" : "border border-line"}`;
+  const card = (on: boolean) => `flex w-full cursor-pointer gap-3.5 rounded-xl bg-card text-left text-ink ${on ? "border-2 border-ink" : "border border-line"}`;
   return (
     <form action={finishOnboarding} className="flex flex-wrap items-start gap-10">
       <ol aria-label="Setup steps" className="m-0 flex max-w-full flex-[1_1_260px] list-none flex-col gap-1 p-0">
         {STEPS.map(([id, label, sub], i) => (
           <li key={id}>
-            <button type="button" onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined} className={`flex w-full cursor-pointer items-center gap-3.5 rounded-[10px] border-0 px-3.5 py-3 text-left ${i === step ? "bg-white shadow-[0_1px_2px_rgba(14,20,27,0.08),inset_0_0_0_1px_#E2E3DD]" : "bg-transparent"}`}>
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-[12.5px] font-semibold ${i < step ? "bg-pass text-white" : i === step ? "bg-ink text-white" : "border-[1.5px] border-field text-muted"}`}>{i < step ? "✓" : i + 1}</span>
+            <button type="button" onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined} className={`flex w-full cursor-pointer items-center gap-3.5 rounded-[10px] border-0 px-3.5 py-3 text-left ${i === step ? "bg-card shadow-[0_1px_2px_rgba(14,20,27,0.08),inset_0_0_0_1px_#E2E3DD]" : "bg-transparent"}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-[12.5px] font-semibold ${i < step ? "bg-pass text-on-accent" : i === step ? "bg-ink text-paper" : "border-[1.5px] border-field text-muted"}`}>{i < step ? "✓" : i + 1}</span>
               <span className="flex flex-col"><span className="font-semibold">{label}</span><span className="text-[12.5px] text-muted">{sub}</span></span>
             </button>
           </li>
         ))}
       </ol>
-      <section className="flex min-w-0 flex-[999_1_560px] flex-col rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(14,20,27,0.04)]">
+      <section className="flex min-w-0 flex-[999_1_560px] flex-col rounded-2xl border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]">
         <input type="hidden" name="runner" value={runner} />
         <input type="hidden" name="provider" value={provider} />
         <div className={step === 0 ? "flex flex-col gap-[22px] p-8 max-sm:p-5" : "hidden"}>
@@ -55,7 +55,7 @@ export function Wizard({ repos, installUrl }: { repos: Repo[]; installUrl: strin
           </div>
           {repos.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-line">
-              <div className="border-b border-[#EDEEE9] bg-[#FAFAF8] px-[18px] py-2.5 text-xs text-muted-2">Detected in your repositories</div>
+              <div className="border-b border-line-soft bg-card-2 px-[18px] py-2.5 text-xs text-muted-2">Detected in your repositories</div>
               {repos.filter((r) => r.supported).map((r) => <div key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line-soft px-[18px] py-[13px]"><span className="flex-[1_1_180px] font-mono font-semibold">{r.name}</span><span className="font-mono text-[12.5px] text-body">{r.framework}</span><span className="text-[12.5px] text-muted">{r.install}</span></div>)}
             </div>
           )}
@@ -65,7 +65,7 @@ export function Wizard({ repos, installUrl }: { repos: Repo[]; installUrl: strin
           <div role="radiogroup" aria-label="Model provider" className="flex flex-col gap-2">
             {([["muse", "Muse Spark (default)", "Uses the server’s configured key. Nothing to set up.", "ready"], ["gateway", "Vercel AI Gateway", "Choose any supported model by name with one key.", "model id"], ["custom", "Custom OpenAI-compatible endpoint", "Self-hosted or another provider. Bring the URL and key.", "URL + key"]] as const).map(([id, name, text, note]) => (
               <button key={id} type="button" role="radio" aria-checked={provider === id} onClick={() => setProvider(id)} className={`${card(provider === id)} min-h-16 items-center px-4 py-3`}>
-                <span className={`box-border h-[18px] w-[18px] shrink-0 rounded-full ${provider === id ? "border-[6px] border-ink" : "border-[1.5px] border-[#9AA1A9]"}`} />
+                <span className={`box-border h-[18px] w-[18px] shrink-0 rounded-full ${provider === id ? "border-[6px] border-ink" : "border-[1.5px] border-muted-2"}`} />
                 <span className="flex min-w-0 flex-1 flex-col"><span className="font-semibold">{name}</span><span className="text-[12.5px] text-muted">{text}</span></span>
                 <span className="font-mono text-xs text-muted">{note}</span>
               </button>
@@ -83,9 +83,9 @@ export function Wizard({ repos, installUrl }: { repos: Repo[]; installUrl: strin
           <div className="flex flex-col gap-1.5"><h2 className="m-0 text-[26px] font-semibold tracking-[-0.025em]">Import your first incident</h2><p className="m-0 text-muted">Finish setup to see closed issues labelled <span className="rounded-[5px] bg-fail-tint px-1.5 font-mono text-[13px] text-fail-ink">incident</span> with a linked fix. Pick one and watch it time travel.</p></div>
           <p className="m-0 text-[13px] text-muted">No labelled issues? You can also paste a postmortem or fill a form on the next page.</p>
         </div>
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-b-2xl border-t border-[#EDEEE9] bg-[#FAFAF8] px-8 py-[18px] max-sm:px-5">
-          {step === 0 ? <Link href="/overview" className="inline-flex min-h-11 items-center px-2 text-body no-underline">Skip for now</Link> : <button type="button" onClick={() => setStep(step - 1)} className="min-h-11 cursor-pointer rounded-[9px] border border-line-strong bg-white px-4 font-semibold">Back</button>}
-          {step < 3 ? <button type="button" onClick={() => setStep(step + 1)} className="min-h-11 cursor-pointer rounded-[9px] bg-ink px-5 font-semibold text-white">Continue</button> : <button type="submit" className="min-h-11 cursor-pointer rounded-[9px] bg-ink px-5 font-semibold text-white">Finish and import</button>}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-b-2xl border-t border-line-soft bg-card-2 px-8 py-[18px] max-sm:px-5">
+          {step === 0 ? <Link href="/overview" className="inline-flex min-h-11 items-center px-2 text-body no-underline">Skip for now</Link> : <button type="button" onClick={() => setStep(step - 1)} className="min-h-11 cursor-pointer rounded-[9px] border border-line-strong bg-card px-4 font-semibold">Back</button>}
+          {step < 3 ? <button type="button" onClick={() => setStep(step + 1)} className="min-h-11 cursor-pointer rounded-[9px] bg-ink px-5 font-semibold text-paper">Continue</button> : <button type="submit" className="min-h-11 cursor-pointer rounded-[9px] bg-ink px-5 font-semibold text-paper">Finish and import</button>}
         </div>
       </section>
     </form>

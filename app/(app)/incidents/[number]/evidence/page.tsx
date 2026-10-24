@@ -40,7 +40,7 @@ export default async function Evidence({ params }: { params: Promise<{ number: s
             <h1 className="m-0 text-[26px] font-semibold tracking-[-0.02em]">Evidence for {e.incident.key}</h1>
             <p className="m-0 text-muted">{e.incident.title} · {e.repository ?? "no repository"} · issued {when(e.issuedAt)}</p>
           </div>
-          <a href={`/api/v1/incidents/${number}/evidence`} className="inline-flex min-h-[44px] items-center rounded-[9px] bg-ink px-4 font-semibold text-white no-underline print:hidden">Download signed JSON</a>
+          <a href={`/api/v1/incidents/${number}/evidence`} className="inline-flex min-h-[44px] items-center rounded-[9px] bg-ink px-4 font-semibold text-paper no-underline print:hidden">Download signed JSON</a>
         </div>
         <Card>
           <CardHead>Incident</CardHead>

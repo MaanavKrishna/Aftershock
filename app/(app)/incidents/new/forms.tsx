@@ -7,9 +7,9 @@ type Repo = { id: string; name: string };
 
 function Footer() {
   return (
-    <div className="flex flex-wrap justify-end gap-2.5 rounded-b-[14px] border-t border-[#EDEEE9] bg-[#FAFAF8] px-6 py-4">
-      <button type="submit" name="intent" value="save" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-white px-4 font-semibold">Save only</button>
-      <button type="submit" name="intent" value="travel" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] bg-ink px-[18px] font-semibold text-white">Save and time travel</button>
+    <div className="flex flex-wrap justify-end gap-2.5 rounded-b-[14px] border-t border-line-soft bg-card-2 px-6 py-4">
+      <button type="submit" name="intent" value="save" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-card px-4 font-semibold">Save only</button>
+      <button type="submit" name="intent" value="travel" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] bg-ink px-[18px] font-semibold text-paper">Save and time travel</button>
     </div>
   );
 }
@@ -55,13 +55,13 @@ export function PostmortemForm({ repos }: { repos: Repo[] }) {
           <textarea name="postmortem" rows={9} defaultValue={state.fields?.postmortem} placeholder="Markdown, plain text or a doc export. Summary, timeline, root cause, fix — whatever you have." className="resize-y rounded-[9px] border border-field p-3 font-normal" />
         </label>
         <div className="flex flex-wrap items-center gap-2.5">
-          <button type="submit" disabled={pending} className="min-h-[42px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white">{pending ? "Extracting…" : "Extract incident"}</button>
+          <button type="submit" disabled={pending} className="min-h-[42px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-paper">{pending ? "Extracting…" : "Extract incident"}</button>
           <span className="text-[12.5px] text-muted">The model drafts the fields; you check them before saving.</span>
         </div>
         {state.error && <p role="alert" className="m-0 rounded-[10px] bg-fail-tint px-4 py-3 text-[13.5px] text-fail-ink">{state.error}</p>}
       </form>
       {state.ok && state.fields && (
-        <div className="mx-6 mb-6 rounded-xl border-[1.5px] border-dashed border-[#9AA1A9]">
+        <div className="mx-6 mb-6 rounded-xl border-[1.5px] border-dashed border-muted-2">
           <div className="flex flex-wrap justify-between gap-2 px-[18px] pt-4"><span className="font-semibold">{state.ok}</span><span className="rounded-[5px] border border-dashed border-muted-2 px-2 py-0.5 text-[11px] font-semibold text-body">AI draft</span></div>
           <IncidentForm repos={repos} initial={state.fields} />
         </div>

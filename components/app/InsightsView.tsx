@@ -29,7 +29,7 @@ export function InsightsView({ i, showFiles = true }: { i: Insights; showFiles?:
           {i.weeks.map((w) => (
             <div key={w.weekStart} className="flex min-w-[56px] flex-1 flex-col items-center gap-1.5">
               <div className="flex h-[120px] items-end gap-1">
-                <span className="w-3 rounded-t bg-[#9AA1A9]" style={{ height: `${(w.opened / max) * 100}%` }} title={`${w.opened} opened`} />
+                <span className="w-3 rounded-t bg-muted-2" style={{ height: `${(w.opened / max) * 100}%` }} title={`${w.opened} opened`} />
                 <span className="w-3 rounded-t bg-pass" style={{ height: `${(w.proven / max) * 100}%` }} title={`${w.proven} proven`} />
                 <span className="w-3 rounded-t bg-fail" style={{ height: `${(w.blocked / max) * 100}%` }} title={`${w.blocked} blocked`} />
               </div>
@@ -38,7 +38,7 @@ export function InsightsView({ i, showFiles = true }: { i: Insights; showFiles?:
           ))}
         </div>
         <div className="mt-2 flex flex-wrap gap-4 text-[12.5px] text-muted">
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#9AA1A9]" />opened</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-muted-2" />opened</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-pass" />proven</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-fail" />recurrences blocked</span>
         </div>

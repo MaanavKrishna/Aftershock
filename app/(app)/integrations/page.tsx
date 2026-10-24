@@ -59,9 +59,9 @@ export default async function Integrations({ searchParams }: { searchParams: Pro
         <PageTitle title="Where incidents come from, and who drafts the tests." sub="Every delivery is verified by signature or token before anything is stored or run." />
         <nav aria-label="Integrations" className="grid grid-cols-[repeat(auto-fit,minmax(min(230px,100%),1fr))] gap-2.5">
           {visible.map((id) => (
-            <Link key={id} href={`/integrations?kind=${id}`} aria-current={kind === id ? "page" : undefined} className={`flex min-h-[150px] flex-col items-start gap-2.5 rounded-[14px] bg-white p-[18px] text-inherit no-underline ${kind === id ? "border-2 border-ink" : "border border-line"}`}>
+            <Link key={id} href={`/integrations?kind=${id}`} aria-current={kind === id ? "page" : undefined} className={`flex min-h-[150px] flex-col items-start gap-2.5 rounded-[14px] bg-card p-[18px] text-inherit no-underline ${kind === id ? "border-2 border-ink" : "border border-line"}`}>
               <span className="flex w-full items-center justify-between gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-ink text-white"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={meta(id).icon} /></svg></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-ink text-paper"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={meta(id).icon} /></svg></span>
                 <Pill tone={isConnected(id) ? "pass" : "dashed"}>{stateOf(id)}</Pill>
               </span>
               <span className="text-[15px] font-semibold">{meta(id).name}</span>
@@ -72,18 +72,18 @@ export default async function Integrations({ searchParams }: { searchParams: Pro
         {!labsOn && <p className="m-0 text-[13px] text-muted">incident.io, Linear, Rootly, Opsgenie, Datadog, Jira and a generic signed webhook are in <Link href="/settings?tab=labs">Settings → Labs</Link>.</p>}
         <div className="flex flex-wrap items-start gap-4">
           <Card className="min-w-0 flex-[1.5_1_520px]">
-            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#EDEEE9] px-[22px] py-[18px]"><h2 className="m-0 text-lg font-semibold tracking-[-0.015em]">{meta(kind).name}</h2><Pill tone={isConnected(kind) ? "pass" : "dashed"}>{stateOf(kind)}</Pill></div>
+            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line-soft px-[22px] py-[18px]"><h2 className="m-0 text-lg font-semibold tracking-[-0.015em]">{meta(kind).name}</h2><Pill tone={isConnected(kind) ? "pass" : "dashed"}>{stateOf(kind)}</Pill></div>
             <div className="flex flex-col gap-4 px-[22px] py-5">
               {fieldsFor(kind).map(([label, value, help]) => (
                 <div key={label} className="flex flex-col gap-1.5">
                   <span className="text-[13px] font-semibold">{label}</span>
-                  <span className="flex min-h-11 items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[9px] border border-line bg-[#FAFAF8] px-3 font-mono text-[12.5px]">{value}</span>
+                  <span className="flex min-h-11 items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[9px] border border-line bg-card-2 px-3 font-mono text-[12.5px]">{value}</span>
                   <span className="text-[12.5px] text-muted">{help}</span>
                 </div>
               ))}
               {kind !== "github" && kind !== "model" && <AlertForms kind={kind} label={SOURCES[kind].label} auth={SOURCES[kind].auth} secretFrom={SOURCES[kind].secretFrom} mappingLabel={SOURCES[kind].mapping.label} placeholder={SOURCES[kind].mapping.placeholder} mapping={by[kind]?.config[SOURCES[kind].mapping.key] ?? ""} />}
               {kind === "model" && <ModelForm provider={by.model?.config.provider ?? "muse"} model={by.model?.config.model ?? ""} baseUrl={by.model?.config.baseUrl ?? ""} />}
-              {kind === "github" && process.env.GITHUB_APP_SLUG && <a href={`https://github.com/apps/${process.env.GITHUB_APP_SLUG}/installations/new`} className="inline-flex min-h-[42px] items-center self-start rounded-[9px] bg-ink px-4 font-semibold text-white no-underline">Manage on GitHub</a>}
+              {kind === "github" && process.env.GITHUB_APP_SLUG && <a href={`https://github.com/apps/${process.env.GITHUB_APP_SLUG}/installations/new`} className="inline-flex min-h-[42px] items-center self-start rounded-[9px] bg-ink px-4 font-semibold text-paper no-underline">Manage on GitHub</a>}
             </div>
           </Card>
           <Card className="min-w-0 flex-[1_1_340px]">

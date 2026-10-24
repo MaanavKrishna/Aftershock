@@ -20,11 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ pr: strin
 }
 
 const HEAD = {
-  recur: ["RECUR", "bg-fail text-white", "bg-fail"],
-  safe: ["SAFE", "bg-pass text-white", "bg-pass"],
-  inconclusive: ["INCONCLUSIVE", "border border-dashed border-muted-2 text-body", "bg-[#9AA1A9]"],
+  recur: ["RECUR", "bg-fail text-on-accent", "bg-fail"],
+  safe: ["SAFE", "bg-pass text-on-accent", "bg-pass"],
+  inconclusive: ["INCONCLUSIVE", "border border-dashed border-muted-2 text-body", "bg-muted-2"],
   skipped: ["SKIPPED", "bg-neutral-tint text-body", "bg-line"],
-  running: ["RUNNING", "bg-ink text-white", "bg-ink"],
+  running: ["RUNNING", "bg-ink text-paper", "bg-ink"],
 } as const;
 
 export default async function CheckPage({ params, searchParams }: { params: Promise<{ pr: string }>; searchParams: Promise<{ repo?: string; inc?: string }> }) {
@@ -59,7 +59,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
     <>
       <AutoRefresh active={check.status !== "done" || fix?.status === "running"} />
       <TopBar crumbs={[{ label: "Pull requests", href: "/pulls" }, { label: `#${check.prNumber}` }]}>
-        <a href={`https://github.com/${repo.fullName}/pull/${check.prNumber}`} className="inline-flex min-h-[38px] items-center rounded-lg bg-ink px-3 text-[13px] font-semibold text-white no-underline">Open on GitHub</a>
+        <a href={`https://github.com/${repo.fullName}/pull/${check.prNumber}`} className="inline-flex min-h-[38px] items-center rounded-lg bg-ink px-3 text-[13px] font-semibold text-paper no-underline">Open on GitHub</a>
       </TopBar>
       <Main>
         <section className="overflow-hidden rounded-2xl border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]">
@@ -75,7 +75,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
               <h1 className="m-0 text-[clamp(26px,2.8vw,36px)] font-semibold leading-[1.12] tracking-[-0.03em]">{headline}</h1>
               <p className="m-0 text-[15px] text-body">“{check.title}” · {sub}</p>
               {check.risk && check.risk.level !== "low" && (
-                <p className={`m-0 rounded-[10px] px-3 py-2 text-[13px] ${check.risk.level === "high" ? "bg-fail-tint text-fail-ink" : "bg-[#F4F1E8] text-body"}`}><strong>Risk: {check.risk.level}.</strong> {check.risk.reasons.join("; ")}.</p>
+                <p className={`m-0 rounded-[10px] px-3 py-2 text-[13px] ${check.risk.level === "high" ? "bg-fail-tint text-fail-ink" : "bg-neutral-tint text-body"}`}><strong>Risk: {check.risk.level}.</strong> {check.risk.reasons.join("; ")}.</p>
               )}
             </div>
             <div className="grid flex-[1_1_300px] grid-cols-3 gap-2">
@@ -93,7 +93,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
               {results.map(({ result, incident }) => {
                 const on = sel?.result.id === result.id;
                 return (
-                  <Link key={result.id} href={`?${new URLSearchParams({ ...(sp.repo ? { repo: sp.repo } : {}), inc: String(incident.number) })}`} aria-current={on ? "true" : undefined} className={`flex min-h-16 items-center gap-3.5 border-b border-line-soft px-[22px] py-3 text-inherit no-underline ${on ? "bg-pass-wash shadow-[inset_3px_0_0_#0E141B]" : "hover:bg-[#FAFAF8]"}`}>
+                  <Link key={result.id} href={`?${new URLSearchParams({ ...(sp.repo ? { repo: sp.repo } : {}), inc: String(incident.number) })}`} aria-current={on ? "true" : undefined} className={`flex min-h-16 items-center gap-3.5 border-b border-line-soft px-[22px] py-3 text-inherit no-underline ${on ? "bg-pass-wash shadow-[inset_3px_0_0_#0E141B]" : "hover:bg-card-2"}`}>
                     <span className="w-14 shrink-0 font-mono text-[12.5px] text-muted">{key(incident.number)}</span>
                     <span className="flex min-w-0 flex-1 flex-col"><span className="font-semibold">{incident.title}</span><span className="text-xs text-muted-2">{result.why}</span></span>
                     <Strip cells={toCells(result.runs, 3)} width={66} />
@@ -110,7 +110,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
                 <div className="flex flex-col px-[22px] py-[18px] font-mono text-[12.5px]">
                   {sel.result.trace.map((t, i) => (
                     <div key={i} className="flex gap-3.5 border-b border-dashed border-ink-line py-2.5">
-                      <span className="w-5 shrink-0 text-[#56616E]">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="w-5 shrink-0 text-on-dark-muted">{String(i + 1).padStart(2, "0")}</span>
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5"><span className={t.bad ? "text-fail-dark" : "text-on-dark"}>{t.head}</span><span className="text-[#8792A0]">{t.sub}</span></span>
                     </div>
                   ))}
@@ -148,7 +148,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
 
           <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
             {verdict === "recur" && (
-              <section className="flex flex-col gap-3 rounded-[14px] bg-ink p-5 text-on-dark">
+              <section className="flex flex-col gap-3 rounded-[14px] bg-chrome p-5 text-on-dark">
                 <span className="font-semibold">What next</span>
                 <span className="text-[13px] text-on-dark-muted">Ask for a suggested fix. It is checked against {key(recur[0].incident.number)} and every other memory test for this repository before anyone sees it.</span>
                 {!fix && (

@@ -3,12 +3,12 @@ import type { ComponentProps, ReactNode } from "react";
 
 type Variant = "primary" | "secondary" | "darkOutline" | "light" | "danger" | "dangerOutline";
 const V: Record<Variant, string> = {
-  primary: "bg-ink text-white hover:bg-[#1c2733]",
-  secondary: "border border-line-strong bg-white text-ink hover:bg-[#FAFAF8]",
+  primary: "bg-ink text-paper hover:opacity-90",
+  secondary: "border border-line-strong bg-card text-ink hover:bg-card-2",
   darkOutline: "border border-[#344150] bg-transparent text-on-dark hover:bg-ink-2",
-  light: "bg-paper text-ink hover:bg-white",
-  danger: "bg-fail-deep text-white",
-  dangerOutline: "border border-[#E8C4B0] bg-white text-fail-deep",
+  light: "bg-paper text-ink hover:bg-card",
+  danger: "bg-fail text-on-accent",
+  dangerOutline: "border border-fail-line bg-card text-fail-deep",
 };
 const base = "inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[9px] px-4 text-[13.5px] font-semibold no-underline transition-colors disabled:opacity-60";
 

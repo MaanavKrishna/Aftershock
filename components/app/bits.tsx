@@ -5,12 +5,12 @@ import type { PrCheckRow, RepositoryRow, CheckVerdict } from "@/lib/db/schema";
 import type { RunResult } from "@/lib/domain/verdict";
 import { duration } from "@/lib/format";
 
-export const DOT: Record<string, string> = { pass: "bg-pass", fail: "bg-fail", neutral: "bg-[#9AA1A9]", pending: "border-2 border-ink bg-white" };
+export const DOT: Record<string, string> = { pass: "bg-pass", fail: "bg-fail", neutral: "bg-muted-2", pending: "border-2 border-ink bg-card" };
 
 export function CheckRow({ check, repo, results, skipped }: { check: PrCheckRow; repo: RepositoryRow; results: { runs: RunResult[] }[]; skipped: number }) {
   const runs = results.flatMap((r) => r.runs);
   return (
-    <Link href={`/pulls/${check.prNumber}?repo=${repo.name}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line-soft px-5 py-[13px] text-inherit no-underline hover:bg-[#FAFAF8]">
+    <Link href={`/pulls/${check.prNumber}?repo=${repo.name}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line-soft px-5 py-[13px] text-inherit no-underline hover:bg-card-2">
       <span className="w-12 font-mono text-[12.5px] text-muted-2">#{check.prNumber}</span>
       <span className="flex min-w-0 flex-[1_1_220px] flex-col">
         <span className="truncate font-semibold">{check.title}</span>

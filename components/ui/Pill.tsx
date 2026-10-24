@@ -6,12 +6,12 @@ export type Tone = "pass" | "fail" | "solidFail" | "neutral" | "dashed" | "ink" 
 const TONES: Record<Tone, string> = {
   pass: "bg-pass-tint text-pass-deep",
   fail: "bg-fail-tint text-fail-ink",
-  solidFail: "bg-fail text-white",
+  solidFail: "bg-fail text-on-accent",
   neutral: "bg-neutral-tint text-body",
   dashed: "border border-dashed border-muted-2 text-body",
-  ink: "bg-ink text-white",
+  ink: "bg-ink text-paper",
   warn: "bg-fail-tint text-fail-ink",
-  passDark: "bg-pass-dark text-ink",
+  passDark: "bg-pass-dark text-chrome",
 };
 
 export function Pill({ tone, children, mono = false, testId }: { tone: Tone; children: ReactNode; mono?: boolean; testId?: string }) {

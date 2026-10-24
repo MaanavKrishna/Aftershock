@@ -9,7 +9,7 @@ export async function Sidebar({ scope, userId }: { scope: Scoped; userId: string
   const pct = Math.min(100, (usage.sandboxCpuMs / usage.allowanceMs) * 100);
   const name = me?.user.name ?? me?.user.login ?? "You";
   return (
-    <nav aria-label="Workspace navigation" className="box-border flex max-w-full flex-[1_1_248px] flex-col gap-5 bg-ink px-3.5 pb-5 pt-[18px] text-[#C9D1DA]">
+    <nav aria-label="Workspace navigation" className="box-border flex min-h-full w-full flex-col gap-5 overflow-y-auto bg-chrome px-3.5 pb-5 pt-[18px] text-[#C9D1DA]">
       <Link href="/" className="flex min-h-11 items-center gap-2.5 px-2 text-base font-bold tracking-[-0.02em] text-white no-underline">
         <LogoMark size={28} inverted />
         Aftershock
@@ -23,7 +23,7 @@ export async function Sidebar({ scope, userId }: { scope: Scoped; userId: string
         {all.length > 1 && (
           <form action="/api/auth/switch" method="post" className="mt-1 flex flex-col gap-0.5 rounded-[9px] border border-ink-line bg-ink-2 p-1">
             {all.map((w) => (
-              <button key={w.id} type="submit" name="workspaceId" value={w.id} className={`min-h-10 cursor-pointer rounded-md px-2.5 text-left text-[13px] ${w.id === ws?.id ? "bg-[#26313D] font-semibold text-white" : "text-on-dark-muted hover:bg-[#1c2733]"}`}>{w.name}</button>
+              <button key={w.id} type="submit" name="workspaceId" value={w.id} className={`min-h-10 cursor-pointer rounded-md px-2.5 text-left text-[13px] ${w.id === ws?.id ? "bg-[#26313D] font-semibold text-white" : "text-on-dark-muted hover:opacity-90"}`}>{w.name}</button>
             ))}
           </form>
         )}
