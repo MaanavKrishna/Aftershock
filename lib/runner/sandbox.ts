@@ -6,7 +6,8 @@ import { parseJUnit } from "./junit";
 import { safeTestPath } from "./paths";
 import type { RunReport, RunSpec, Runner } from "./types";
 
-const SANDBOX_TIMEOUT_MS = 45 * 60_000;
+/** A hosted run must finish inside one function invocation (Vercel Hobby: about 300s). */
+const stepBudgetMs = () => Number(process.env.AFTERSHOCK_STEP_BUDGET_MS ?? 270_000);
 const FIND_CHECKOUT = 'for d in "$PWD" "$PWD"/*/; do git -C "$d" rev-parse --show-toplevel 2>/dev/null && break; done';
 
 /**
@@ -20,6 +21,7 @@ export class SandboxRunner implements Runner {
     if (spec.repoUrl.startsWith("/") || spec.repoUrl.startsWith("file://")) throw new Error("The sandbox can only clone remote repositories");
     const testPath = safeTestPath(spec.testPath);
     const started = Date.now();
+    const left = (want: number) => Math.max(1_000, Math.min(want, stepBudgetMs() - (Date.now() - started)));
     const sandbox = await Sandbox.create({
       source: spec.token
         ? { type: "git", url: spec.repoUrl, username: "x-access-token", password: spec.token, revision: spec.sha, depth: 1 }
@@ -28,7 +30,8 @@ export class SandboxRunner implements Runner {
       resources: { vcpus: 2 },
       // Persistent sandboxes snapshot on every stop; a one-off run must leave nothing behind.
       persistent: false,
-      timeout: SANDBOX_TIMEOUT_MS,
+      // If the function is cut off, the sandbox stops on its own shortly after.
+      timeout: stepBudgetMs() + 60_000,
     });
     const logs: string[] = [];
     try {
@@ -36,7 +39,7 @@ export class SandboxRunner implements Runner {
       const found = await sandbox.runCommand("sh", ["-c", FIND_CHECKOUT], { timeoutMs: 30_000 });
       const root = (await found.output("stdout")).trim().split("\n")[0];
       if (!root.startsWith("/")) throw new Error("The repository checkout was not found in the sandbox");
-      const sh = (script: string, timeoutMs: number) => sandbox.runCommand({ cmd: "sh", args: ["-c", script], cwd: root, timeoutMs });
+      const sh = (script: string, timeoutMs: number) => sandbox.runCommand({ cmd: "sh", args: ["-c", script], cwd: root, timeoutMs: left(timeoutMs) });
       const at = (p: string) => `${root}/${p}`;
       await sh(SCRUB_GIT_CREDENTIALS, 30_000);
       const install = await sh(frameworkDef(spec.framework).setup(spec.install), 15 * 60_000);
