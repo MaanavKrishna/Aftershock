@@ -15,7 +15,7 @@ Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) 
 | POST | `/api/v1/checks/report` | Results from your own runner (below) |
 | GET | `/api/v1/export` | Everything in the workspace as JSON |
 
-Webhooks: `/api/webhooks/github`, `/api/webhooks/sentry?workspace=<login>`, `/api/webhooks/pagerduty?workspace=<login>`.
+Webhooks: `/api/webhooks/github`, and `/api/webhooks/<source>?workspace=<login>` for alert sources (see [Integrations](integrations.md)).
 
 ## Command line
 

@@ -69,16 +69,16 @@ Under **Integrations → Model provider**:
 
 Keys are encrypted at rest (AES-256-GCM) and never sent to a runner.
 
-## 5. Sentry and PagerDuty
+## 5. Alerts and tickets
 
-Under **Integrations**:
+Under **Integrations**, connect Sentry or PagerDuty (and, from **Settings → Labs**, incident.io, Linear, Rootly, Opsgenie, Datadog, Jira or a generic signed webhook):
 
-1. **Generate signing secret** — shown once; paste it into the provider.
-2. Paste the webhook URL shown there (`APP_URL/api/webhooks/sentry?workspace=<login>` or `.../pagerduty?...`).
+1. Save the provider's signing secret, or generate a secret or token for sources where Aftershock creates it.
+2. Paste the webhook URL shown there (`APP_URL/api/webhooks/<source>?workspace=<login>`).
 3. Map projects or services to repositories, e.g. `shop-backend:ecommerce-api`.
-4. **Send test delivery** to check the signature end to end.
+4. **Send test delivery** to check authentication end to end.
 
-Alerts open incidents in *Awaiting fix*. When a PR that mentions the incident (for example “Fixes INC-16”) merges, time travel starts.
+Alerts open incidents in *Awaiting fix*. When a PR that mentions the incident (for example “Fixes INC-16”) merges, time travel starts. Per-source details: [Integrations](integrations.md).
 
 ## Roles
 

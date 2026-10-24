@@ -26,7 +26,7 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 ## Trust boundaries and controls
 
 1. **Internet → webhooks** (`/api/webhooks/*`)
-   - HMAC signatures are verified in constant time before parsing.
+   - HMAC signatures (or, for sources without a signing scheme, a per-workspace token) are verified in constant time before parsing.
    - Per-source rate limits.
    - A payload size cap and a ±5 minute replay window wherever the source sends a timestamp.
    - Incidents are deduplicated by source fingerprint.
@@ -64,7 +64,8 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 
 | Threat | Mitigation | Status |
 |---|---|---|
-| Forged webhook creates incidents or starts runs (cost) | Signatures, rate limits, replay window, dedupe | Signatures and rate limits shipped; replay window and size caps in v0.2 milestone 8 |
+| Forged webhook creates incidents or starts runs (cost) | Signatures or tokens, rate limits, ±5 minute replay window on signed timestamps, 256 KiB cap, dedupe, one 404 for unknown or disabled sources | Shipped (milestone 8) |
+| Leaked intake token (token sources) | Header delivery preferred over `?token=`; rotate from Integrations; tokens are encrypted and shown once | Shipped (milestone 8) |
 | Prompt injection in issue or alert text steers the model to exfiltrate data | Fencing, no tools for the model, output validation, sandbox without network or secrets | Shipped |
 | Draft test reads environment secrets | No secrets in the sandbox; network denied | Shipped |
 | Malicious repository code escapes its run | Firecracker microVM isolation; network denied during tests; no shared state between runs | Shipped; shared dependency caches are per-repository and read-only during tests (milestone 4) |

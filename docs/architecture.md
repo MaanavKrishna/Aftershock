@@ -5,8 +5,8 @@ One Next.js 16 (App Router) application. Pure decision logic is separated from I
 ```
                 ┌──────────── Next.js app (Vercel) ────────────┐
  GitHub ──────► │ /api/webhooks/github   ─┐                    │
- Sentry ──────► │ /api/webhooks/sentry    ├─► lib/workflows ───┼──► Runner (Vercel Sandbox / Docker)
- PagerDuty ───► │ /api/webhooks/pagerduty ┘     │              │        one VM per run, no secrets
+ Alerts ──────► │ /api/webhooks/<source>  ├─► lib/workflows ───┼──► Runner (Vercel Sandbox / Docker)
+ (9 sources)    │ lib/integrations        ┘     │              │        one VM per run, no secrets
  CLI / CI ────► │ /api/v1/*                     ▼              │
  Browser ─────► │ app/(app) pages ──► lib/db ──► Postgres      │──► Model (Muse / AI Gateway / custom)
                 └──────────────────────────────────────────────┘
@@ -41,7 +41,7 @@ app/(site)/            public site: home, pricing, security, docs, sign in
 app/(app)/             product: overview, incidents, time travel, memory, pull requests,
                        repositories, integrations, settings, onboarding; server actions
 app/api/auth/          GitHub OAuth, demo sign-in, workspace switch, sign out
-app/api/webhooks/      GitHub, Sentry, PagerDuty (signature-verified, rate-limited)
+app/api/webhooks/      GitHub and every alert source (signature- or token-verified, rate-limited)
 app/api/v1/            HTTP API (token or session)
 app/api/cron/          nightly re-check
 components/ui/         Pill, Card, Button, Field, Strip, Logo
@@ -54,7 +54,7 @@ lib/runner/            Runner interface; Docker and Vercel Sandbox; JUnit parsin
 lib/git/               commit resolution, file reads and history via the GitHub API or git CLI
 lib/model/             provider config, fencing of untrusted text, prompts, validation, drafting, triage
 lib/github/            App client, REST calls, webhook routing, comments, bot PRs, suggestions
-lib/integrations/      Sentry / PagerDuty signatures and intake
+lib/integrations/      source registry (sources.ts), signatures, receive() and intake
 lib/workflows/         time travel, PR check, suggested fix, epicenter, retro-check, nightly
 lib/http/              absolute URLs, rate limiting
 cli/                   aftershock CLI (bundled with esbuild)
