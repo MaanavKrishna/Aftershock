@@ -35,6 +35,8 @@ test("the daily workflow re-checks every memory test, one step each", async () =
   const { daily } = await import("@/lib/workflows/daily");
   const summary = await daily("2026-10-24");
   expect(summary.nightly).toBeGreaterThanOrEqual(1);
+  expect(summary).toHaveProperty("retention.logs");
+  expect(summary).toHaveProperty("purged.repositories");
   const [after] = await db.select().from(s.memoryTests).where(eq(s.memoryTests.id, mem.id));
   expect(after.nights).toEqual([true]);
   expect(runs).toBeGreaterThanOrEqual(1);

@@ -17,10 +17,10 @@ async function workspaceByInstallation(installationId: number | undefined) {
   return ws ?? null;
 }
 
-async function repoByFullName(workspaceId: string, fullName: string) {
+async function repoByFullName(workspaceId: string, fullName: string, includeArchived = false) {
   const db = await getDb();
   const [r] = await db.select().from(s.repositories).where(and(eq(s.repositories.workspaceId, workspaceId), eq(s.repositories.fullName, fullName)));
-  return r ?? null;
+  return r && (includeArchived || !r.archivedAt) ? r : null;
 }
 
 async function logDelivery(workspaceId: string, event: string, detail: string, ok = true) {
@@ -31,7 +31,12 @@ async function logDelivery(workspaceId: string, event: string, detail: string, o
 async function addRepos(workspaceId: string, repos: Repo[]) {
   const db = await getDb();
   for (const r of repos) {
-    if (await repoByFullName(workspaceId, r.full_name)) continue;
+    const known = await repoByFullName(workspaceId, r.full_name, true);
+    if (known) {
+      // Access came back: the repository is checked again and no longer scheduled for purge.
+      if (known.archivedAt) await db.update(s.repositories).set({ archivedAt: null }).where(eq(s.repositories.id, known.id));
+      continue;
+    }
     const d = await github.detectFramework(workspaceId, r.full_name);
     await db.insert(s.repositories).values({ workspaceId, githubRepoId: String(r.id), fullName: r.full_name, name: r.name, cloneUrl: `https://github.com/${r.full_name}.git`, framework: d.framework, installCmd: d.install, language: d.language });
   }
@@ -52,7 +57,7 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
     const [ws] = await db
       .insert(s.workspaces)
       .values({ login: account.login, name: account.login, installationId: p.installation.id, settings: { autoImportIssues: true, autoTravelOnMerge: true, issueLabel: "incident" } })
-      .onConflictDoUpdate({ target: s.workspaces.login, set: { installationId: p.installation.id } })
+      .onConflictDoUpdate({ target: s.workspaces.login, set: { installationId: p.installation.id, uninstalledAt: null } })
       .returning();
     if (p.sender?.id) {
       const [user] = await db.select().from(s.users).where(eq(s.users.githubId, String(p.sender.id)));
@@ -67,14 +72,17 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
   if (!ws) return { note: "no workspace for this installation" };
 
   if (name === "installation" && p.action === "deleted") {
-    await db.update(s.workspaces).set({ installationId: null }).where(eq(s.workspaces.id, ws.id));
+    // Kept for 30 days so a reinstall picks up where it left off; purged by the daily job after that.
+    await db.update(s.workspaces).set({ installationId: null, uninstalledAt: new Date() }).where(eq(s.workspaces.id, ws.id));
     await logDelivery(ws.id, "installation.deleted", "GitHub App removed");
     return { note: "uninstalled" };
   }
 
   if (name === "installation_repositories") {
     await addRepos(ws.id, p.repositories_added ?? []);
-    await logDelivery(ws.id, `installation_repositories.${p.action}`, `${(p.repositories_added ?? []).length} added`);
+    const { archiveRepositories } = await import("@/lib/data/lifecycle");
+    await archiveRepositories(ws.id, (p.repositories_removed ?? []).map((r: Repo) => r.full_name));
+    await logDelivery(ws.id, `installation_repositories.${p.action}`, `${(p.repositories_added ?? []).length} added, ${(p.repositories_removed ?? []).length} removed`);
     return { note: "repositories updated" };
   }
 

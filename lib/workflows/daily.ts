@@ -8,11 +8,25 @@ async function memoryTestIds(): Promise<string[]> {
   return (await db.select({ id: s.memoryTests.id }).from(s.memoryTests)).map((r) => r.id);
 }
 
+async function retention(day: string): Promise<{ logs: number; deliveries: number }> {
+  "use step";
+  const { trimRetention } = await import("@/lib/data/lifecycle");
+  return trimRetention(new Date(`${day}T00:00:00Z`));
+}
+
+async function purge(day: string): Promise<{ repositories: number; workspaces: number }> {
+  "use step";
+  const { purgeExpired } = await import("@/lib/data/lifecycle");
+  const { dbCacheStore } = await import("@/lib/runner/cacheStore");
+  const store = dbCacheStore();
+  return purgeExpired(new Date(`${day}T00:00:00Z`), (id) => store.deleteSnapshot(id));
+}
+
 /**
  * The one daily job (Vercel Hobby allows a daily cron). Each re-check is its own durable step, so
  * the whole run is never bound by a single function's time limit, and one failure skips only itself.
  */
-export async function daily(day: string): Promise<{ day: string; nightly: number; failed: number }> {
+export async function daily(day: string): Promise<{ day: string; nightly: number; failed: number; retention: { logs: number; deliveries: number }; purged: { repositories: number; workspaces: number } }> {
   "use workflow";
   const ids = await memoryTestIds();
   let failed = 0;
@@ -23,5 +37,7 @@ export async function daily(day: string): Promise<{ day: string; nightly: number
       failed++;
     }
   }
-  return { day, nightly: ids.length, failed };
+  const kept = await retention(day);
+  const purged = await purge(day);
+  return { day, nightly: ids.length, failed, retention: kept, purged };
 }

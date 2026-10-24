@@ -79,4 +79,26 @@ describe("GitHub webhooks", () => {
     await handleGithubEvent("pull_request", { action: "opened", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api` }, pull_request: { number: 219, title: "Add INC-12 test", body: "", head: { ref: "aftershock/inc-12", sha: "a" }, base: { sha: "b" } } });
     expect(await db.select().from(s.prChecks).where(eq(s.prChecks.workspaceId, ws.id))).toEqual([]);
   });
+
+  test("removing a repository from the app archives it and stops checks; adding it back restores it", async () => {
+    const org = login();
+    const { db, ws, repo } = await installed(org);
+    await handleGithubEvent("installation_repositories", { action: "removed", installation: { id: inst }, repositories_removed: [{ id: 1, name: "ecommerce-api", full_name: `${org}/ecommerce-api` }], repositories_added: [] });
+    expect((await db.select().from(s.repositories).where(eq(s.repositories.id, repo.id)))[0].archivedAt).not.toBeNull();
+    const { scoped } = await import("@/lib/db/queries/scope");
+    expect(await scoped(ws.id).repos()).toEqual([]);
+    const note = await handleGithubEvent("pull_request", { action: "opened", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api` }, pull_request: { number: 7, title: "x", head: { sha: "h", ref: "b" }, base: { sha: "b" } } });
+    expect(note.note).toMatch(/not tracked/);
+    await handleGithubEvent("installation_repositories", { action: "added", installation: { id: inst }, repositories_added: [{ id: 1, name: "ecommerce-api", full_name: `${org}/ecommerce-api` }], repositories_removed: [] });
+    expect((await db.select().from(s.repositories).where(eq(s.repositories.id, repo.id)))[0].archivedAt).toBeNull();
+  });
+
+  test("uninstalling marks the workspace for purge; reinstalling cancels it", async () => {
+    const org = login();
+    const { db, ws } = await installed(org);
+    await handleGithubEvent("installation", { action: "deleted", installation: { id: inst, account: { login: org } } });
+    expect((await db.select().from(s.workspaces).where(eq(s.workspaces.id, ws.id)))[0].uninstalledAt).not.toBeNull();
+    await handleGithubEvent("installation", { action: "created", installation: { id: inst + 1, account: { login: org, id: 7, type: "Organization" } }, repositories: [], sender: { id: 99 } });
+    expect((await db.select().from(s.workspaces).where(eq(s.workspaces.id, ws.id)))[0].uninstalledAt).toBeNull();
+  });
 });

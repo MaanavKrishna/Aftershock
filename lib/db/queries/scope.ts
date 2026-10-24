@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, sql, type SQL, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { faultLines } from "@/lib/domain/faultlines";
@@ -44,6 +44,17 @@ export function scoped(workspaceId: string) {
         .orderBy(asc(s.workspaces.name));
     },
 
+    async auditLog(limit: number) {
+      const db = await getDb();
+      return db
+        .select({ id: s.auditLog.id, action: s.auditLog.action, target: s.auditLog.target, detail: s.auditLog.detail, createdAt: s.auditLog.createdAt, actor: s.users.login })
+        .from(s.auditLog)
+        .leftJoin(s.users, eq(s.users.id, s.auditLog.actorUserId))
+        .where(eq(s.auditLog.workspaceId, workspaceId))
+        .orderBy(desc(s.auditLog.createdAt))
+        .limit(limit);
+    },
+
     async members() {
       const db = await getDb();
       return db
@@ -56,7 +67,7 @@ export function scoped(workspaceId: string) {
 
     async repos() {
       const db = await getDb();
-      return db.select().from(s.repositories).where(eq(s.repositories.workspaceId, workspaceId)).orderBy(asc(s.repositories.name));
+      return db.select().from(s.repositories).where(and(eq(s.repositories.workspaceId, workspaceId), isNull(s.repositories.archivedAt))).orderBy(asc(s.repositories.name));
     },
 
     async repo(id: string) {
