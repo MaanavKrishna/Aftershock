@@ -161,3 +161,11 @@ test("merge queue checks run on the queue's own commit, report on the check run,
   expect(completed).toEqual([{ conclusion: "failure" }]);
   expect(comments).toEqual([]);
 });
+
+test("every check records its recurrence risk from the files it touches", async () => {
+  const { db, check } = await world();
+  setDeps({ runner: () => runnerReturning("passed"), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
+  expect(after.risk).toMatchObject({ level: "medium", incidents: ["INC-1"], reasons: ["Touches ledger.py, the code behind INC-1"] });
+});

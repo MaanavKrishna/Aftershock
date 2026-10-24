@@ -5,7 +5,7 @@ export const COMMENT_MARKER = "<!-- aftershock:check -->";
 export type CommentResult = { key: string; title: string; testPath: string; verdict: CheckVerdict; passed: number; runs: number; failure?: string };
 
 /** One comment per pull request, rewritten in place on every push. */
-export function renderComment(c: { verdict: CheckVerdict; results: CommentResult[]; skipped: number; url: string; runner?: string }): string {
+export function renderComment(c: { verdict: CheckVerdict; results: CommentResult[]; skipped: number; url: string; runner?: string; risk?: import("@/lib/domain/risk").Risk | null }): string {
   const recur = c.results.filter((r) => r.verdict === "recur");
   const lines = [COMMENT_MARKER];
   if (c.verdict === "recur") {
@@ -16,6 +16,9 @@ export function renderComment(c: { verdict: CheckVerdict; results: CommentResult
     lines.push("### Aftershock · Inconclusive", "", "Some results were mixed or the environment failed, so this check is not green. Re-run it, or mark the test flaky.");
   } else {
     lines.push("### Aftershock · Skipped", "", "No remembered incident is relevant to the files this change touches.");
+  }
+  if (c.risk && c.risk.level !== "low") {
+    lines.push("", `**Risk: ${c.risk.level}**: ${c.risk.reasons.join("; ")}.`);
   }
   if (c.results.length) {
     lines.push("", "| Incident | Proven test | Result |", "| --- | --- | --- |");

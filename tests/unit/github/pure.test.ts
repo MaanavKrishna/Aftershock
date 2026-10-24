@@ -41,3 +41,12 @@ test("an inconclusive comment says why, once per distinct reason", () => {
   expect(md).toContain("Why: Dependency install failed (exit 1)");
   expect(md.match(/Dependency install failed/g)).toHaveLength(1);
 });
+
+test("the comment states the recurrence risk with its reasons, and stays quiet when it is low", async () => {
+  const { renderComment } = await import("@/lib/github/comment");
+  const base = { verdict: "safe" as const, results: [], skipped: 0, url: "https://x" };
+  const high = renderComment({ ...base, risk: { level: "high", score: 6, incidents: ["INC-3", "INC-7"], reasons: ["Touches app/cart.py, the code behind INC-3 and INC-7"] } });
+  expect(high).toContain("**Risk: high**");
+  expect(high).toContain("Touches app/cart.py, the code behind INC-3 and INC-7");
+  expect(renderComment({ ...base, risk: { level: "low", score: 0, incidents: [], reasons: [] } })).not.toContain("Risk:");
+});

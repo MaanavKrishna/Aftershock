@@ -40,6 +40,10 @@ async function plan(checkId: string): Promise<Plan> {
     .from(s.memoryTests)
     .innerJoin(s.incidents, eq(s.incidents.id, s.memoryTests.incidentId))
     .where(eq(s.memoryTests.repoId, repo.id));
+  const { riskOf } = await import("@/lib/domain/risk");
+  const repoIncidents = await db.select({ number: s.incidents.number, status: s.incidents.status, watchedFiles: s.incidents.watchedFiles }).from(s.incidents).where(eq(s.incidents.repoId, repo.id));
+  const risk = riskOf(check.changedFiles, repoIncidents.map((i) => ({ key: incidentKey(ws.incidentPrefix, i.number), status: i.status, watchedFiles: i.watchedFiles })));
+  await db.update(s.prChecks).set({ risk }).where(eq(s.prChecks.id, checkId));
   const fileSelected = relevantTests(check.changedFiles, tests.map((x) => ({ id: x.t.id, watchedFiles: x.i.watchedFiles })), []);
   const candidates = tests.filter((x) => !fileSelected.run.some((r) => r.id === x.t.id)).map((x) => ({ id: x.t.id, key: incidentKey(ws.incidentPrefix, x.i.number), title: x.i.title, expected: x.i.expected, files: x.i.watchedFiles }));
   const adds = candidates.length && fileSelected.run.length < tests.length ? await triageIncidents(ws.id, { title: check.title, diff: check.diff }, candidates) : [];
@@ -142,12 +146,12 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
   }
   const url = `${process.env.APP_URL ?? ""}/pulls/${check.prNumber}?repo=${repo.name}`;
   const body = renderComment({
-    verdict, skipped: skips.length, url, runner,
+    verdict, skipped: skips.length, url, runner, risk: check.risk,
     results: results.map(({ selected, runs }, i) => ({ key: selected.key, title: selected.title, testPath: selected.path, verdict: rows[i].verdict, passed: runs.filter((r) => r.outcome === "passed").length, runs: runs.length, failure: rows[i].failureExcerpt ?? undefined })),
   });
   const conclusion = verdict === "recur" ? ((mode ?? repo.checkMode) === "blocking" ? "failure" : "neutral") : verdict === "inconclusive" ? "neutral" : "success";
   await github.completeCheckRun(check.workspaceId, repo.fullName, check.checkRunId, conclusion, body, url);
-  if (!check.mergeGroupRef && (verdict !== "skipped" || check.commentId)) {
+  if (!check.mergeGroupRef && (verdict !== "skipped" || check.commentId || check.risk?.level === "high")) {
     const commentId = await github.upsertComment(check.workspaceId, repo.fullName, check.prNumber, body, check.commentId);
     if (commentId) await db.update(s.prChecks).set({ commentId }).where(eq(s.prChecks.id, checkId));
   }

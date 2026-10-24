@@ -74,6 +74,9 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
               </div>
               <h1 className="m-0 text-[clamp(26px,2.8vw,36px)] font-semibold leading-[1.12] tracking-[-0.03em]">{headline}</h1>
               <p className="m-0 text-[15px] text-body">“{check.title}” · {sub}</p>
+              {check.risk && check.risk.level !== "low" && (
+                <p className={`m-0 rounded-[10px] px-3 py-2 text-[13px] ${check.risk.level === "high" ? "bg-fail-tint text-fail-ink" : "bg-[#F4F1E8] text-body"}`}><strong>Risk: {check.risk.level}.</strong> {check.risk.reasons.join("; ")}.</p>
+              )}
             </div>
             <div className="grid flex-[1_1_300px] grid-cols-3 gap-2">
               <div className="rounded-xl bg-fail-tint p-3.5"><div className="text-xs text-fail-ink">Recur</div><div className="font-mono text-[28px] font-semibold text-fail">{counts.recur}</div></div>

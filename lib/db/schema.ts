@@ -88,6 +88,10 @@ export const incidents = pgTable(
     statusReason: text("status_reason"),
     watchedFiles: jsonb("watched_files").$type<string[]>().notNull().default([]),
     epicenter: jsonb("epicenter").$type<Epicenter>(),
+    /** Past incidents this one looks like (duplicate or recurrence), best first. */
+    related: jsonb("related").$type<{ id: string; key: string; score: number; why: string }[]>().notNull().default([]),
+    /** A merged pull request that probably fixed this incident (awaiting fix only); a person confirms it. */
+    suggestedFix: jsonb("suggested_fix").$type<{ pr: number; sha: string; title: string; why: string }>(),
     createdAt: created(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -165,6 +169,8 @@ export const prChecks = pgTable("pr_checks", {
   testedSha: text("tested_sha"),
   /** Set for merge queue checks: the merge group's head ref (gh-readonly-queue/...). No PR comment is posted for these. */
   mergeGroupRef: text("merge_group_ref"),
+  /** How close the change comes to code behind past incidents (lib/domain/risk.ts). */
+  risk: jsonb("risk").$type<import("@/lib/domain/risk").Risk>(),
   /** Pull request author, for active-committer counts. Bots are recorded but never counted. */
   author: text("author"),
   authorIsBot: boolean("author_is_bot").notNull().default(false),
