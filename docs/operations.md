@@ -15,7 +15,7 @@ Set `AFTERSHOCK_RUNS_DISABLED=1` in Vercel and redeploy (or use an environment v
 ## Time budget and the daily job
 
 - Every hosted sandbox run must finish inside one function invocation. `AFTERSHOCK_STEP_BUDGET_MS` (default 270000) caps install and test timeouts for a run, and the sandbox stops itself one minute after the budget if the function is cut off. Each run is its own workflow step, so long jobs (Epicenter, verifying a suggested fix) are many short steps.
-- Vercel Cron calls `/api/cron/nightly` once a day. It only starts the durable `daily` workflow, which re-checks every memory test as separate steps. Retention and weekly re-proofs run from the same job.
+- Vercel Cron calls `/api/cron/nightly` once a day. It only starts the durable `daily` workflow, which re-checks every memory test as separate steps. Retention, the notification sweep and weekly re-proofs run from the same job.
 
 ## Install cache
 
@@ -26,8 +26,12 @@ With the `installCache` flag on, the first trusted run for a repository (time tr
 - **Deleting**: admins delete incidents and repositories; owners delete the workspace; anyone can delete their own account (Settings → Danger zone). Each needs the name typed to confirm, and is written to the audit log (Settings → Audit log), which is kept even after a workspace is deleted.
 - **Repositories removed from the GitHub App** are archived (no longer checked or listed) and purged after 30 days unless access returns.
 - **Uninstalled workspaces** are kept for 30 days so a reinstall continues where it left off, then purged.
-- **Retention**: run logs and webhook delivery records older than 30 days are cleared by the daily job. Verdicts, proofs and evidence stay until deleted.
+- **Retention**: run logs, webhook delivery records and finished notifications older than 30 days are cleared by the daily job. Verdicts, proofs and evidence stay until deleted.
 - Deleting a repository or workspace also deletes its cached environments at the sandbox provider.
+
+## Notifications
+
+Activity with an event goes to the `notifications` outbox and the `notify` workflow delivers it (5 attempts over about 73 minutes). To see what is stuck: `select status, count(*) from notifications group by 1`. Rows left in `sending` for over 5 minutes are picked up again. A target switched off after repeated failures shows its reason in Settings → Notifications. See [Notifications](notifications.md).
 
 ## Feature flags
 

@@ -45,6 +45,7 @@ Rules that never bend:
 
 - **GitHub**: sign-in, issues, check runs, pull request comments and test pull requests, all through one GitHub App.
 - **Alerts and tickets**: Sentry and PagerDuty, plus incident.io, Linear, Rootly, Opsgenie, Datadog, Jira and a generic signed webhook in Labs. See [Integrations](docs/integrations.md).
+- **Notifications**: Slack and signed outbound webhooks for proofs, blocked pull requests and failing memory tests (Labs). See [Notifications](docs/notifications.md).
 - **Model**: Muse by default, Vercel AI Gateway, or any OpenAI-compatible endpoint. Keys are encrypted at rest.
 - **CI**: run checks on your own GitHub Actions instead of the hosted sandbox. See [API and CLI](docs/api.md).
 
@@ -52,6 +53,7 @@ Rules that never bend:
 
 - [Self-hosting and setup](docs/setup.md): GitHub App, Neon, Vercel, model, alerts, roles
 - [Integrations](docs/integrations.md): every alert and ticket source, authentication, payloads
+- [Notifications](docs/notifications.md): Slack, signed webhooks, events, retries
 - [API and CLI](docs/api.md): HTTP API, `aftershock` command line, GitHub Actions runner, `.aftershock/config.yaml`
 - [Architecture](docs/architecture.md): flows, code layout, security model
 - [Operations](docs/operations.md): logs, kill switch, feature flags, migrations, rollback

@@ -53,7 +53,7 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
    - Clone tokens are minted with the minimum permission.
 7. **App → outbound webhooks and Slack**
    - URLs are resolved before connecting, and private, loopback, link-local and metadata addresses are refused (SSRF guard).
-   - Bodies are signed (HMAC-SHA256 with a timestamp).
+   - Bodies are signed with Standard Webhooks (HMAC-SHA256 over id, timestamp and body).
    - Retries use back-off; a target that keeps failing is disabled automatically.
 8. **Operators**
    - Kill switch `AFTERSHOCK_RUNS_DISABLED`.
@@ -72,7 +72,8 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 | Install cache poisoning: a pull request's install scripts tamper with a cached environment that later runs reuse | Snapshots are only saved from trusted default-branch commits; pull requests may restore only an identical-lockfile snapshot and never save; keys are per repository; network denied after every restore | Milestone 4 |
 | Cross-tenant data access | `scoped()` everywhere; integration tests for isolation | Shipped |
 | Stolen API token | Hash-only storage, revocation, last-used time, scopes | Scopes in milestone 11 |
-| SSRF via custom model URL or outbound webhook | Public-https check; DNS-resolved IP checks | Model shipped; webhooks in milestone 9 |
+| SSRF via custom model URL or outbound webhook | Public-https check; connect-time DNS check that refuses private, loopback, link-local and metadata answers; no redirects; Slack targets pinned to hooks.slack.com | Shipped (webhooks in milestone 9) |
+| Notification flood or stuck retries | Outbox with claim-once delivery, 5 attempts with back-off, auto-disable after 10 consecutive failures, 30-day retention | Shipped (milestone 9) |
 | Badge or showcase leaks private data | Public repositories only, 404 otherwise; showcase reads only the public sample workspace | Milestones 11 and 14 |
 | Tampered evidence | Ed25519 signatures over canonical JSON, with a JWKS endpoint that lists rotated keys | Milestone 11 |
 | Runaway cost from runs | Plan quotas, kill switch, per-source rate limits, metering of every run | Kill switch shipped; metering in milestone 6 |
