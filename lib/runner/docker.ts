@@ -9,6 +9,7 @@ import { parseJUnit } from "./junit";
 import type { RunReport, RunSpec, Runner } from "./types";
 import { safeTestPath } from "./paths";
 import { redactToken } from "./secrets";
+import { frameworkDef } from "./frameworks";
 
 type Exec = { code: number | null; out: string; timedOut: boolean; ms: number };
 
@@ -41,6 +42,28 @@ function exec(cmd: string, args: string[], opts: { timeoutMs: number; input?: Bu
     if (opts.input) child.stdin.end(opts.input);
     else child.stdin.end();
   });
+}
+
+/** Toolchains (Go's module cache, for one) leave read-only files behind; make them writable before removing. */
+function removeTree(dir: string) {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true });
+  } catch {
+    const walk = (d: string) => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const p = path.join(d, e.name);
+        try {
+          fs.chmodSync(p, 0o700);
+        } catch {
+          // already gone
+        }
+        if (e.isDirectory() && !e.isSymbolicLink()) walk(p);
+      }
+    };
+    fs.chmodSync(dir, 0o700);
+    walk(dir);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 const isLocal = (url: string) => url.startsWith("/") || url.startsWith("file://");
@@ -93,14 +116,6 @@ export class DockerRunner implements Runner {
     const logs: string[] = [];
     try {
       await exportCommit(spec.repoUrl, spec.sha, spec.token, work);
-      const target = path.join(work, testPath);
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(target, spec.testCode);
-      for (const o of spec.overlay ?? []) {
-        const file = path.join(work, safeTestPath(o.path));
-        fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, o.content);
-      }
       fs.mkdirSync(path.join(work, ".aftershock-out"), { recursive: true });
 
       const image = imageFor(spec.framework);
@@ -114,6 +129,15 @@ export class DockerRunner implements Runner {
         return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error", durationMs: 0, message })), log: redactToken(logs.join("\n\n"), spec.token), cpuMs: 0, wallMs: Date.now() - started };
       }
 
+      // The draft and any overlay arrive after the install, exactly as in the sandbox: install never compiles them.
+      const target = path.join(work, testPath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, spec.testCode);
+      for (const o of [...(spec.overlay ?? []), ...(frameworkDef(spec.framework).supportFiles ?? [])]) {
+        const file = path.join(work, safeTestPath(o.path));
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, o.content);
+      }
       const results: RunResult[] = [];
       let testMs = 0;
       for (let i = 0; i < spec.runs; i++) {
@@ -134,7 +158,7 @@ export class DockerRunner implements Runner {
       }
       return { installOk: true, results, log: redactToken(logs.join("\n\n"), spec.token), cpuMs: testMs, wallMs: Date.now() - started };
     } finally {
-      fs.rmSync(base, { recursive: true, force: true });
+      removeTree(base);
     }
   }
 }

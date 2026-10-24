@@ -83,7 +83,7 @@ export class SandboxRunner implements Runner {
         }
       }
       await sandbox.update({ networkPolicy: "deny-all" });
-      await sandbox.writeFiles([{ path: at(testPath), content: spec.testCode }, ...(spec.overlay ?? []).map((o) => ({ path: at(safeTestPath(o.path)), content: o.content }))]);
+      await sandbox.writeFiles([{ path: at(testPath), content: spec.testCode }, ...[...(spec.overlay ?? []), ...(frameworkDef(spec.framework).supportFiles ?? [])].map((o) => ({ path: at(safeTestPath(o.path)), content: o.content }))]);
       const results: RunResult[] = [];
       for (let i = 0; i < spec.runs; i++) {
         const junit = `.aftershock-out/junit-${i}.xml`;
