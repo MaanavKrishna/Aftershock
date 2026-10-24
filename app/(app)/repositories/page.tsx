@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { Card, CardHead } from "@/components/ui/Card";
-import { setRepoSetting } from "../actions";
+import { deleteRepositoryAction, setRepoSetting } from "../actions";
+import { ConfirmDelete } from "@/components/app/ConfirmDelete";
+import { can } from "@/lib/auth/roles";
 import { hours, timeAgo } from "@/lib/format";
 import type { RepositoryRow } from "@/lib/db/schema";
 
@@ -22,8 +24,9 @@ function Segment({ repo, field, label, options, value }: { repo: RepositoryRow; 
 
 export default async function Repositories({ searchParams }: { searchParams: Promise<{ repo?: string }> }) {
   const { repo: selName } = await searchParams;
-  const { scope } = await currentScope();
-  const [repos, mem, usage, byRepo, ws] = await Promise.all([scope.repos(), scope.memoryCountByRepo(), scope.usage(), scope.usageByRepo(), scope.workspace()]);
+  const { scope, session } = await currentScope();
+  const [repos, mem, usage, byRepo, ws, me] = await Promise.all([scope.repos(), scope.memoryCountByRepo(), scope.usage(), scope.usageByRepo(), scope.workspace(), scope.me(session.userId)]);
+  const admin = can(me?.role, "manageRepositories");
   const sel = repos.find((r) => r.name === selName) ?? repos[0];
   const cols = "grid-cols-[minmax(0,1.8fr)_1fr_1.5fr_1.4fr_90px]";
   const parts = [...byRepo.checks.map((c) => ({ name: c.repo, ms: c.ms })), { name: "time travel", ms: byRepo.travelMs }].filter((p) => p.ms > 0);
@@ -72,6 +75,14 @@ export default async function Repositories({ searchParams }: { searchParams: Pro
             <Card dark className="min-w-0 flex-[1_1_380px]">
               <CardHead dark sub="Commit this file to the default branch to keep these settings with your code. It overrides the settings above.">.aftershock/config.yaml · {sel.name}</CardHead>
               <pre className="m-0 overflow-x-auto px-[22px] py-4 font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{`framework: ${sel.framework}\nrunner: ${sel.runner}\ninstall: ${sel.installCmd}\ntest_dir: ${sel.testDir}\ncheck:\n  mode: ${sel.checkMode}\n  runs: 3\nincidents:\n  issue_label: ${ws?.settings.issueLabel ?? "incident"}`}</pre>
+            </Card>
+          )}
+          {sel && admin && (
+            <Card className="min-w-0 flex-[1_1_380px]">
+              <CardHead sub="Stops checks and deletes its memory tests, check history and cached environments. Incidents stay.">Remove {sel.name}</CardHead>
+              <div className="px-[22px] py-[18px]">
+                <ConfirmDelete action={deleteRepositoryAction} fields={{ repoId: sel.id }} expected={sel.name} button="Remove repository" description="Also remove the repository from the GitHub App on GitHub, or it is added back the next time GitHub sends an event." />
+              </div>
             </Card>
           )}
         </div>

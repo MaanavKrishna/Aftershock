@@ -13,7 +13,9 @@ import { SOURCES } from "@/components/app/sources";
 import { AutoRefresh } from "@/components/app/AutoRefresh";
 import { incidentKey } from "@/lib/domain/ids";
 import { stamp } from "@/lib/format";
-import { addNote, linkFix, retryTimeTravel, searchEpicenter } from "../../actions";
+import { addNote, deleteIncidentAction, linkFix, retryTimeTravel, searchEpicenter } from "../../actions";
+import { ConfirmDelete } from "@/components/app/ConfirmDelete";
+import { can } from "@/lib/auth/roles";
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params;
@@ -23,13 +25,14 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
 export default async function IncidentPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ error?: string }> }) {
   const { number } = await params;
   const { error } = await searchParams;
-  const { scope } = await currentScope();
+  const { scope, session } = await currentScope();
   const inc = await scope.getIncident(Number(number));
   if (!inc) notFound();
   const [ws, repo, runs, mem, checks, notes, trail] = await Promise.all([
     scope.workspace(), inc.repoId ? scope.repo(inc.repoId) : null, scope.runs(inc.id), scope.memoryForIncident(inc.id), scope.checksForIncident(inc.id), scope.notes(inc.id), scope.trail(inc.id),
   ]);
   const key = incidentKey(ws?.incidentPrefix ?? "INC", inc.number);
+  const admin = can((await scope.me(session.userId))?.role, "manageWorkspace");
   const proven = runs.find((r) => r.status === "proven");
   const latest = runs.at(-1);
   const epic = inc.epicenter && "sha" in inc.epicenter ? inc.epicenter : null;
@@ -160,6 +163,14 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                 </form>
               </div>
             </Card>
+            {admin && (
+              <Card>
+                <CardHead>Delete <span data-testid="incident-key" className="font-mono">{key}</span></CardHead>
+                <div className="px-[22px] py-[18px]">
+                  <ConfirmDelete action={deleteIncidentAction} fields={{ incidentId: inc.id }} expected={key} button="Delete incident" description="Deletes this incident, its time-travel runs, its memory test and its trail. Tests already merged into your repository stay there." />
+                </div>
+              </Card>
+            )}
           </div>
 
           <aside className="min-w-0 flex-[1_1_320px] overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]">

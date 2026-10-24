@@ -278,3 +278,93 @@ export async function setFlag(form: FormData): Promise<void> {
     .where(eq(s.workspaces.id, session.workspaceId));
   revalidatePath("/settings");
 }
+
+// ---------------------------------------------------------------------------------------------
+// Deleting data and managing members. Every destructive action needs a typed confirmation and
+// is written to the audit log.
+// ---------------------------------------------------------------------------------------------
+
+async function snapshotDeleter() {
+  const { dbCacheStore } = await import("@/lib/runner/cacheStore");
+  const store = dbCacheStore();
+  return (id: string) => store.deleteSnapshot(id);
+}
+
+const confirmed = (form: FormData, expected: string) => String(form.get("confirm") ?? "").trim() === expected;
+
+export async function deleteIncidentAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const { session, scope, allowed } = await authorize("manageWorkspace");
+  if (!allowed) return { error: "Only owners and admins can delete incidents." };
+  const inc = await scope.getIncidentById(String(form.get("incidentId")));
+  if (!inc) return { error: "That incident no longer exists." };
+  const ws = await scope.workspace();
+  const key = incidentKey(ws?.incidentPrefix ?? "INC", inc.number);
+  if (!confirmed(form, key)) return { error: `The confirmation did not match. Type ${key} exactly.` };
+  const { deleteIncident } = await import("@/lib/data/lifecycle");
+  await deleteIncident(session.workspaceId, inc.number, session.userId);
+  revalidatePath("/", "layout");
+  redirect("/incidents");
+}
+
+export async function deleteRepositoryAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const { session, scope, allowed } = await authorize("manageRepositories");
+  if (!allowed) return { error: "Only owners and admins can remove repositories." };
+  const repo = await scope.repo(String(form.get("repoId")));
+  if (!repo) return { error: "That repository is not in this workspace." };
+  if (!confirmed(form, repo.name)) return { error: `The confirmation did not match. Type ${repo.name} exactly.` };
+  const { deleteRepository } = await import("@/lib/data/lifecycle");
+  await deleteRepository(session.workspaceId, repo.id, session.userId, "removed in Aftershock", await snapshotDeleter());
+  revalidatePath("/", "layout");
+  return { ok: `${repo.name} was removed. Remove it from the GitHub App too, or it will be added again.` };
+}
+
+async function signOut() {
+  const { cookies } = await import("next/headers");
+  const { SESSION_COOKIE } = await import("@/lib/auth/token");
+  (await cookies()).delete(SESSION_COOKIE);
+}
+
+export async function deleteWorkspaceAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const { session, scope, role } = await authorize("manageWorkspace");
+  if (role !== "owner") return { error: "Only owners can delete the workspace." };
+  const ws = await scope.workspace();
+  if (!ws) return { error: "That workspace no longer exists." };
+  if (!confirmed(form, ws.login)) return { error: `The confirmation did not match. Type ${ws.login} exactly.` };
+  const { deleteWorkspace } = await import("@/lib/data/lifecycle");
+  await deleteWorkspace(ws.id, session.userId, await snapshotDeleter());
+  await signOut();
+  redirect("/");
+}
+
+export async function deleteAccountAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const { session } = await currentScope();
+  if (!confirmed(form, "delete my account")) return { error: "The confirmation did not match. Type delete my account exactly." };
+  const { deleteAccount } = await import("@/lib/data/lifecycle");
+  try {
+    await deleteAccount(session.userId, await snapshotDeleter());
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Your account could not be deleted." };
+  }
+  await signOut();
+  redirect("/");
+}
+
+export async function changeMember(form: FormData): Promise<void> {
+  const { session, scope, role } = await authorize("manageWorkspace");
+  const targetId = String(form.get("userId"));
+  const to = String(form.get("role")) as "owner" | "admin" | "member" | "remove";
+  if (!["owner", "admin", "member", "remove"].includes(to)) return;
+  const members = await scope.members();
+  const target = members.find((m) => m.user.id === targetId);
+  if (!target || !role) return;
+  const { memberChange } = await import("@/lib/domain/members");
+  const problem = memberChange({ actor: role, target: target.role, to, owners: members.filter((m) => m.role === "owner").length, self: targetId === session.userId });
+  if (problem) redirect(`/settings?tab=team&error=${encodeURIComponent(problem)}`);
+  const db = await getDb();
+  const where = and(eq(s.memberships.workspaceId, session.workspaceId), eq(s.memberships.userId, targetId));
+  if (to === "remove") await db.delete(s.memberships).where(where);
+  else await db.update(s.memberships).set({ role: to }).where(where);
+  const { audit } = await import("@/lib/data/lifecycle");
+  await audit(session.workspaceId, session.userId, to === "remove" ? "member.removed" : "member.role", target.user.login, to === "remove" ? "" : `${target.role} → ${to}`);
+  revalidatePath("/settings");
+}
