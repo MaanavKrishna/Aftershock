@@ -68,6 +68,7 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 | Prompt injection in issue or alert text steers the model to exfiltrate data | Fencing, no tools for the model, output validation, sandbox without network or secrets | Shipped |
 | Draft test reads environment secrets | No secrets in the sandbox; network denied | Shipped |
 | Malicious repository code escapes its run | Firecracker microVM isolation; network denied during tests; no shared state between runs | Shipped; shared dependency caches are per-repository and read-only during tests (milestone 4) |
+| Install cache poisoning: a pull request's install scripts tamper with a cached environment that later runs reuse | Snapshots are only saved from trusted default-branch commits; pull requests may restore only an identical-lockfile snapshot and never save; keys are per repository; network denied after every restore | Milestone 4 |
 | Cross-tenant data access | `scoped()` everywhere; integration tests for isolation | Shipped |
 | Stolen API token | Hash-only storage, revocation, last-used time, scopes | Scopes in milestone 11 |
 | SSRF via custom model URL or outbound webhook | Public-https check; DNS-resolved IP checks | Model shipped; webhooks in milestone 9 |

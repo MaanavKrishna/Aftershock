@@ -17,6 +17,10 @@ Set `AFTERSHOCK_RUNS_DISABLED=1` in Vercel and redeploy (or use an environment v
 - Every hosted sandbox run must finish inside one function invocation. `AFTERSHOCK_STEP_BUDGET_MS` (default 270000) caps install and test timeouts for a run, and the sandbox stops itself one minute after the budget if the function is cut off. Each run is its own workflow step, so long jobs (Epicenter, verifying a suggested fix) are many short steps.
 - Vercel Cron calls `/api/cron/nightly` once a day. It only starts the durable `daily` workflow, which re-checks every memory test as separate steps. Retention and weekly re-proofs run from the same job.
 
+## Install cache
+
+With the `installCache` flag on, the first trusted run for a repository (time travel, nightly, Epicenter) snapshots the installed environment; later runs with the same framework, image, install command and lockfiles restore it and skip the install. At most two snapshots are kept per repository and each expires after 7 days. `node scripts/sandbox-snapshots.mjs` lists all snapshots in the project (and deletes them with `--yes`).
+
 ## Feature flags
 
 New features ship dark. Each flag (`lib/flags.ts`) is off unless:
