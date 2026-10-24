@@ -11,6 +11,8 @@ export type GithubApi = {
   createCheckRun(workspaceId: string, fullName: string, headSha: string): Promise<number | null>;
   completeCheckRun(workspaceId: string, fullName: string, id: number | null, conclusion: "success" | "failure" | "neutral", summary: string, url: string): Promise<void>;
   upsertComment(workspaceId: string, fullName: string, pr: number, body: string, existing: number | null): Promise<number | null>;
+  /** True when GitHub says the repository is private, null when it can't be read. */
+  repoVisibility(workspaceId: string, fullName: string): Promise<boolean | null>;
   /** Open PR numbers, or null when GitHub is not connected (callers fall back to recent checks). */
   openPullRequests(workspaceId: string, fullName: string): Promise<number[] | null>;
 };
@@ -72,6 +74,16 @@ const real: GithubApi = {
     const files = data.files ?? [];
     return { files: files.map((f) => f.filename), diff: files.map((f) => `--- ${f.filename}\n${f.patch ?? ""}`).join("\n").slice(0, 60_000) };
   },
+  async repoVisibility(workspaceId, fullName) {
+    const ok = await octokitFor(workspaceId);
+    if (!ok) return null;
+    try {
+      const { data } = await ok.request("GET /repos/{owner}/{repo}", split(fullName));
+      return Boolean(data.private);
+    } catch {
+      return null;
+    }
+  },
   async createCheckRun(workspaceId, fullName, headSha) {
     const ok = await octokitFor(workspaceId);
     if (!ok) return null;
@@ -106,6 +118,7 @@ const noop: GithubApi = {
   closingCommit: async () => ({}),
   prFiles: async () => ({ files: [], diff: "" }),
   compareFiles: async () => ({ files: [], diff: "" }),
+  repoVisibility: async () => null,
   createCheckRun: async () => null,
   completeCheckRun: async () => undefined,
   upsertComment: async () => null,

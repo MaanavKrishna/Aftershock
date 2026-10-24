@@ -7,6 +7,7 @@ import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { can } from "@/lib/auth/roles";
 import { hours, timeAgo } from "@/lib/format";
 import type { RepositoryRow } from "@/lib/db/schema";
+import { flagEnabled } from "@/lib/flags";
 
 export const metadata: Metadata = { title: "Repositories" };
 
@@ -57,6 +58,22 @@ export default async function Repositories({ searchParams }: { searchParams: Pro
             </div>
           </div>
         </Card>
+        {flagEnabled("badge", ws?.settings) && repos.some((r) => r.isPrivate === false) && (
+          <Card>
+            <CardHead sub="Public repositories only. Private ones never get a badge.">README badge</CardHead>
+            <div className="flex flex-col gap-2 px-[22px] py-4">
+              {repos.filter((r) => r.isPrivate === false).map((r) => {
+                const url = `${(process.env.APP_URL ?? "").replace(/\/$/, "")}/api/badge/${r.fullName}.svg`;
+                return (
+                  <div key={r.id} className="flex flex-col gap-1">
+                    <span className="font-mono text-[12.5px] font-semibold">{r.name}</span>
+                    <code className="break-all rounded-md bg-[#FAFAF8] px-2.5 py-2 font-mono text-[12px]">{`[![Incidents remembered](${url})](https://aftershock-mk.vercel.app)`}</code>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
         <div className="flex flex-wrap items-start gap-4">
           <Card className="min-w-0 flex-[1.3_1_480px]">
             <CardHead sub="Active CPU only. Resets on the 1st.">Sandbox usage this month</CardHead>

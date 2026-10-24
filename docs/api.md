@@ -12,6 +12,7 @@ Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) 
 | GET | `/api/v1/incidents/:number/evidence` | Signed evidence bundle for audits ([Audit evidence](evidence.md)) |
 | GET | `/api/v1/runs/:id/evidence` | One time-travel attempt with its full log (`evidence.json`) |
 | GET | `/.well-known/aftershock-jwks.json` | Public keys for verifying evidence (no auth) |
+| GET | `/api/badge/:owner/:repo.svg` | README badge for a public repository (no auth; turn on **Public README badge** in Labs). Private and unknown repositories answer 404 |
 | POST | `/api/mcp` | MCP server for coding agents ([Coding agents](agents.md)) |
 | GET | `/api/v1/memory` | Admitted tests with health and guard counts |
 | GET | `/api/v1/lessons` | `LESSONS.md` for coding agents |

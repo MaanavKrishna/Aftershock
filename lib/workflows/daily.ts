@@ -22,6 +22,12 @@ async function sweepNotifications(): Promise<number> {
   return (await deliverDue({ limit: 500 })).sent;
 }
 
+async function visibility(): Promise<number> {
+  "use step";
+  const { refreshVisibility } = await import("@/lib/github/visibility");
+  return refreshVisibility();
+}
+
 async function purge(day: string): Promise<{ repositories: number; workspaces: number }> {
   "use step";
   const { purgeExpired } = await import("@/lib/data/lifecycle");
@@ -58,6 +64,7 @@ export async function daily(day: string): Promise<{ day: string; nightly: number
     }
   }
   const notified = await sweepNotifications();
+  await visibility().catch(() => 0);
   const kept = await retention(day);
   const purged = await purge(day);
   return { day, nightly: ids.length, failed, retention: kept, notified, reproved, purged };

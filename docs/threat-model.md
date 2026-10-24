@@ -74,7 +74,7 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 | Stolen API token | Hash-only storage, revocation, last-used time, read and write scopes (read-only by default in the form) | Shipped |
 | SSRF via custom model URL or outbound webhook | Public-https check; connect-time DNS check that refuses private, loopback, link-local and metadata answers; no redirects; Slack targets pinned to hooks.slack.com | Shipped (webhooks in milestone 9) |
 | Notification flood or stuck retries | Outbox with claim-once delivery, 5 attempts with back-off, auto-disable after 10 consecutive failures, 30-day retention | Shipped (milestone 9) |
-| Badge or showcase leaks private data | Public repositories only, 404 otherwise; showcase reads only the public sample workspace | Milestones 11 and 14 |
+| Badge or showcase leaks private data | Badge only for repositories GitHub reports as public (unknown counts as private), same 404 for private, unknown and disabled; showcase reads only the public sample workspace | Badge shipped (milestone 11); showcase milestone 14 |
 | Tampered evidence | Ed25519 signatures over RFC 8785 canonical JSON, with a JWKS endpoint that lists rotated keys; the default key is derived from `AUTH_SECRET` with HKDF | Shipped (milestone 11) |
 | Runaway cost from runs | Plan quotas, kill switch, per-source rate limits, metering of every run | Kill switch shipped; metering in milestone 6 |
 | Account deletion leaves data behind | Cascading deletes, snapshot removal, 30-day uninstall purge, audit log | Milestone 5 |
