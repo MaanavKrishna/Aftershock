@@ -58,7 +58,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
   const key = incidentKey(ws.incidentPrefix, inc.number);
   const fail = async (reason: string) => {
     await db.update(s.incidents).set({ status: "awaiting_fix", statusReason: reason, updatedAt: new Date() }).where(eq(s.incidents.id, inc.id));
-    await db.insert(s.activity).values({ workspaceId: inc.workspaceId, incidentId: inc.id, title: `${key} cannot time travel yet`, detail: reason, tone: "neutral" });
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: inc.workspaceId, incidentId: inc.id, title: `${key} cannot time travel yet`, detail: reason, tone: "neutral" });
     return { ok: false as const };
   };
   if (!repo) return fail("Choose the repository this incident happened in.");
@@ -95,7 +95,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
       .update(s.incidents)
       .set({ status: "traveling", statusReason: null, fixSha: resolved.fixSha, parentSha: resolved.parentSha, fixTitle: inc.fixTitle ?? resolved.title, updatedAt: new Date() })
       .where(eq(s.incidents.id, inc.id));
-    await db.insert(s.activity).values({ workspaceId: inc.workspaceId, incidentId: inc.id, title: `${key} time travel started`, detail: `${resolved.parentSha.slice(0, 7)} → ${resolved.fixSha.slice(0, 7)}`, tone: "pending" });
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: inc.workspaceId, incidentId: inc.id, title: `${key} time travel started`, detail: `${resolved.parentSha.slice(0, 7)} → ${resolved.fixSha.slice(0, 7)}`, tone: "pending" });
     return {
       ok: true,
       ctx: {
@@ -227,7 +227,7 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
     ? await db.update(s.memoryTests).set(values).where(eq(s.memoryTests.id, existing.id)).returning()
     : await db.insert(s.memoryTests).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, ...values }).returning();
   await db.update(s.incidents).set({ status: "proven", statusReason: null, watchedFiles: watched.length ? watched : ctx.changedFiles, updatedAt: new Date() }).where(eq(s.incidents.id, ctx.incidentId));
-  await db.insert(s.activity).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `${ctx.key} proven · ${RUNS_PER_COMMIT}/${RUNS_PER_COMMIT} fail, ${RUNS_PER_COMMIT}/${RUNS_PER_COMMIT} pass`, detail: draft.path, tone: "pass" });
+  await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `${ctx.key} proven · ${RUNS_PER_COMMIT}/${RUNS_PER_COMMIT} fail, ${RUNS_PER_COMMIT}/${RUNS_PER_COMMIT} pass`, detail: draft.path, tone: "pass", event: "incident.proven" as const });
   await patchStep(runId, "admit", { state: "ok", detail: "Stored with evidence and both commit SHAs" });
   return mem.id;
 }
@@ -242,7 +242,7 @@ async function proposeTest(runId: string, memoryTestId: string, ctx: TravelConte
   const pr = await (await deps()).openBotPr({ workspaceId: ctx.workspaceId, repoId: ctx.repoId, incidentId: ctx.incidentId, key: ctx.key, title: ctx.incident.title, path: draft.path, code: draft.code, parentSha: ctx.parentSha, fixSha: ctx.fixSha });
   if (pr) {
     await db.update(s.memoryTests).set({ botPr: pr, botPrState: "open" }).where(eq(s.memoryTests.id, memoryTestId));
-    await db.insert(s.activity).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `Bot opened PR #${pr} with the test`, detail: draft.path, tone: "neutral" });
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `Bot opened PR #${pr} with the test`, detail: draft.path, tone: "neutral" });
   }
   await patchStep(runId, "pr", { state: pr ? "ok" : "skip", detail: pr ? `PR #${pr} adds the test file` : "GitHub App not installed — download the test from this page" });
 }
@@ -261,7 +261,7 @@ async function markUnproven(ctx: TravelContext, reason: string): Promise<void> {
   const s = await import("@/lib/db/schema");
   const db = await getDb();
   await db.update(s.incidents).set({ status: "unproven", statusReason: reason, updatedAt: new Date() }).where(eq(s.incidents.id, ctx.incidentId));
-  await db.insert(s.activity).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `${ctx.key} unproven`, detail: reason, tone: "neutral" });
+  await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, title: `${ctx.key} unproven`, detail: reason, tone: "neutral", event: "incident.unproven" as const });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -277,7 +277,7 @@ async function abandonTravel(incidentId: string, reason: string): Promise<void> 
   const db = await getDb();
   const msg = `Time travel could not finish: ${reason.slice(0, 300)}`;
   const [inc] = await db.update(s.incidents).set({ status: "unproven", statusReason: msg, updatedAt: new Date() }).where(and(eq(s.incidents.id, incidentId), eq(s.incidents.status, "traveling"))).returning();
-  if (inc) await db.insert(s.activity).values({ workspaceId: inc.workspaceId, incidentId, title: "Time travel stopped", detail: msg, tone: "fail" });
+  if (inc) await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: inc.workspaceId, incidentId, title: "Time travel stopped", detail: msg, tone: "fail", event: "incident.unproven" as const });
   (await import("@/lib/obs/log")).log.error("time travel abandoned", { incidentId, reason });
 }
 

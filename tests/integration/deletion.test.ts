@@ -82,3 +82,17 @@ test("run logs and webhook deliveries older than 30 days are trimmed", async () 
   expect((await db.select().from(s.timeTravelRuns).where(eq(s.timeTravelRuns.id, run.id)))[0].log).toBe("");
   expect((await db.select().from(s.deliveries).where(eq(s.deliveries.workspaceId, w.ws.id))).length).toBe(0);
 });
+
+test("finished notifications older than 30 days are trimmed; pending ones stay", async () => {
+  const w = await ledgerWorld();
+  const db = await getDb();
+  const old = new Date(Date.now() - 40 * DAY);
+  const [t] = await db.insert(s.notificationTargets).values({ workspaceId: w.ws.id, kind: "webhook", name: "ops", urlCiphertext: "x" }).returning();
+  await db.insert(s.notifications).values([
+    { workspaceId: w.ws.id, targetId: t.id, event: "pr.blocked", payload: {}, status: "sent", createdAt: old },
+    { workspaceId: w.ws.id, targetId: t.id, event: "pr.blocked", payload: {}, status: "pending", createdAt: old },
+  ]);
+  const out = await trimRetention(new Date());
+  expect(out.notifications).toBeGreaterThanOrEqual(1);
+  expect((await db.select().from(s.notifications).where(eq(s.notifications.workspaceId, w.ws.id))).map((n) => n.status)).toEqual(["pending"]);
+});

@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
+import { recordActivity } from "@/lib/notify/outbox";
 import { decrypt } from "@/lib/crypto";
 import { incidentKey } from "@/lib/domain/ids";
 import { SOURCES } from "./sources";
@@ -45,6 +46,6 @@ export async function intakeAlert(ws: typeof s.workspaces.$inferSelect, source: 
     .insert(s.incidents)
     .values({ workspaceId: ws.id, repoId: repo?.id ?? null, number, title: a.title.slice(0, 200), observed: a.observed.slice(0, 4000), source, sourceRef: a.link ?? null, fingerprint: a.fingerprint, status: "awaiting_fix", statusReason: `Opened from ${label}. Time travel starts when a pull request mentioning ${incidentKey(ws.incidentPrefix, number)} merges.` })
     .returning();
-  await db.insert(s.activity).values({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, number)} opened from ${label}`, detail: "Awaiting fix", tone: "neutral" });
+  await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, number)} opened from ${label}`, detail: "Awaiting fix", tone: "neutral", event: "incident.opened" });
   return { created: true, key: incidentKey(ws.incidentPrefix, number) };
 }

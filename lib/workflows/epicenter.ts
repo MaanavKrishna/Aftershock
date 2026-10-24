@@ -64,12 +64,11 @@ async function save(p: Plan, result: import("@/lib/domain/epicenter").EpicenterR
   const db = await getDb();
   const epicenter: Epicenter = "sha" in result ? { sha: result.sha.slice(0, 7), prNumber: prFromSubject(result.subject), title: result.subject.slice(0, 160), testedCommits: result.testedCommits, ...(result.arrivedWithCode ? { arrivedWithCode: true } : {}) } : result;
   await db.update(s.incidents).set({ epicenter }).where(eq(s.incidents.id, p.incidentId));
-  await db.insert(s.activity).values({
+  await (await import("@/lib/notify/outbox")).recordActivity({
     workspaceId: p.workspaceId, incidentId: p.incidentId,
     title: "sha" in epicenter ? `Epicenter found for ${p.key}` : `Epicenter not found for ${p.key}`,
     detail: "sha" in epicenter ? `Introduced in ${epicenter.sha}${epicenter.prNumber ? ` · PR #${epicenter.prNumber}` : ""}${epicenter.arrivedWithCode ? " · arrived with the code it tests" : ""}` : epicenter.unavailable,
-    tone: "neutral",
-  });
+    tone: "neutral", event: "sha" in epicenter ? ("epicenter.found" as const) : undefined });
 }
 
 /** Bisects history with a proven test to find the commit (and PR) that introduced the bug. */

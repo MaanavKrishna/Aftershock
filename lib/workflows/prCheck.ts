@@ -152,7 +152,7 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
   }
   if (verdict === "recur") {
     const first = results.find((_, i) => rows[i].verdict === "recur")!;
-    await db.insert(s.activity).values({ workspaceId: check.workspaceId, incidentId: first.selected.incidentId, title: `PR #${check.prNumber} blocked: ${first.selected.key} would recur`, detail: check.title, tone: "fail" });
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: check.workspaceId, incidentId: first.selected.incidentId, title: `PR #${check.prNumber} blocked: ${first.selected.key} would recur`, detail: check.title, tone: "fail", event: "pr.blocked" as const });
   }
 }
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { authorize, currentScope } from "@/lib/auth/scope";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
+import { recordActivity } from "@/lib/notify/outbox";
 import { incidentKey } from "@/lib/domain/ids";
 import { listImportableIssues } from "@/lib/github/issues";
 import { encrypt, hashToken, newToken } from "@/lib/crypto";
@@ -67,7 +68,7 @@ export async function createIncident(_prev: FormState, form: FormData): Promise<
     statusReason: fix.sha || fix.pr ? null : "No fix linked yet. Link the fix commit or PR to start time travel.",
   });
   const db = await getDb();
-  await db.insert(s.activity).values({ workspaceId: session.workspaceId, incidentId: row.id, title: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} recorded`, detail: d.source === "postmortem" ? "From a postmortem" : "From the form", tone: "neutral" });
+  await recordActivity({ workspaceId: session.workspaceId, incidentId: row.id, title: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} recorded`, detail: d.source === "postmortem" ? "From a postmortem" : "From the form", tone: "neutral", event: "incident.opened" });
   if (d.intent === "travel" && (fix.sha || fix.pr)) {
     const { startTimeTravel } = await import("@/lib/workflows/start");
     await startTimeTravel(row.id);
@@ -90,7 +91,7 @@ export async function importIssue(form: FormData): Promise<void> {
     statusReason: hasFix ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
   });
   const db = await getDb();
-  await db.insert(s.activity).values({ workspaceId: session.workspaceId, incidentId: row.id, title: `Imported from issue #${issue.number}`, detail: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} · ${issue.repo}`, tone: "pass" });
+  await recordActivity({ workspaceId: session.workspaceId, incidentId: row.id, title: `Imported from issue #${issue.number}`, detail: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} · ${issue.repo}`, tone: "pass", event: "incident.opened" });
   if (hasFix && form.get("intent") === "travel") {
     const { startTimeTravel } = await import("@/lib/workflows/start");
     await startTimeTravel(row.id);
@@ -122,7 +123,7 @@ export async function linkFix(form: FormData): Promise<void> {
   if (!fix || (!fix.sha && !fix.pr)) redirect(`/incidents/${inc.number}?error=fix`);
   const db = await getDb();
   await db.update(s.incidents).set({ fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, parentSha: null, statusReason: null, updatedAt: new Date() }).where(and(eq(s.incidents.id, inc.id), eq(s.incidents.workspaceId, session.workspaceId)));
-  await db.insert(s.activity).values({ workspaceId: session.workspaceId, incidentId: inc.id, title: "Fix linked", detail: fix.sha ? fix.sha : `PR #${fix.pr}`, tone: "pass" });
+  await recordActivity({ workspaceId: session.workspaceId, incidentId: inc.id, title: "Fix linked", detail: fix.sha ? fix.sha : `PR #${fix.pr}`, tone: "pass" });
   const { startTimeTravel } = await import("@/lib/workflows/start");
   await startTimeTravel(inc.id);
   redirect(`/incidents/${inc.number}/travel`);
@@ -190,7 +191,7 @@ export async function overrideCheck(_prev: FormState, form: FormData): Promise<F
   if (!check) return { error: "Check not found." };
   await db.insert(s.overrides).values({ checkId: check.id, userId: session.userId, reason: reason.slice(0, 2000) });
   await db.update(s.prChecks).set({ overridden: true }).where(eq(s.prChecks.id, check.id));
-  await db.insert(s.activity).values({ workspaceId: session.workspaceId, title: `PR #${check.prNumber} check overridden`, detail: reason.slice(0, 200), tone: "neutral" });
+  await recordActivity({ workspaceId: session.workspaceId, title: `PR #${check.prNumber} check overridden`, detail: reason.slice(0, 200), tone: "neutral", event: "check.overridden" });
   revalidatePath(`/pulls/${check.prNumber}`);
   return { ok: "Override recorded." };
 }
@@ -380,7 +381,7 @@ export async function releaseQuarantine(form: FormData): Promise<void> {
     .where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)))
     .returning();
   if (t) {
-    await db.insert(s.activity).values({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test released from quarantine", detail: "Released by an admin", tone: "pass" });
+    await recordActivity({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test released from quarantine", detail: "Released by an admin", tone: "pass" });
     const { audit } = await import("@/lib/data/lifecycle");
     await audit(session.workspaceId, session.userId, "test.released", t.path);
   }

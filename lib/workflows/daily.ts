@@ -8,10 +8,17 @@ async function memoryTestIds(): Promise<string[]> {
   return (await db.select({ id: s.memoryTests.id }).from(s.memoryTests)).map((r) => r.id);
 }
 
-async function retention(day: string): Promise<{ logs: number; deliveries: number }> {
+async function retention(day: string): Promise<{ logs: number; deliveries: number; notifications: number }> {
   "use step";
   const { trimRetention } = await import("@/lib/data/lifecycle");
   return trimRetention(new Date(`${day}T00:00:00Z`));
+}
+
+/** Safety net for notifications whose delivery workflow died: send anything still due. */
+async function sweepNotifications(): Promise<number> {
+  "use step";
+  const { deliverDue } = await import("@/lib/notify/outbox");
+  return (await deliverDue({ limit: 500 })).sent;
 }
 
 async function purge(day: string): Promise<{ repositories: number; workspaces: number }> {
@@ -26,7 +33,7 @@ async function purge(day: string): Promise<{ repositories: number; workspaces: n
  * The one daily job (Vercel Hobby allows a daily cron). Each re-check is its own durable step, so
  * the whole run is never bound by a single function's time limit, and one failure skips only itself.
  */
-export async function daily(day: string): Promise<{ day: string; nightly: number; failed: number; retention: { logs: number; deliveries: number }; purged: { repositories: number; workspaces: number } }> {
+export async function daily(day: string): Promise<{ day: string; nightly: number; failed: number; retention: { logs: number; deliveries: number; notifications: number }; notified: number; purged: { repositories: number; workspaces: number } }> {
   "use workflow";
   const ids = await memoryTestIds();
   let failed = 0;
@@ -37,7 +44,8 @@ export async function daily(day: string): Promise<{ day: string; nightly: number
       failed++;
     }
   }
+  const notified = await sweepNotifications();
   const kept = await retention(day);
   const purged = await purge(day);
-  return { day, nightly: ids.length, failed, retention: kept, purged };
+  return { day, nightly: ids.length, failed, retention: kept, notified, purged };
 }

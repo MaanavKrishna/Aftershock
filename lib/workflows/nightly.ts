@@ -27,15 +27,14 @@ export async function runNightly(memoryTestId: string): Promise<void> {
     .set({ nights, health, quarantined: q.quarantined, quarantineReason: q.reason, quarantinedAt: q.quarantined ? (t.quarantinedAt ?? new Date()) : null })
     .where(eq(s.memoryTests.id, t.id));
   if (q.quarantined !== t.quarantined) {
-    await db.insert(s.activity).values({
+    await (await import("@/lib/notify/outbox")).recordActivity({
       workspaceId: t.workspaceId, incidentId: t.incidentId,
       title: q.quarantined ? "Memory test quarantined" : "Memory test released from quarantine",
       detail: q.quarantined ? `${q.reason}. It no longer blocks pull requests until it is stable.` : "Seven green nights in a row.",
-      tone: q.quarantined ? "neutral" : "pass",
-    });
+      tone: q.quarantined ? "neutral" : "pass", event: q.quarantined ? ("test.quarantined" as const) : undefined });
   }
   if (health === "failing" && t.health !== "failing") {
-    await db.insert(s.activity).values({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test failing on main", detail: `${t.path} at ${head.slice(0, 7)}`, tone: "fail" });
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test failing on main", detail: `${t.path} at ${head.slice(0, 7)}`, tone: "fail", event: "nightly.failing" as const });
   }
 }
 

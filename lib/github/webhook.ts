@@ -1,6 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
+import { recordActivity } from "@/lib/notify/outbox";
 import { incidentKey, parseIncidentRefs } from "@/lib/domain/ids";
 import { github } from "./api";
 import { isBot } from "@/lib/billing/plans";
@@ -107,7 +108,7 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
         statusReason: fix.sha || fix.pr ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
       })
       .returning();
-    await db.insert(s.activity).values({ workspaceId: ws.id, incidentId: inc.id, title: `Imported from issue #${p.issue.number}`, detail: `${incidentKey(ws.incidentPrefix, inc.number)} · ${repo.name}`, tone: "pass" });
+    await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `Imported from issue #${p.issue.number}`, detail: `${incidentKey(ws.incidentPrefix, inc.number)} · ${repo.name}`, tone: "pass", event: "incident.opened" });
     await logDelivery(ws.id, "issues.closed", `#${p.issue.number} labelled ${label}`);
     if (fix.sha || fix.pr) await startTimeTravel(inc.id);
     return { note: "incident imported" };
@@ -127,7 +128,7 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
         const waiting = await db.select().from(s.incidents).where(and(eq(s.incidents.workspaceId, ws.id), inArray(s.incidents.number, refs), inArray(s.incidents.status, ["awaiting_fix", "unproven"])));
         for (const inc of waiting) {
           await db.update(s.incidents).set({ repoId: inc.repoId ?? repo.id, fixSha: pr.merge_commit_sha, fixPr: pr.number, fixTitle: String(pr.title).slice(0, 200), parentSha: null, updatedAt: new Date() }).where(eq(s.incidents.id, inc.id));
-          await db.insert(s.activity).values({ workspaceId: ws.id, incidentId: inc.id, title: "Fix merged", detail: `PR #${pr.number} · ${String(pr.title).slice(0, 120)}`, tone: "pass" });
+          await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: "Fix merged", detail: `PR #${pr.number} · ${String(pr.title).slice(0, 120)}`, tone: "pass" });
           await startTimeTravel(inc.id);
         }
       }

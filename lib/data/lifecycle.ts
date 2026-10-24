@@ -82,11 +82,12 @@ export async function purgeExpired(now: Date, del: DeleteSnapshot): Promise<{ re
   return { repositories: repos.length, workspaces: spaces.length };
 }
 
-/** Run logs and webhook deliveries are kept for the retention period; verdicts and evidence stay. */
-export async function trimRetention(now: Date): Promise<{ logs: number; deliveries: number }> {
+/** Run logs, webhook deliveries and finished notifications are kept for the retention period; verdicts and evidence stay. */
+export async function trimRetention(now: Date): Promise<{ logs: number; deliveries: number; notifications: number }> {
   const db = await getDb();
   const cutoff = new Date(now.getTime() - RETENTION_DAYS * DAY);
   const logs = await db.update(s.timeTravelRuns).set({ log: "" }).where(and(lt(s.timeTravelRuns.createdAt, cutoff), isNotNull(s.timeTravelRuns.finishedAt))).returning({ id: s.timeTravelRuns.id });
   const deliveries = await db.delete(s.deliveries).where(lt(s.deliveries.createdAt, cutoff)).returning({ id: s.deliveries.id });
-  return { logs: logs.length, deliveries: deliveries.length };
+  const notifications = await db.delete(s.notifications).where(and(lt(s.notifications.createdAt, cutoff), inArray(s.notifications.status, ["sent", "failed"]))).returning({ id: s.notifications.id });
+  return { logs: logs.length, deliveries: deliveries.length, notifications: notifications.length };
 }
