@@ -22,7 +22,8 @@ export function dbCacheStore(): CacheStore {
       const { sourceFor } = await import("@/lib/git/source");
       const src = await sourceFor(repo, spec.token);
       const out: Record<string, string | null> = {};
-      for (const f of frameworkDef(spec.framework).lockfiles) out[f] = await src.readFileAt(spec.sha, f, 2_000_000);
+      const dir = spec.workdir ? `${spec.workdir.replace(/\/+$/, "")}/` : "";
+      for (const f of frameworkDef(spec.framework).lockfiles) out[f] = await src.readFileAt(spec.sha, `${dir}${f}`, 2_000_000);
       return out;
     },
     async find(repoId, key) {

@@ -91,3 +91,15 @@ test("a cache hit restores, fetches the exact commit, skips install, and cuts th
   expect(events.indexOf("network:deny-all")).toBeGreaterThan(fetchAt);
   expect(events.findIndex((e) => e.includes("python -m pytest"))).toBeGreaterThan(events.indexOf("network:deny-all"));
 });
+
+test("in a monorepo package, commands run in the package and the test path is relative to it", async () => {
+  const { SandboxRunner } = await import("@/lib/runner/sandbox");
+  await new SandboxRunner().run({ ...spec, workdir: "services/api", testPath: "services/api/tests/aftershock/test_x.py" });
+  const after = commands.slice(1);
+  expect(after.filter((c) => c.script.startsWith("git ")).every((c) => c.cwd === "/vercel/aftershock-playground")).toBe(true);
+  expect(after.filter((c) => !c.script.startsWith("git ")).every((c) => c.cwd === "/vercel/aftershock-playground/services/api")).toBe(true);
+  expect(written[0]).toBe("/vercel/aftershock-playground/services/api/tests/aftershock/test_x.py");
+  const testCmd = commands.find((c) => c.script.includes("python -m pytest"))!.script;
+  expect(testCmd).toContain("'tests/aftershock/test_x.py'");
+  expect(read[0]).toBe("/vercel/aftershock-playground/services/api/.aftershock-out/junit-0.xml");
+});

@@ -120,7 +120,11 @@ export class DockerRunner implements Runner {
 
       const image = imageFor(spec.framework);
       const user = process.platform === "linux" && typeof process.getuid === "function" ? ["--user", `${process.getuid()}:${process.getgid!()}`] : [];
-      const common = ["run", "--rm", ...user, "-e", "HOME=/tmp", "-e", "CI=1", "-v", `${work}:/w`, "-w", "/w", "--memory", "2g", "--cpus", "2"];
+      const workdir = spec.workdir ? safeTestPath(spec.workdir) : "";
+      const pkg = workdir ? path.join(work, workdir) : work;
+      const relTest = workdir ? path.posix.relative(workdir, testPath) : testPath;
+      fs.mkdirSync(path.join(pkg, ".aftershock-out"), { recursive: true });
+      const common = ["run", "--rm", ...user, "-e", "HOME=/tmp", "-e", "CI=1", "-v", `${work}:/w`, "-w", workdir ? `/w/${workdir}` : "/w", "--memory", "2g", "--cpus", "2"];
 
       const install = await exec("docker", [...common, image, "sh", "-c", setupFor(spec.framework, spec.install)], { timeoutMs: 15 * 60_000 });
       logs.push(`$ ${spec.install}\n${install.out.slice(-4000)}`);
@@ -133,8 +137,9 @@ export class DockerRunner implements Runner {
       const target = path.join(work, testPath);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, spec.testCode);
-      for (const o of [...(spec.overlay ?? []), ...(frameworkDef(spec.framework).supportFiles ?? [])]) {
-        const file = path.join(work, safeTestPath(o.path));
+      const files = [...(spec.overlay ?? []).map((o) => ({ ...o, base: work })), ...(frameworkDef(spec.framework).supportFiles ?? []).map((o) => ({ ...o, base: pkg }))];
+      for (const o of files) {
+        const file = path.join(o.base, safeTestPath(o.path));
         fs.mkdirSync(path.dirname(file), { recursive: true });
         fs.writeFileSync(file, o.content);
       }
@@ -143,7 +148,7 @@ export class DockerRunner implements Runner {
       for (let i = 0; i < spec.runs; i++) {
         const junit = `.aftershock-out/junit-${i}.xml`;
         const name = `aftershock-${randomUUID().slice(0, 12)}`;
-        const r = await exec("docker", [...common, "--name", name, "--network", "none", image, "sh", "-c", commandFor(spec.framework, testPath, `/w/${junit}`)], {
+        const r = await exec("docker", [...common, "--name", name, "--network", "none", image, "sh", "-c", commandFor(spec.framework, relTest, workdir ? `/w/${workdir}/${junit}` : `/w/${junit}`)], {
           timeoutMs: spec.timeoutMs,
           onTimeout: () => void exec("docker", ["rm", "-f", name], { timeoutMs: 30_000 }),
         });
@@ -153,7 +158,7 @@ export class DockerRunner implements Runner {
           results.push({ outcome: "error", durationMs: r.ms, message: `Test exceeded the ${Math.round(spec.timeoutMs / 1000)}s time limit` });
           continue;
         }
-        const file = path.join(work, junit);
+        const file = path.join(pkg, junit);
         results.push(parseJUnit(fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "", r.ms));
       }
       return { installOk: true, results, log: redactToken(logs.join("\n\n"), spec.token), cpuMs: testMs, wallMs: Date.now() - started };

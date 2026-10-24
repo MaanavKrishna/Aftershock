@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { DockerRunner } from "@/lib/runner/docker";
-import { dockerAvailable, goRepo, GO_TEST, mavenRepo, JAVA_TEST, rubyRepo, RUBY_SPEC } from "../support/fixtureRepo";
+import { dockerAvailable, goRepo, GO_TEST, mavenRepo, JAVA_TEST, rubyRepo, RUBY_SPEC, monoRepo } from "../support/fixtureRepo";
 import type { RunSpec } from "@/lib/runner/types";
 
 const prove = async (spec: Omit<RunSpec, "sha" | "runs" | "timeoutMs">, parent: string, fix: string) => {
@@ -43,4 +43,10 @@ describe.skipIf(!dockerAvailable())("languages, proven in Docker", () => {
     const { codeAbsent } = await import("@/lib/runner/junit");
     expect(codeAbsent(r.results[0]), JSON.stringify(r.results)).toBe(true);
   }, 900_000);
+
+  test("monorepo: a Go package in a subfolder is installed and proven inside that folder", async () => {
+    const repo = monoRepo();
+    const r = await prove({ repoUrl: repo.dir, framework: "go", install: "go mod download", workdir: "services/api", testPath: "services/api/cart/aftershock_negative_total_test.go", testCode: GO_TEST }, repo.parent, repo.fix);
+    expect(r, r.log).toMatchObject({ before: ["failed"], after: ["passed"] });
+  }, 600_000);
 });

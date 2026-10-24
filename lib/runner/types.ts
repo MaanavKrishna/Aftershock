@@ -18,6 +18,8 @@ export type RunSpec = {
   timeoutMs: number;
   /** Files written over the checkout before the test runs (a suggested fix). */
   overlay?: { path: string; content: string }[];
+  /** Monorepo package folder (repository-relative) where install and tests run; testPath stays repository-relative. */
+  workdir?: string;
   /** Install caching: who owns the run, and whether its commit is trusted (default-branch history). */
   cache?: { workspaceId: string; repoId: string; trusted: boolean };
   /** Set by the cache: start from this snapshot instead of installing. */

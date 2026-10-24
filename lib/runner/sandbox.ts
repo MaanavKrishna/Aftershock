@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Sandbox } from "@vercel/sandbox";
 import type { RunResult } from "@/lib/domain/verdict";
 import { frameworkDef } from "./frameworks";
@@ -55,20 +56,26 @@ export class SandboxRunner implements Runner {
         return dir;
       };
       let root = await locate();
-      const sh = (script: string, timeoutMs: number) => sandbox.runCommand({ cmd: "sh", args: ["-c", script], cwd: root, timeoutMs: left(timeoutMs) });
+      const workdir = spec.workdir ? safeTestPath(spec.workdir) : "";
+      const pkgDir = () => (workdir ? `${root}/${workdir}` : root);
+      // Git operations run at the repository root; install and tests run in the package.
+      const git = (script: string, timeoutMs: number) => sandbox.runCommand({ cmd: "sh", args: ["-c", script], cwd: root, timeoutMs: left(timeoutMs) });
+      const sh = (script: string, timeoutMs: number) => sandbox.runCommand({ cmd: "sh", args: ["-c", script], cwd: pkgDir(), timeoutMs: left(timeoutMs) });
       const at = (p: string) => `${root}/${p}`;
+      const inPkg = (p: string) => `${pkgDir()}/${p}`;
+      const relTest = workdir ? path.posix.relative(workdir, testPath) : testPath;
 
       if (spec.restoreSnapshotId) {
         // Cached environment: bring the checkout to this exact commit; dependencies are already installed.
-        const fetched = await sh(`git fetch -q --depth 1 ${shellQuote(authedUrl(spec.repoUrl, spec.token))} ${shellQuote(spec.sha)} && git checkout -q -f FETCH_HEAD`, 120_000);
-        await sh(SCRUB_GIT_CREDENTIALS, 30_000);
+        const fetched = await git(`git fetch -q --depth 1 ${shellQuote(authedUrl(spec.repoUrl, spec.token))} ${shellQuote(spec.sha)} && git checkout -q -f FETCH_HEAD`, 120_000);
+        await git(SCRUB_GIT_CREDENTIALS, 30_000);
         if (fetched.exitCode !== 0) {
           await sandbox.stop().catch(() => undefined);
           return this.run({ ...spec, restoreSnapshotId: undefined, saveSnapshot: false });
         }
         logs.push(`$ restored dependencies from cache`);
       } else {
-        await sh(SCRUB_GIT_CREDENTIALS, 30_000);
+        await git(SCRUB_GIT_CREDENTIALS, 30_000);
         const install = await sh(frameworkDef(spec.framework).setup(spec.install), 15 * 60_000);
         logs.push(`$ ${spec.install}\n${(await install.output("both")).slice(-4000)}`);
         if (install.exitCode !== 0) {
@@ -83,7 +90,7 @@ export class SandboxRunner implements Runner {
         }
       }
       await sandbox.update({ networkPolicy: "deny-all" });
-      await sandbox.writeFiles([{ path: at(testPath), content: spec.testCode }, ...[...(spec.overlay ?? []), ...(frameworkDef(spec.framework).supportFiles ?? [])].map((o) => ({ path: at(safeTestPath(o.path)), content: o.content }))]);
+      await sandbox.writeFiles([{ path: at(testPath), content: spec.testCode }, ...(spec.overlay ?? []).map((o) => ({ path: at(safeTestPath(o.path)), content: o.content })), ...(frameworkDef(spec.framework).supportFiles ?? []).map((o) => ({ path: inPkg(safeTestPath(o.path)), content: o.content }))]);
       const results: RunResult[] = [];
       for (let i = 0; i < spec.runs; i++) {
         const junit = `.aftershock-out/junit-${i}.xml`;
@@ -92,7 +99,7 @@ export class SandboxRunner implements Runner {
         let out = "";
         let timedOut = false;
         try {
-          const r = await sh(`mkdir -p .aftershock-out && ${frameworkDef(spec.framework).command(testPath, junit)}`, spec.timeoutMs);
+          const r = await sh(`mkdir -p .aftershock-out && ${frameworkDef(spec.framework).command(relTest, junit)}`, spec.timeoutMs);
           exit = r.exitCode;
           out = await r.output("both");
         } catch {
@@ -104,7 +111,7 @@ export class SandboxRunner implements Runner {
           results.push({ outcome: "error", durationMs: ms, message: `Test exceeded the ${Math.round(spec.timeoutMs / 1000)}s time limit` });
           continue;
         }
-        const xml = await sandbox.readFileToBuffer({ path: at(junit) });
+        const xml = await sandbox.readFileToBuffer({ path: inPkg(junit) });
         results.push(parseJUnit(redactToken(xml ? xml.toString("utf8") : "", spec.token), ms));
       }
       const report = { snapshot, installOk: true, results, log: redactToken(logs.join("\n\n"), spec.token), cpuMs: sandbox.activeCpuUsageMs ?? Date.now() - started, wallMs: Date.now() - started };

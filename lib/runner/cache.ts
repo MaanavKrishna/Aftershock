@@ -25,7 +25,7 @@ export type CacheStore = {
 export async function cachedRun(runner: Runner, spec: RunSpec, store: CacheStore): Promise<RunReport> {
   if (runner.kind !== "sandbox" || !spec.cache || !(await store.enabled(spec.cache.workspaceId))) return runner.run(spec);
   const { frameworkDef } = await import("./frameworks");
-  const key = cacheKey({ framework: spec.framework, image: frameworkDef(spec.framework).sandboxImage, install: spec.install, workdir: "", lockfiles: await store.lockfiles(spec) });
+  const key = cacheKey({ framework: spec.framework, image: frameworkDef(spec.framework).sandboxImage, install: spec.install, workdir: spec.workdir ?? "", lockfiles: await store.lockfiles(spec) });
   const hit = await store.find(spec.cache.repoId, key);
   const report = await runner.run({ ...spec, ...(hit ? { restoreSnapshotId: hit } : { saveSnapshot: spec.cache.trusted }) });
   if (!hit && report.snapshot) {

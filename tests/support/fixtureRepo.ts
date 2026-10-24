@@ -157,3 +157,10 @@ export const RUBY_SPEC = `RSpec.describe Cart do
   end
 end
 `;
+
+/** A monorepo: a Go service under services/api next to unrelated files at the root. */
+export const monoRepo = () =>
+  makeRepo(
+    { "README.md": "# shop\n", "package.json": '{"name":"web"}\n', "services/api/go.mod": "module example.com/api\n\ngo 1.22\n", "services/api/cart/cart.go": GO_CART(false) },
+    { "services/api/cart/cart.go": GO_CART(true) },
+  );
