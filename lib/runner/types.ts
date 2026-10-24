@@ -18,9 +18,15 @@ export type RunSpec = {
   timeoutMs: number;
   /** Files written over the checkout before the test runs (a suggested fix). */
   overlay?: { path: string; content: string }[];
+  /** Install caching: who owns the run, and whether its commit is trusted (default-branch history). */
+  cache?: { workspaceId: string; repoId: string; trusted: boolean };
+  /** Set by the cache: start from this snapshot instead of installing. */
+  restoreSnapshotId?: string;
+  /** Set by the cache: snapshot the installed environment for later runs. */
+  saveSnapshot?: boolean;
 };
 
-export type RunReport = { results: RunResult[]; installOk: boolean; log: string; cpuMs: number; wallMs: number };
+export type RunReport = { results: RunResult[]; installOk: boolean; log: string; cpuMs: number; wallMs: number; snapshot?: { id: string; sizeBytes: number } };
 
 export interface Runner {
   kind: "docker" | "sandbox";

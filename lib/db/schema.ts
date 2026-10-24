@@ -12,7 +12,7 @@ export const workspaces = pgTable("workspaces", {
   plan: text("plan").notNull().default("free"),
   incidentPrefix: text("incident_prefix").notNull().default("INC"),
   installationId: bigint("installation_id", { mode: "number" }),
-  settings: jsonb("settings").$type<{ autoImportIssues?: boolean; autoTravelOnMerge?: boolean; issueLabel?: string }>().notNull().default({}),
+  settings: jsonb("settings").$type<{ autoImportIssues?: boolean; autoTravelOnMerge?: boolean; issueLabel?: string; flags?: Partial<Record<string, boolean>> }>().notNull().default({}),
   createdAt: created(),
 });
 
@@ -258,3 +258,19 @@ export type TimeTravelRunRow = typeof timeTravelRuns.$inferSelect;
 export type RepositoryRow = typeof repositories.$inferSelect;
 export type PrCheckRow = typeof prChecks.$inferSelect;
 export type MemoryTestRow = typeof memoryTests.$inferSelect;
+
+/** Installed-dependency snapshots for trusted commits, at most a few per repository. */
+export const envSnapshots = pgTable(
+  "env_snapshots",
+  {
+    id: id(),
+    workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    repoId: text("repo_id").notNull().references(() => repositories.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    snapshotId: text("snapshot_id").notNull(),
+    sizeBytes: bigint("size_bytes", { mode: "number" }).notNull().default(0),
+    createdAt: created(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("env_snapshots_repo_key").on(t.repoId, t.key)],
+);

@@ -29,6 +29,8 @@ export type Deps = {
   tokenFor: (repo: { workspaceId: string; fullName: string }) => Promise<string | undefined>;
   /** Base back-off between transient model failures. */
   retryDelayMs: number;
+  /** Install cache storage (tests swap in memory). */
+  cacheStore?: import("@/lib/runner/cache").CacheStore;
 };
 
 let override: Partial<Deps> = {};
@@ -61,7 +63,10 @@ export async function deps(): Promise<Deps> {
   const raw = runsDisabled() ? pausedRunner : override.runner ? override.runner() : await defaultRunner();
   const { runSafely } = await import("@/lib/runner/safeRun");
   // Every caller gets results, never an exception, when a runner cannot start.
-  const runner: Runner = { kind: raw.kind, run: (spec) => runSafely(raw, spec) };
+  const { cachedRun } = await import("@/lib/runner/cache");
+  const store = override.cacheStore ?? (await import("@/lib/runner/cacheStore")).dbCacheStore();
+  const cached: Runner = { kind: raw.kind, run: (spec) => cachedRun(raw, spec, store) };
+  const runner: Runner = { kind: raw.kind, run: (spec) => runSafely(cached, spec) };
   const drafter = override.drafter ? override.drafter() : (await import("@/lib/model/draft")).modelDrafter();
   return {
     runner: () => runner,

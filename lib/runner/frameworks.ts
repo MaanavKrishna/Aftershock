@@ -34,6 +34,8 @@ export type FrameworkDef = {
   draftHint(testDir: string): string;
   /** Errors meaning "the code under test does not exist at this commit". */
   missingCode: RegExp;
+  /** Files whose contents decide the installed dependencies (the install cache key). */
+  lockfiles: string[];
 };
 
 const under = (path: string, testDir: string) => {
@@ -59,6 +61,7 @@ const pytest: FrameworkDef = {
   checkDraftPath: (p, dir) => under(p, dir) ?? (/^(test_\w+|\w+_test)\.py$/.test(p.split("/").pop()!) ? null : "pytest drafts must be test_*.py files"),
   draftHint: (dir) => `${dir}/test_<name>.py`,
   missingCode: /collection failure|ImportError|ModuleNotFoundError|NameError|has no attribute/i,
+  lockfiles: ["requirements.txt", "requirements-dev.txt", "pyproject.toml", "poetry.lock", "uv.lock", "Pipfile.lock", "setup.py", "setup.cfg"],
 };
 
 const js = (id: "vitest" | "jest"): FrameworkDef => ({
@@ -83,6 +86,7 @@ const js = (id: "vitest" | "jest"): FrameworkDef => ({
   checkDraftPath: (p, dir) => under(p, dir) ?? (/\.(test|spec)\.[cm]?[jt]sx?$/.test(p) ? null : `${id} drafts must be *.test.ts or *.test.js files`),
   draftHint: (dir) => `${dir}/<name>.test.ts`,
   missingCode: /failed to load|Cannot find module|is not a function|is not exported|does not provide an export|is not defined/i,
+  lockfiles: ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb", ".npmrc"],
 });
 
 const DEFS: Record<Framework, FrameworkDef> = { pytest, vitest: js("vitest"), jest: js("jest") };

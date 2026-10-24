@@ -79,7 +79,7 @@ async function runSelected(p: Extract<Plan, { ok: true }>, t: Selected): Promise
   const { deps } = await import("@/lib/timetravel/deps");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
-  const report = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.testedSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: PR_RUNS, timeoutMs: 120_000 });
+  const report = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.testedSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: PR_RUNS, timeoutMs: 120_000, cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
   return { runs: report.results, cpuMs: report.cpuMs, kind: d.runner().kind };
 }
 

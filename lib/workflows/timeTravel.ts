@@ -164,7 +164,7 @@ async function runOn(runId: string, ctx: TravelContext, which: "before" | "fix",
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: ctx.workspaceId, fullName: ctx.fullName });
   const sha = which === "before" ? ctx.parentSha : ctx.fixSha;
-  const report = await d.runner().run({ repoUrl: ctx.repoUrl, token, sha, framework: ctx.framework, install: ctx.install, testPath: draft.path, testCode: draft.code, runs: RUNS_PER_COMMIT, timeoutMs: 120_000 });
+  const report = await d.runner().run({ repoUrl: ctx.repoUrl, token, sha, framework: ctx.framework, install: ctx.install, testPath: draft.path, testCode: draft.code, runs: RUNS_PER_COMMIT, timeoutMs: 120_000, cache: { workspaceId: ctx.workspaceId, repoId: ctx.repoId, trusted: true } });
   const outcomes = report.results.map((r) => r.outcome);
   const failed = outcomes.filter((o) => o === "failed").length;
   const passed = outcomes.filter((o) => o === "passed").length;

@@ -6,7 +6,7 @@ type Plan =
       ok: true;
       fixId: string;
       workspaceId: string;
-      repo: { url: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string };
+      repo: { id: string; url: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string };
       headSha: string;
       tests: { id: string; path: string; code: string }[];
       prompt: { file: string; content: string; failing: string; failure: string; diff: string };
@@ -38,7 +38,7 @@ async function plan(checkId: string): Promise<Plan> {
   const content = (await (await sourceFor(repo, token)).readFileAt(check.headSha, file, 60_000)) ?? "";
   return {
     ok: true, fixId: fix.id, workspaceId: check.workspaceId,
-    repo: { url: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd },
+    repo: { id: repo.id, url: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd },
     headSha: check.headSha, tests: tests.map((t) => ({ id: t.id, path: t.path, code: t.code })),
     prompt: { file, content, failing: failing.t.code, failure: failing.r.failureExcerpt ?? "the test failed", diff: check.diff },
     changedFiles: check.changedFiles,
@@ -83,7 +83,7 @@ async function verifyOne(p: Extract<Plan, { ok: true }>, t: Extract<Plan, { ok: 
   const { prVerdict } = await import("@/lib/domain/verdict");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
-  const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch] });
+  const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch], cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
   return { memoryTestId: t.id, verdict: prVerdict(r.results) };
 }
 

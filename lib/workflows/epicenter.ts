@@ -3,6 +3,7 @@ import { findEpicenter, type Probe } from "@/lib/domain/epicenter";
 
 type Plan = {
   memoryTestId: string;
+  repoId: string;
   incidentId: string;
   workspaceId: string;
   key: string;
@@ -34,7 +35,7 @@ async function plan(memoryTestId: string): Promise<Plan | null> {
   const [proof] = t.runId ? await db.select({ before: s.timeTravelRuns.beforeResults }).from(s.timeTravelRuns).where(eq(s.timeTravelRuns.id, t.runId)) : [];
   const chain = await (await sourceFor(repo, token)).firstParentChain(inc.parentSha, DEPTH);
   return {
-    memoryTestId, incidentId: inc.id, workspaceId: ws.id, key: incidentKey(ws.incidentPrefix, inc.number), chain, reachedRoot: chain.length < DEPTH,
+    memoryTestId, repoId: repo.id, incidentId: inc.id, workspaceId: ws.id, key: incidentKey(ws.incidentPrefix, inc.number), chain, reachedRoot: chain.length < DEPTH,
     provenAsMissing: (proof?.before ?? []).some((x) => MISSING_CODE.test(x.message ?? "")),
     run: { repoUrl: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd, testPath: t.path, testCode: t.code },
   };
@@ -47,7 +48,7 @@ async function probe(p: Plan, sha: string): Promise<Probe> {
   const { codeAbsent } = await import("@/lib/runner/junit");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.run.fullName });
-  const r = await d.runner().run({ ...p.run, token, sha, runs: 1, timeoutMs: 120_000 });
+  const r = await d.runner().run({ ...p.run, token, sha, runs: 1, timeoutMs: 120_000, cache: { workspaceId: p.workspaceId, repoId: p.repoId, trusted: true } });
   const first = r.results[0];
   // A missing name only marks absent code when the proven failure itself was not that kind of error.
   if (r.installOk && first && codeAbsent(first) && !p.provenAsMissing) return "absent";

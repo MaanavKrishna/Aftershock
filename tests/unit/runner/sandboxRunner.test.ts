@@ -5,19 +5,23 @@ const commands: { script: string; cwd?: string }[] = [];
 const written: string[] = [];
 const read: string[] = [];
 const timeouts: number[] = [];
+const events: string[] = [];
 vi.mock("@vercel/sandbox", () => ({
   Sandbox: {
     create: async (params: Record<string, unknown>) => {
       created.push(params);
+      events.push(`create:${(params.source as { type: string }).type}`);
       return {
         runCommand: async (a: string | { args: string[]; cwd?: string }, b?: string[]) => {
           const args = typeof a === "string" ? b! : a.args;
           commands.push({ script: args[1], cwd: typeof a === "string" ? undefined : a.cwd });
           timeouts.push(typeof a === "string" ? 0 : Number((a as { timeoutMs?: number }).timeoutMs ?? 0));
+          events.push(`cmd:${args[1].slice(0, 200)}`);
           const out = args[1].includes("rev-parse --show-toplevel") ? "/vercel/aftershock-playground\n" : "";
           return { exitCode: 0, output: async () => out, stdout: async () => out };
         },
-        update: async () => undefined,
+        update: async (u: { networkPolicy?: string }) => void events.push(`network:${u.networkPolicy}`),
+        snapshot: async () => (events.push("snapshot"), { snapshotId: "snap_new", sizeBytes: 123 }),
         writeFiles: async (files: { path: string }[]) => void written.push(...files.map((f) => f.path)),
         readFileToBuffer: async ({ path }: { path: string }) => (read.push(path), Buffer.from(`<testsuite><testcase name="t"/></testsuite>`)),
         stop: async () => undefined,
@@ -28,7 +32,7 @@ vi.mock("@vercel/sandbox", () => ({
 }));
 
 beforeEach(() => {
-  created.length = commands.length = written.length = read.length = timeouts.length = 0;
+  created.length = commands.length = written.length = read.length = timeouts.length = events.length = 0;
 });
 
 const spec = { repoUrl: "https://github.com/o/aftershock-playground.git", sha: "abc1234", framework: "pytest" as const, install: "pip install -r requirements.txt", testPath: "tests/aftershock/test_x.py", testCode: "def test_x():\n  assert True", runs: 1, timeoutMs: 1000 };
@@ -61,4 +65,29 @@ test("every timeout fits the step budget, and the sandbox dies soon after it", a
   } finally {
     delete process.env.AFTERSHOCK_STEP_BUDGET_MS;
   }
+});
+
+test("a cache miss installs, snapshots, restores, and only then cuts the network and runs", async () => {
+  const { SandboxRunner } = await import("@/lib/runner/sandbox");
+  const r = await new SandboxRunner().run({ ...spec, saveSnapshot: true });
+  expect(r.snapshot).toEqual({ id: "snap_new", sizeBytes: 123 });
+  const order = events.filter((e) => /^(create|snapshot|network)/.test(e) || e.includes("pip install") || e.includes("python -m pytest"));
+  expect(order[0]).toBe("create:git");
+  expect(order.indexOf("snapshot")).toBeGreaterThan(order.findIndex((e) => e.includes("pip install")));
+  expect(order.indexOf("create:snapshot")).toBeGreaterThan(order.indexOf("snapshot"));
+  expect(order.indexOf("network:deny-all")).toBeGreaterThan(order.indexOf("create:snapshot"));
+  expect(order.findIndex((e) => e.includes("python -m pytest"))).toBeGreaterThan(order.indexOf("network:deny-all"));
+  expect(created[1]).toMatchObject({ source: { type: "snapshot", snapshotId: "snap_new" }, persistent: false });
+});
+
+test("a cache hit restores, fetches the exact commit, skips install, and cuts the network before tests", async () => {
+  const { SandboxRunner } = await import("@/lib/runner/sandbox");
+  await new SandboxRunner().run({ ...spec, restoreSnapshotId: "snap_old", token: "ghs_secret_token_value_1234" });
+  expect(created[0]).toMatchObject({ source: { type: "snapshot", snapshotId: "snap_old" } });
+  expect(events.some((e) => e.includes("pip install"))).toBe(false);
+  const fetchAt = events.findIndex((e) => e.startsWith("cmd:git fetch"));
+  expect(fetchAt).toBeGreaterThan(-1);
+  expect(commands.find((c) => c.script.startsWith("git fetch"))!.script).toContain("abc1234");
+  expect(events.indexOf("network:deny-all")).toBeGreaterThan(fetchAt);
+  expect(events.findIndex((e) => e.includes("python -m pytest"))).toBeGreaterThan(events.indexOf("network:deny-all"));
 });

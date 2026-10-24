@@ -15,6 +15,13 @@
       "when": 1791411075391,
       "tag": "0001_pr_checks_tested_sha",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792845816356,
+      "tag": "0002_env_snapshots",
+      "breakpoints": true
     }
   ]
 }
