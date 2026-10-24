@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { changeMember, deleteAccountAction, deleteWorkspaceAction, revokeToken, setFlag } from "../actions";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { FLAGS, flagEnabled, type Flag } from "@/lib/flags";
+import { planFor } from "@/lib/billing/plans";
 import { can } from "@/lib/auth/roles";
 import { WorkspaceForm, TokenForm } from "./forms";
 import { hours, timeAgo } from "@/lib/format";
@@ -126,9 +127,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           )}
           {tab === "billing" && (
             <section className={sectionCls}>
-              <Head title={`Plan · ${ws.plan === "free" ? "Free" : ws.plan}`} sub="Unlimited public repositories on every plan."><ButtonLink href="/pricing">Compare plans</ButtonLink></Head>
+              <Head title={`Plan · ${planFor(ws.plan).label}`} sub="Unlimited public repositories on every plan. Paid plans are free during the beta."><ButtonLink href="/pricing">Compare plans</ButtonLink></Head>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(200px,100%),1fr))]">
-                {[["Repositories", `${privateRepos}`, 0], ["Sandbox CPU-hours", `${hours(usage.sandboxCpuMs)} / ${hours(usage.allowanceMs)}`, (usage.sandboxCpuMs / usage.allowanceMs) * 100], ["Model drafts this month", `${usage.drafts}`, 0]].map(([k, v, p]) => (
+                {[["Active committers (30 days)", `${usage.committers}${Number.isFinite(planFor(ws.plan).maxCommitters) ? ` / ${planFor(ws.plan).maxCommitters}` : ""}`, Number.isFinite(planFor(ws.plan).maxCommitters) ? (usage.committers / planFor(ws.plan).maxCommitters) * 100 : 0], ["Repositories", `${privateRepos}`, 0], ["Sandbox CPU-hours", `${hours(usage.sandboxCpuMs)} / ${hours(usage.allowanceMs)}`, (usage.sandboxCpuMs / usage.allowanceMs) * 100], ["Model drafts this month", `${usage.drafts}`, 0]].map(([k, v, p]) => (
                   <div key={String(k)} className="flex flex-col gap-2 border-r border-line-soft px-6 py-[18px]"><span className="text-[12.5px] text-muted">{k}</span><span className="font-mono text-xl font-semibold">{v}</span><div className="h-1.5 overflow-hidden rounded-[3px] bg-line-soft"><div className={`h-full ${Number(p) >= 100 ? "bg-fail" : "bg-pass"}`} style={{ width: `${Math.min(100, Number(p))}%` }} /></div></div>
                 ))}
               </div>

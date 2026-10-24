@@ -368,3 +368,21 @@ export async function changeMember(form: FormData): Promise<void> {
   await audit(session.workspaceId, session.userId, to === "remove" ? "member.removed" : "member.role", target.user.login, to === "remove" ? "" : `${target.role} → ${to}`);
   revalidatePath("/settings");
 }
+
+/** Admins can release a quarantined test early (for example after fixing its flakiness). */
+export async function releaseQuarantine(form: FormData): Promise<void> {
+  const { session, allowed } = await authorize("manageRepositories");
+  if (!allowed) return;
+  const db = await getDb();
+  const [t] = await db
+    .update(s.memoryTests)
+    .set({ quarantined: false, quarantineReason: null, quarantinedAt: null })
+    .where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)))
+    .returning();
+  if (t) {
+    await db.insert(s.activity).values({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test released from quarantine", detail: "Released by an admin", tone: "pass" });
+    const { audit } = await import("@/lib/data/lifecycle");
+    await audit(session.workspaceId, session.userId, "test.released", t.path);
+  }
+  revalidatePath("/memory");
+}
