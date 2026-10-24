@@ -25,6 +25,8 @@ export class SandboxRunner implements Runner {
         : { type: "git", url: spec.repoUrl, revision: spec.sha, depth: 1 },
       image: frameworkDef(spec.framework).sandboxImage,
       resources: { vcpus: 2 },
+      // Persistent sandboxes snapshot on every stop; a one-off run must leave nothing behind.
+      persistent: false,
       timeout: SANDBOX_TIMEOUT_MS,
     });
     const logs: string[] = [];
