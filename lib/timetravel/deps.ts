@@ -44,8 +44,21 @@ async function defaultRunner(): Promise<Runner> {
   return new (await import("@/lib/runner/docker")).DockerRunner();
 }
 
+/** Stands in for the real runner while the operator kill switch is on. */
+const pausedRunner: Runner = {
+  kind: "docker",
+  run: async (spec) => ({
+    installOk: false,
+    results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message: "Runs are paused by the operator. Try again later." })),
+    log: "Runs are paused by the operator.",
+    cpuMs: 0,
+    wallMs: 0,
+  }),
+};
+
 export async function deps(): Promise<Deps> {
-  const runner = override.runner ? override.runner() : await defaultRunner();
+  const { runsDisabled } = await import("@/lib/flags");
+  const runner = runsDisabled() ? pausedRunner : override.runner ? override.runner() : await defaultRunner();
   const drafter = override.drafter ? override.drafter() : (await import("@/lib/model/draft")).modelDrafter();
   return {
     runner: () => runner,

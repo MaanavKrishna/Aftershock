@@ -149,3 +149,19 @@ describe("time travel", () => {
     expect((await w.runs()).map((x) => x.attempt)).toEqual([1, 2, 3, 4]);
   });
 });
+
+describe("kill switch", () => {
+  test("paused runs end time travel as unproven with a clear reason, without calling the runner", async () => {
+    const w = await ledgerWorld();
+    let ran = 0;
+    setDeps({ runner: () => ({ kind: "docker", run: async () => { ran++; throw new Error("should not run"); } }), drafter: () => fakeDrafter(["GOOD"]), openBotPr: async () => null });
+    process.env.AFTERSHOCK_RUNS_DISABLED = "1";
+    try {
+      await timeTravel(w.incident.id, {});
+    } finally {
+      delete process.env.AFTERSHOCK_RUNS_DISABLED;
+    }
+    expect(ran).toBe(0);
+    expect((await w.reload()).statusReason).toMatch(/paused/i);
+  });
+});
