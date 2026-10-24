@@ -25,5 +25,5 @@ test("an incident is deleted only after typing its key", async ({ page }) => {
   await page.getByRole("button", { name: "Delete permanently" }).click();
   await page.waitForURL("**/incidents");
   await page.goto("/incidents/9");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/doesn.t exist/i);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Nothing here/i);
 });

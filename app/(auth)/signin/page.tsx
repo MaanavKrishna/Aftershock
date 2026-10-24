@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/Logo";
+import { ThemeToggle } from "@/components/ds/ThemeToggle";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = { title: "Sign in", alternates: { canonical: "/signin" } };
 
 const ERRORS: Record<string, string> = {
   github_not_configured: "GitHub sign-in is not configured on this server yet. An administrator needs to add the GitHub App settings.",
@@ -13,47 +14,48 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
   const { error } = await searchParams;
   const demo = process.env.AFTERSHOCK_DEMO === "1";
   return (
-    <div className="flex min-h-screen flex-wrap bg-site text-[15px] leading-[1.55] text-ink">
-      <section className="flex min-w-0 flex-[1_1_520px] flex-col gap-12 bg-ink px-[clamp(24px,5vw,64px)] py-10 text-on-dark">
-        <Link href="/" className="flex min-h-11 items-center gap-2.5 text-[19px] font-bold tracking-[-0.02em] text-white no-underline">
-          <LogoMark inverted />
-          Aftershock
-        </Link>
-        <div className="mt-auto flex max-w-[540px] flex-col gap-7">
-          <h1 className="m-0 text-[clamp(32px,3.4vw,46px)] font-semibold leading-[1.08] tracking-[-0.03em] text-white">Your last incident is waiting to become a test.</h1>
-          <div className="flex flex-col gap-2.5 rounded-xl border border-ink-line bg-ink-2 px-5 py-[18px] font-mono text-[13px]">
-            <div className="flex justify-between gap-2.5"><span className="text-on-dark-muted">before fix · 3f2a1c9</span><span className="font-semibold text-fail-dark">fails 3/3</span></div>
-            <div className="flex justify-between gap-2.5"><span className="text-on-dark-muted">fix · aa86f56</span><span className="font-semibold text-pass-dark">passes 3/3</span></div>
-            <div className="flex justify-between gap-2.5 border-t border-ink-line pt-2.5"><span>INC-12</span><span className="font-semibold">proven</span></div>
-          </div>
+    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+      <section className="flex flex-col gap-12 border-b border-rule bg-sunken px-[clamp(20px,5vw,64px)] py-8 lg:border-b-0 lg:border-r">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex min-h-11 items-center gap-2.5 font-display text-[19px] font-semibold tracking-[-0.02em] text-fg no-underline"><LogoMark size={28} accent />Aftershock</Link>
+          <ThemeToggle />
         </div>
-        <div className="font-mono text-[12.5px] text-muted-2">AI drafts · Git history proves · Humans merge</div>
+        <div className="mt-auto flex max-w-[540px] flex-col gap-7">
+          <h1 className="m-0 text-balance font-display text-d2 font-semibold tracking-[-0.03em] text-fg">Your last incident is waiting to become a test.</h1>
+          <dl className="m-0 grid gap-0 overflow-hidden rounded-panel border border-rule bg-raised text-[14px]">
+            {[["Before the fix", "3f2a1c9", "fails 3 of 3", "text-quake"], ["On the fix", "aa86f56", "passes 3 of 3", "text-signal"], ["INC-12", "", "proven", "text-signal"]].map(([k, sha, v, c]) => (
+              <div key={k} className="flex items-center justify-between gap-3 border-t border-rule px-5 py-3.5 first:border-t-0">
+                <dt className="text-fg-2">{k} {sha && <span className="font-code text-fg-3">{sha}</span>}</dt>
+                <dd className={`m-0 font-semibold ${c}`}>{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <p className="m-0 text-[13px] text-fg-3">AI drafts. Git history proves. People merge.</p>
       </section>
-      <main className="flex min-w-0 flex-[1_1_480px] items-center justify-center px-6 py-12">
+      <main id="main" className="flex items-center justify-center px-5 py-12">
         <div className="flex w-full max-w-[400px] flex-col gap-6">
           <div className="flex flex-col gap-1.5">
-            <h2 className="m-0 text-[28px] font-semibold tracking-[-0.025em]">Sign in</h2>
-            <p className="m-0 text-muted">Your workspace is your GitHub organisation. No new password.</p>
+            <h2 className="m-0 font-display text-[30px] font-semibold tracking-[-0.025em] text-fg">Sign in</h2>
+            <p className="m-0 text-fg-2">Your workspace is your GitHub organisation. No new password.</p>
           </div>
-          {error && ERRORS[error] && <p role="alert" className="m-0 rounded-[10px] border border-[#E8C4B0] bg-fail-tint px-4 py-3 text-[13.5px] text-fail-ink">{ERRORS[error]}</p>}
-          <a href="/api/auth/github" className="flex min-h-[52px] items-center justify-center gap-2.5 rounded-[10px] bg-ink text-[15.5px] font-semibold text-white no-underline">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5" /><circle cx="6" cy="18" r="2.5" /><circle cx="18" cy="9" r="2.5" /><path d="M6 8.5v7" /><path d="M18 11.5c0 3-3 3.5-6 4.5" /></svg>
+          {error && ERRORS[error] && <p role="alert" className="m-0 rounded-control bg-quake-soft px-4 py-3 text-[14px] text-quake">{ERRORS[error]}</p>}
+          <a href="/api/auth/github" className="flex min-h-[52px] items-center justify-center gap-2.5 rounded-control bg-fg text-[15.5px] font-semibold text-canvas no-underline hover:bg-fg-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.29-1.69-1.29-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a10.9 10.9 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z" /></svg>
             Continue with GitHub
           </a>
           {demo && (
             <form action="/api/auth/demo" method="post">
-              <button type="submit" className="flex min-h-12 w-full cursor-pointer items-center justify-center rounded-[10px] border border-field bg-white font-semibold text-ink">Try the demo workspace</button>
+              <button type="submit" className="flex min-h-12 w-full cursor-pointer items-center justify-center rounded-control border border-rule-strong bg-transparent font-semibold text-fg hover:border-fg-3">Try the demo workspace</button>
             </form>
           )}
-          <div className="flex flex-col gap-2.5 rounded-xl border border-[#DCDDD8] bg-white px-[18px] py-4 text-[13.5px]">
-            <span className="font-semibold">What we ask GitHub for</span>
-            <span className="flex gap-2.5 text-body"><span className="w-4 font-mono text-pass">✓</span>Your name, avatar and login</span>
-            <span className="flex gap-2.5 text-body"><span className="w-4 font-mono text-pass">✓</span>Which organisations you belong to</span>
-            <span className="flex gap-2.5 text-muted"><span className="w-4 font-mono text-muted-2">→</span>Repository access is granted separately, per repo, when you install the app</span>
+          <div className="flex flex-col gap-2.5 rounded-panel border border-rule bg-raised px-5 py-4 text-[14px]">
+            <span className="font-semibold text-fg">What we ask GitHub for</span>
+            <span className="flex gap-2.5 text-fg-2"><span aria-hidden="true" className="w-4 text-signal">✓</span>Your name, avatar and login</span>
+            <span className="flex gap-2.5 text-fg-2"><span aria-hidden="true" className="w-4 text-signal">✓</span>Which organisations you belong to</span>
+            <span className="flex gap-2.5 text-fg-3"><span aria-hidden="true" className="w-4">○</span>Repository access is granted separately, per repository, when you install the app</span>
           </div>
-          <p className="m-0 text-[12.5px] text-muted">
-            Read how runs are isolated on the <Link href="/security" className="text-pass">security page</Link>.
-          </p>
+          <p className="m-0 text-[13px] text-fg-3">Read how runs are isolated on the <Link href="/security" className="text-signal">security page</Link>.</p>
         </div>
       </main>
     </div>

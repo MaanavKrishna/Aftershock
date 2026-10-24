@@ -20,7 +20,7 @@ incident ──► model drafts a test ──► time travel: before fix ✕✕�
 4. **Link the fix.** Give the fix commit or pull request, or mention the incident in the PR (`Fixes INC-12`). Time travel starts when it merges.
 5. **Merge the test.** When the test is proven, Aftershock opens a pull request that adds it under `tests/aftershock/`. From then on, every pull request that could bring the bug back is checked.
 
-Supported: Python (pytest) and TypeScript or JavaScript (vitest, jest), plus Go, Java/Kotlin (JUnit with Maven or Gradle) and Ruby (RSpec) in Labs. See [Languages](docs/languages.md).
+Supported: Python (pytest) and TypeScript or JavaScript (vitest, jest), plus Go, Java/Kotlin (JUnit with Maven or Gradle), Ruby (RSpec) and Playwright browser tests in Labs. See [Languages](docs/languages.md).
 
 ## What it does
 
@@ -55,6 +55,7 @@ Rules that never bend:
 
 ## Documentation
 
+- [Quickstart](docs/quickstart.md) and [core concepts](docs/concepts.md)
 - [Self-hosting and setup](docs/setup.md): GitHub App, Neon, Vercel, model, alerts, roles
 - [Integrations](docs/integrations.md): every alert and ticket source, authentication, payloads
 - [Notifications](docs/notifications.md): Slack, signed webhooks, events, retries
@@ -64,6 +65,7 @@ Rules that never bend:
 - [API and CLI](docs/api.md): HTTP API, `aftershock` command line, GitHub Actions runner, `.aftershock/config.yaml`
 - [Architecture](docs/architecture.md): flows, code layout, security model
 - [Operations](docs/operations.md): logs, kill switch, feature flags, migrations, rollback
+- [Design system](docs/design-system.md): tokens, themes, motion and the site's quality gates
 - [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
 
 ## Development

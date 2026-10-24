@@ -7,7 +7,7 @@ test("a shared reliability report opens without signing in and closes when shari
   if (await page.getByRole("button", { name: "Stop sharing" }).isVisible()) await page.getByRole("button", { name: "Stop sharing" }).click();
   await page.getByRole("button", { name: "Create share link" }).click();
   const url = (await page.locator("code", { hasText: "/report/rr_" }).textContent())!.trim();
-  const path = new URL(url, "http://127.0.0.1:3000").pathname;
+  const path = new URL(url, page.url()).pathname;
   const anon = await browser.newContext();
   const p2 = await anon.newPage();
   await p2.goto(path);

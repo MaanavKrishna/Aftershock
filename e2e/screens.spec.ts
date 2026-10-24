@@ -3,9 +3,19 @@ import { signInDemo } from "./helpers";
 
 const site: [string, RegExp][] = [
   ["/", /Every incident becomes a test/],
+  ["/product", /Incident memory, from the outage/],
+  ["/agents", /Coding agents that remember/],
+  ["/evidence", /Proof that incidents became controls/],
+  ["/connect", /Incidents come from where you already track them/],
+  ["/connect/sentry", /Sentry/],
   ["/pricing", /Pay for proof/],
   ["/security", /We run your code/],
+  ["/compare", /Where Aftershock fits/],
+  ["/changelog", /Changelog/],
   ["/docs", /Quickstart/],
+  ["/docs/integrations", /Alerts and tickets/],
+  ["/privacy", /Privacy/],
+  ["/terms", /Terms/],
   ["/signin", /Your last incident is waiting/],
 ];
 

@@ -29,3 +29,5 @@ npm run test:e2e
 A model never marks anything proven or safe. A test that passes before its fix is rejected. Mixed results are never green. Nothing is pushed to a default branch. Sandboxed runs get no secrets. Pull requests that weaken these will not be merged.
 
 By contributing you agree that your contributions are licensed under the [Apache License 2.0](LICENSE).
+
+End-to-end tests start their own dev server on port 3000. If something else uses that port, run them with `E2E_PORT=3100 npm run test:e2e`.

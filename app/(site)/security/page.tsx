@@ -1,52 +1,93 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SiteHeader, SiteFooter } from "@/components/site/Chrome";
+import { Band, SectionHead } from "@/components/site/Section";
 
-export const metadata: Metadata = { title: "Security" };
+export const metadata: Metadata = { title: "Security", description: "How Aftershock isolates runs, what it keeps and for how long, and who processes your data.", alternates: { canonical: "/security" } };
 
-const FACTS = [["1 microVM", "per run, never reused"], ["0 secrets", "injected into a run"], ["45 min", "hard cap per sandbox"], ["Read-only", "clone token per run"]];
-const LIFE = [["01", "Fresh machine", "A new Firecracker microVM boots from a clean image. No state from any other team or run."], ["02", "Shallow clone", "One commit is fetched with a short-lived, read-only installation token scoped to that repository."], ["03", "Locked network", "Package registries are reachable for install. After install, outbound network is cut before tests run."], ["04", "Run and record", "The test runs with a time limit. We keep exit codes, the test report and trimmed logs."], ["05", "Destroyed", "The machine is stopped and deleted. The clone, caches and any files the test wrote go with it."]];
-const RULES = [["The model never decides", "A drafted test is only admitted when it fails before the fix and passes after, on real commits. A model cannot mark anything proven."], ["Least privilege on GitHub", "Every run clones with a one-hour token scoped read-only to one repository. The app writes only to aftershock/* branches; admitted tests arrive as a PR you merge, never on your default branch."], ["No secrets in runs", "Your environment variables, deploy keys and cloud credentials are never available to sandboxed code. Tests that need them belong on your runners."], ["Untrusted text stays data", "Incident text, postmortems and code are passed to the model as fenced data, never as instructions, so a malicious issue cannot steer it."], ["Signed webhooks only", "GitHub, Sentry and PagerDuty deliveries are verified by signature before anything is stored or run."], ["Your model, your keys", "Model keys live encrypted at rest and are never sent to the sandbox or shown again after you save them."]];
-const DATA = [["Source code", "Never stored", "Lives only inside the sandbox for the run", true], ["Incident text", "Until you delete it", "It is the input your tests are built from", false], ["Admitted test code", "In your repository", "It is yours; we keep a copy for display", false], ["Run logs", "30 days", "Trimmed to the failing output, for debugging; cleared automatically", false], ["Verdicts and evidence", "Until you delete the repository", "History of what was proven, and when", false], ["Model keys", "Encrypted, until removed", "To call the model you chose", false]] as const;
+const LIFE: [string, string][] = [
+  ["Fresh machine", "A new Firecracker microVM boots from a clean image, or one restored from your own repository’s trusted install snapshot. Nothing from another team or run."],
+  ["Shallow clone", "One commit is fetched with a one-hour installation token scoped read-only to that repository. The token is scrubbed from the checkout before your code runs."],
+  ["Locked network", "Package registries are reachable while dependencies install. Then the network is set to deny-all, before any test runs."],
+  ["Run and record", "The test runs under a time limit. We keep outcomes, the JUnit report and trimmed logs."],
+  ["Destroyed", "The machine is stopped and deleted, with the clone and anything the test wrote."],
+];
+const RULES: [string, string][] = [
+  ["The model never decides", "A drafted test is admitted only when it fails before the fix and passes after, on real commits. A model cannot mark anything proven or safe."],
+  ["Least privilege on GitHub", "Clone tokens are read-only and per repository. The app writes only to aftershock/* branches, check runs and one comment; tests arrive as pull requests you merge."],
+  ["No secrets in runs", "Your environment variables, deploy keys and cloud credentials are never available to sandboxed code. Tests that need them belong on your own runners."],
+  ["Untrusted text stays data", "Incidents, postmortems, alerts and code reach the model inside random-nonce fences, and its output is parsed and validated before anything uses it."],
+  ["Every delivery is authenticated", "Webhooks are verified by signature or token in constant time, size-capped and replay-checked before anything is stored or run."],
+  ["Outbound calls can’t reach inside", "Notification and model endpoints must be public https addresses; private, loopback and metadata addresses are refused when connecting."],
+];
+const DATA: [string, string, string][] = [
+  ["Source code", "Never stored", "Exists only inside the sandbox for the run"],
+  ["Incidents and notes", "Until you delete them", "They are what your tests are built from"],
+  ["Proven test code", "In your repository", "It is yours; we keep a copy to run and display"],
+  ["Run logs and webhook deliveries", "30 days", "For debugging; cleared automatically"],
+  ["Verdicts and evidence", "Until you delete the repository or workspace", "The record of what was proven, and when"],
+  ["Model keys, webhook secrets, Slack URLs", "Encrypted (AES-256-GCM) until removed", "To call the services you connected"],
+  ["Workspaces that uninstall the app", "30 days, then purged", "So a reinstall can continue where it left off"],
+];
+const PROCESSORS: [string, string][] = [
+  ["Vercel", "Hosting, the run sandboxes, durable workflows"],
+  ["Neon", "Postgres database"],
+  ["GitHub", "Sign-in, repositories, checks and pull requests"],
+  ["The model provider you choose", "Drafting tests and triage; Vercel AI Gateway or any OpenAI-compatible endpoint"],
+];
 
 export default function Security() {
   return (
-    <div className="bg-site text-base leading-[1.55] text-ink">
-      <SiteHeader current="/security" />
-      <section className="bg-ink text-on-dark">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-end gap-12 px-6 pb-20 pt-[88px]">
-          <div className="flex flex-[1.3_1_520px] flex-col gap-[18px]">
-            <span className="font-mono text-[13px] text-on-dark-muted">Security</span>
-            <h1 className="m-0 text-balance text-[clamp(38px,4.6vw,58px)] font-semibold leading-[1.04] tracking-[-0.035em] text-white">We run your code. So we assume it’s hostile.</h1>
-            <p className="m-0 max-w-[600px] text-lg text-on-dark-muted">Running a team’s tests means executing their code — and code a model drafted. Every run is isolated, short-lived and secret-free by design, not by policy.</p>
-          </div>
-          <div className="grid flex-[1_1_340px] grid-cols-2 gap-2.5">{FACTS.map(([v, k]) => <div key={v} className="flex flex-col gap-1 rounded-xl border border-ink-line bg-ink-2 p-[18px]"><span className="font-mono text-[22px] font-semibold text-white">{v}</span><span className="text-[13px] text-on-dark-muted">{k}</span></div>)}</div>
+    <>
+      <section className="mx-auto max-w-[1240px] px-4 pb-16 pt-16 sm:px-6 sm:pt-20">
+        <h1 className="m-0 max-w-[18ch] text-balance font-display text-d1 font-semibold tracking-[-0.03em] text-fg">We run your code. So we assume it’s hostile.</h1>
+        <p className="mt-6 max-w-[60ch] text-lede text-fg-2">Running a team’s tests means executing their code, and code a model drafted. Every run is isolated, short-lived and secret-free by design. The full threat model is <a className="text-signal" href="https://github.com/MaanavKrishna/Aftershock/blob/main/docs/threat-model.md" rel="noopener">public</a>.</p>
+      </section>
+      <Band tone="raised">
+        <SectionHead title="The life of one sandbox run" lede="Every proof, re-proof and sandboxed pull request check follows the same path. Nothing survives the last step." />
+        <ol className="m-0 grid list-none gap-6 p-0 md:grid-cols-5">
+          {LIFE.map(([t, d], i) => (
+            <li key={t} className="flex flex-col gap-2 border-t-2 border-fg pt-4">
+              <span className="font-code text-[13px] text-fg-3">{i + 1}</span>
+              <h3 className="m-0 text-[18px] font-semibold text-fg">{t}</h3>
+              <p className="m-0 text-[14.5px] text-fg-2">{d}</p>
+            </li>
+          ))}
+        </ol>
+      </Band>
+      <Band>
+        <div className="grid gap-x-14 gap-y-10 md:grid-cols-2">
+          {RULES.map(([t, d]) => (
+            <div key={t} className="flex flex-col gap-2">
+              <h3 className="m-0 font-display text-[21px] font-semibold tracking-[-0.01em] text-fg">{t}</h3>
+              <p className="m-0 text-[15.5px] text-fg-2">{d}</p>
+            </div>
+          ))}
         </div>
-      </section>
-      <section className="mx-auto flex max-w-[1200px] flex-col gap-10 px-6 pb-[72px] pt-24">
-        <div className="flex flex-wrap items-end justify-between gap-6"><h2 className="m-0 flex-[1_1_520px] text-[clamp(30px,3.4vw,44px)] font-semibold leading-[1.08] tracking-[-0.03em]">The life of one sandbox run.</h2><p className="m-0 flex-[0_1_400px] text-muted">Every time-travel attempt and every sandboxed pull request check follows the same path. Nothing survives the last step.</p></div>
-        <ol className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-3 p-0">{LIFE.map(([n, t, d]) => <li key={n} className="flex min-h-[200px] flex-col gap-2.5 rounded-xl border border-[#DCDDD8] bg-white p-[22px]"><span className="font-mono text-[13px] text-muted">{n}</span><span className="text-lg font-semibold tracking-[-0.01em]">{t}</span><span className="text-[14.5px] text-muted">{d}</span></li>)}</ol>
-      </section>
-      <section className="border-y border-[#DCDDD8] bg-white">
-        <div className="mx-auto grid max-w-[1200px] grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] gap-x-14 gap-y-10 px-6 py-20">{RULES.map(([t, d]) => <div key={t} className="flex flex-col gap-2 border-t-2 border-ink pt-5"><h3 className="m-0 text-[19px] font-semibold tracking-[-0.01em]">{t}</h3><span className="text-[15px] text-body">{d}</span></div>)}</div>
-      </section>
-      <section className="mx-auto flex max-w-[1200px] flex-col gap-7 px-6 py-[88px]">
-        <h2 className="m-0 text-[clamp(30px,3.4vw,44px)] font-semibold leading-[1.08] tracking-[-0.03em]">What we keep, and for how long.</h2>
-        <div className="overflow-x-auto rounded-xl border border-[#DCDDD8] bg-white">
+      </Band>
+      <Band tone="raised">
+        <SectionHead title="What we keep, and for how long" />
+        <div className="overflow-x-auto rounded-panel border border-rule bg-canvas">
           <table className="w-full min-w-[680px] border-collapse text-left text-[14.5px]">
-            <thead><tr className="border-b border-[#E7E8E3] bg-[#FAFAF8] text-[12.5px] text-muted-2"><th className="px-[22px] py-3 font-normal">Data</th><th className="px-[22px] py-3 font-normal">Kept</th><th className="px-[22px] py-3 font-normal">Why</th></tr></thead>
-            <tbody>{DATA.map(([k, v, w, strong]) => <tr key={k} className="border-b border-line-soft"><th scope="row" className="px-[22px] py-[15px] font-semibold">{k}</th><td className={`px-[22px] py-[15px] ${strong ? "font-semibold" : "text-body"}`}>{v}</td><td className="px-[22px] py-[15px] text-muted">{w}</td></tr>)}</tbody>
+            <thead><tr className="text-[13px] text-fg-3"><th scope="col" className="px-5 py-3 font-medium">Data</th><th scope="col" className="px-5 py-3 font-medium">Kept</th><th scope="col" className="px-5 py-3 font-medium">Why</th></tr></thead>
+            <tbody>{DATA.map(([k, v, w]) => <tr key={k} className="border-t border-rule"><th scope="row" className="px-5 py-3.5 font-semibold text-fg">{k}</th><td className="px-5 py-3.5 text-fg">{v}</td><td className="px-5 py-3.5 text-fg-2">{w}</td></tr>)}</tbody>
           </table>
         </div>
-        <p className="m-0 text-[13.5px] text-muted">Report a vulnerability to <a href="mailto:maanavkrishna@gmail.com?subject=Aftershock%20security" className="text-pass">maanavkrishna@gmail.com</a>.</p>
-      </section>
-      <section className="mx-auto max-w-[1200px] px-6 pb-24">
-        <div className="flex flex-wrap items-center justify-between gap-7 rounded-2xl bg-ink p-[clamp(32px,5vw,60px)] text-white">
-          <div className="flex flex-[1_1_460px] flex-col gap-2.5"><h2 className="m-0 text-[clamp(28px,3vw,40px)] font-semibold leading-[1.08] tracking-[-0.03em]">Prefer nothing leaves your network?</h2><p className="m-0 text-on-dark-muted">Switch a repository to “your runners”. Aftershock then only sees results.</p></div>
-          <Link href="/docs#actions" className="inline-flex min-h-12 items-center rounded-lg bg-white px-[22px] font-semibold text-ink no-underline">Self-hosted runner guide</Link>
+        <p className="mt-4 text-[14px] text-fg-3">Admins can delete an incident, a repository or the workspace, and anyone can delete their own account, from the app. Deletions are recorded in the workspace audit log.</p>
+      </Band>
+      <Band>
+        <div className="grid gap-10 md:grid-cols-2">
+          <div>
+            <SectionHead title="Who processes your data" />
+            <ul className="m-0 flex list-none flex-col p-0">
+              {PROCESSORS.map(([n, w]) => <li key={n} className="flex flex-col border-t border-rule py-3"><span className="font-semibold text-fg">{n}</span><span className="text-[14.5px] text-fg-2">{w}</span></li>)}
+            </ul>
+          </div>
+          <div>
+            <SectionHead title="Report a vulnerability" lede={<>Use GitHub’s private vulnerability reporting on the repository; you get a reply within 3 working days. Details are in <a className="text-signal" href="https://github.com/MaanavKrishna/Aftershock/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</>} />
+            <p className="m-0 text-[14.5px] text-fg-2">Audit evidence is signed and verifiable. See <Link href="/evidence" className="text-signal">audit evidence</Link>.</p>
+          </div>
         </div>
-      </section>
-      <SiteFooter />
-    </div>
+      </Band>
+    </>
   );
 }
