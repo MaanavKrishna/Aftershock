@@ -50,6 +50,13 @@
       "when": 1792849405006,
       "tag": "0006_package_tests",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792851769656,
+      "tag": "0007_notifications",
+      "breakpoints": true
     }
   ]
 }

@@ -67,3 +67,8 @@ export async function startDaily(day: string): Promise<void> {
   const { daily } = await import("./daily");
   await launch(daily, [day], "daily");
 }
+
+export async function startNotify(workspaceId: string): Promise<void> {
+  const { notify } = await import("./notify");
+  await launch(notify, [workspaceId], "notifications");
+}

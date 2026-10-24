@@ -1,5 +1,5 @@
 import type { Framework } from "@/lib/runner/frameworks";
-import { pgTable, text, integer, boolean, jsonb, timestamp, uniqueIndex, primaryKey, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, jsonb, timestamp, uniqueIndex, primaryKey, bigint, index } from "drizzle-orm/pg-core";
 import type { RunResult } from "@/lib/domain/verdict";
 
 const id = () => text("id").primaryKey().$defaultFn(() => crypto.randomUUID());
@@ -304,3 +304,44 @@ export const auditLog = pgTable("audit_log", {
   detail: text("detail").notNull().default(""),
   createdAt: created(),
 });
+
+/** Events a notification target can subscribe to (lib/notify). */
+export type NotifyEvent = "incident.opened" | "incident.proven" | "incident.unproven" | "pr.blocked" | "epicenter.found" | "nightly.failing" | "test.quarantined" | "check.overridden";
+
+export const notificationTargets = pgTable("notification_targets", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  kind: text("kind").$type<"slack" | "webhook">().notNull(),
+  name: text("name").notNull(),
+  /** Slack webhook URLs are bearer secrets, so every URL is stored encrypted. */
+  urlCiphertext: text("url_ciphertext").notNull(),
+  urlHint: text("url_hint").notNull().default(""),
+  secretCiphertext: text("secret_ciphertext"),
+  events: jsonb("events").$type<NotifyEvent[]>().notNull().default([]),
+  enabled: boolean("enabled").notNull().default(true),
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+  disabledReason: text("disabled_reason"),
+  lastStatus: text("last_status").notNull().default(""),
+  lastDeliveryAt: timestamp("last_delivery_at", { withTimezone: true }),
+  createdAt: created(),
+});
+
+/** Outbox: one row per (event, target). Delivered with back-off by lib/workflows/notify.ts. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: id(),
+    workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    targetId: text("target_id").notNull().references(() => notificationTargets.id, { onDelete: "cascade" }),
+    event: text("event").$type<NotifyEvent>().notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: text("status").$type<"pending" | "sending" | "sent" | "failed">().notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    lastError: text("last_error").notNull().default(""),
+    createdAt: created(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [index("notifications_due").on(t.status, t.nextAttemptAt)],
+);
