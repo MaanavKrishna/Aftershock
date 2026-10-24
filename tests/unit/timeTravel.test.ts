@@ -176,3 +176,17 @@ describe("runner failures", () => {
     expect(inc.statusReason).toMatch(/could not start/i);
   });
 });
+
+describe("languages behind Labs flags", () => {
+  test("a Go repository waits for the Go flag, with a clear reason", async () => {
+    const w = await ledgerWorld();
+    const { getDb } = await import("@/lib/db/client");
+    const s = await import("@/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = await getDb();
+    await db.update(s.repositories).set({ framework: "go", testDir: "" }).where(eq(s.repositories.id, w.repo.id));
+    setDeps({ runner: () => fakeRunner(() => "passed"), drafter: () => fakeDrafter(["GOOD"]), openBotPr: async () => null });
+    await timeTravel(w.incident.id, {});
+    expect((await w.reload()).statusReason).toMatch(/Labs/);
+  });
+});

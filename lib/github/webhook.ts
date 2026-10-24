@@ -39,7 +39,8 @@ async function addRepos(workspaceId: string, repos: Repo[]) {
       continue;
     }
     const d = await github.detectFramework(workspaceId, r.full_name);
-    await db.insert(s.repositories).values({ workspaceId, githubRepoId: String(r.id), fullName: r.full_name, name: r.name, cloneUrl: `https://github.com/${r.full_name}.git`, framework: d.framework, installCmd: d.install, language: d.language });
+    const { frameworkDef } = await import("@/lib/runner/frameworks");
+    await db.insert(s.repositories).values({ workspaceId, githubRepoId: String(r.id), fullName: r.full_name, name: r.name, cloneUrl: `https://github.com/${r.full_name}.git`, framework: d.framework, installCmd: d.install, language: d.language, testDir: frameworkDef(d.framework).defaultTestDir });
   }
 }
 

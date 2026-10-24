@@ -61,6 +61,12 @@ async function plan(checkId: string): Promise<Plan> {
     return false;
   });
   const skips = [...sel.skipped.map((k) => ({ incidentId: byId[k.id].i.id, reason: k.reason })), ...quarantinedSkips];
+  // A language still in Labs never runs until the workspace turns it on.
+  const { frameworkDef } = await import("@/lib/runner/frameworks");
+  const lang = frameworkDef(repo.framework);
+  if (lang.flag && !flagEnabled(lang.flag, ws.settings)) {
+    for (const x of selected.splice(0)) skips.push({ incidentId: x.incidentId, reason: `${lang.language} support is in Labs and not turned on` });
+  }
   const awaiting = await db.select().from(s.incidents).where(and(eq(s.incidents.repoId, repo.id), eq(s.incidents.status, "awaiting_fix")));
   for (const a of awaiting) skips.push({ incidentId: a.id, reason: "Awaiting fix — no proven test yet" });
   const usage = await scoped(ws.id).usage();

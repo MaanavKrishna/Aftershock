@@ -66,6 +66,10 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
     const src = await git.sourceFor(repo, token);
     const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
     const cfg = applyRepoConfig(repo, await loadRepoConfig(src, repo.defaultBranch));
+    const { frameworkDef } = await import("@/lib/runner/frameworks");
+    const { FLAGS, flagEnabled } = await import("@/lib/flags");
+    const lang = frameworkDef(cfg.framework);
+    if (lang.flag && !flagEnabled(lang.flag, ws.settings)) return fail(`${lang.language} support is in Labs. Turn on “${FLAGS[lang.flag]}” in Settings → Labs, then start time travel again.`);
     let fixRef = inc.fixSha;
     if (!fixRef && inc.fixPr) {
       const { mergeCommitForPr } = await import("@/lib/github/pulls");
@@ -138,7 +142,9 @@ async function draftTest(runId: string, ctx: TravelContext, feedback?: string, h
     const dep = await deps();
     const d = await withModelRetry(() => dep.drafter().draft({ workspaceId: ctx.workspaceId, key: ctx.key, incident: ctx.incident, framework: ctx.framework, testDir: ctx.testDir, fixTitle: ctx.fixTitle, diff: ctx.diff, changedFiles: ctx.changedFiles, context: ctx.context, feedback, hint, previous }), dep.retryDelayMs);
     const path = safeTestPath(d.path);
-    if (!path.startsWith(ctx.testDir.replace(/\/$/, "") + "/")) throw Object.assign(new Error(`The draft must live under ${ctx.testDir}/`), { name: "InvalidModelOutput" });
+    const { frameworkDef } = await import("@/lib/runner/frameworks");
+    const pathProblem = frameworkDef(ctx.framework).checkDraftPath(path, ctx.testDir);
+    if (pathProblem) throw Object.assign(new Error(pathProblem), { name: "InvalidModelOutput" });
     await patchStep(runId, "draft", { state: "ok", detail: `${d.model}${feedback ? " · with the previous failure as feedback" : ""}`, ms: Date.now() - started }, { testPath: path, testCode: d.code, model: d.model, tokens: d.tokens ?? null });
     await patchStep(runId, "before", { state: "running", detail: "Running" });
     const { getDb } = await import("@/lib/db/client");
@@ -201,7 +207,9 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
   const db = await getDb();
   const { frameworkDef } = await import("@/lib/runner/frameworks");
   const fn = frameworkDef(ctx.framework).testName(draft.code) ?? draft.path.split("/").pop()!;
-  const watched = ctx.changedFiles.filter((f) => !f.startsWith(ctx.testDir) && !/(^|\/)(tests?|__tests__)\//.test(f));
+  const def = frameworkDef(ctx.framework);
+  // Watched files are the code the fix changed, not its tests.
+  const watched = ctx.changedFiles.filter((f) => !def.isTestFile(f) && !(ctx.testDir && f.startsWith(ctx.testDir)) && !/(^|\/)(tests?|__tests__|spec)\//.test(f));
   // One memory test per incident: a newer proof replaces the old test.
   const [existing] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, ctx.incidentId));
   const values = { repoId: ctx.repoId, runId, path: draft.path, fn, code: draft.code, health: "healthy" as const, nights: [] };
