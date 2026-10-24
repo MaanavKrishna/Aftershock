@@ -108,3 +108,15 @@ test("an unexpected failure still finishes the GitHub check", async () => {
   expect(after.status).toBe("done");
   expect(completed.length).toBeGreaterThan(0);
 });
+
+test("a failure caused by code missing from the branch is inconclusive with a rebase hint, never Recur", async () => {
+  const { db, check } = await world();
+  const missing: Runner = { kind: "docker", run: async (spec) => ({ installOk: true, results: Array.from({ length: spec.runs }, () => ({ outcome: "failed" as const, durationMs: 3, message: "AttributeError: 'Cart' object has no attribute 'item_count'" })), log: "", cpuMs: 5, wallMs: 9 }) };
+  setDeps({ runner: () => missing, drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
+  expect(after.verdict).toBe("inconclusive");
+  const [r] = await db.select().from(s.prCheckResults).where(eq(s.prCheckResults.checkId, check.id));
+  expect(r.failureExcerpt).toMatch(/not on this branch/i);
+  expect(comments[0]).toMatch(/Why: .*rebase/i);
+});

@@ -95,6 +95,11 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
   const db = await getDb();
   const [check] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, checkId));
   const [repo] = await db.select().from(s.repositories).where(eq(s.repositories.id, check.repoId));
+  const { codeAbsent } = await import("@/lib/runner/junit");
+  // A test that cannot even find the code it covers says nothing about a recurrence: the branch predates that code.
+  const missing = (r: RunResult): RunResult =>
+    codeAbsent(r) ? { outcome: "error", durationMs: r.durationMs, message: `The code this test covers is not on this branch (${(r.message ?? "").slice(0, 160)}). Rebase on ${repo.defaultBranch} and push again.` } : r;
+  results = results.map((x) => ({ ...x, runs: x.runs.map(missing) }));
   const rows = results.map(({ selected, runs }) => {
     const verdict = prVerdict(runs);
     const failure = runs.find((r) => r.outcome !== "passed")?.message;
