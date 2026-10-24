@@ -87,7 +87,7 @@ test.describe("product app (demo workspace)", () => {
     await page.getByLabel("Expected").fill("Total shows 0.30");
     await page.getByRole("button", { name: "Save only" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Checkout total rounded wrong");
-    await expect(page.getByText("Awaiting fix").first()).toBeVisible();
+    await expect(page.getByRole("main").getByText("Awaiting fix").first()).toBeVisible();
   });
 
   test("keyboard reaches the source tabs on the new incident page", async ({ page }) => {
