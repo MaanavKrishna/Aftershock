@@ -2,7 +2,7 @@
 
 **Every incident becomes a test. Git history proves it.**
 
-[![CI](https://github.com/MaanavKrishna/Aftershock/actions/workflows/ci.yml/badge.svg)](https://github.com/MaanavKrishna/Aftershock/actions/workflows/ci.yml)
+[![CI](https://github.com/MaanavKrishna/Aftershock/actions/workflows/ci.yml/badge.svg)](https://github.com/MaanavKrishna/Aftershock/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/MaanavKrishna/Aftershock)](https://github.com/MaanavKrishna/Aftershock/releases) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **[aftershock-mk.vercel.app](https://aftershock-mk.vercel.app)** · [Security](https://aftershock-mk.vercel.app/security) · [Pricing](https://aftershock-mk.vercel.app/pricing) · [Docs](https://aftershock-mk.vercel.app/docs)
 
@@ -53,6 +53,7 @@ Rules that never bend:
 - [Self-hosting and setup](docs/setup.md): GitHub App, Neon, Vercel, model, Sentry, PagerDuty, roles
 - [API and CLI](docs/api.md): HTTP API, `aftershock` command line, GitHub Actions runner, `.aftershock/config.yaml`
 - [Architecture](docs/architecture.md): flows, code layout, security model
+- [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
 
 ## Development
 
@@ -74,3 +75,7 @@ npm run build
 ```
 
 Stack: Next.js 16 · React 19 · TypeScript · Tailwind v4 · Drizzle (Neon / PGlite) · Vercel Workflow · Vercel Sandbox · Octokit · Vitest · Playwright.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
