@@ -57,6 +57,7 @@ Rules that never bend:
 - [Integrations](docs/integrations.md): every alert and ticket source, authentication, payloads
 - [Notifications](docs/notifications.md): Slack, signed webhooks, events, retries
 - [Still guarding](docs/still-guarding.md): weekly re-proofs, Weak and Drifted tests
+- [Coding agents](docs/agents.md): MCP server for Claude Code, Cursor and Copilot; AGENTS.md lessons
 - [Audit evidence](docs/evidence.md): signed evidence bundles for SOC 2 and DORA, and how to verify them
 - [API and CLI](docs/api.md): HTTP API, `aftershock` command line, GitHub Actions runner, `.aftershock/config.yaml`
 - [Architecture](docs/architecture.md): flows, code layout, security model
