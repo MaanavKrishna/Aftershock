@@ -8,7 +8,8 @@ export type DocPage = { slug: string; file: string; title: string; group: "Start
 export const DOCS: DocPage[] = [
   { slug: "", file: "quickstart.md", title: "Quickstart", group: "Start" },
   { slug: "concepts", file: "concepts.md", title: "Core concepts", group: "Start" },
-  { slug: "setup", file: "setup.md", title: "Setup and self-hosting", group: "Guides" },
+  { slug: "setup", file: "setup.md", title: "Setup on Vercel", group: "Guides" },
+  { slug: "self-hosting", file: "self-hosting.md", title: "Self-hosting with Docker", group: "Guides" },
   { slug: "integrations", file: "integrations.md", title: "Alerts and tickets", group: "Guides" },
   { slug: "notifications", file: "notifications.md", title: "Notifications", group: "Guides" },
   { slug: "languages", file: "languages.md", title: "Languages and monorepos", group: "Guides" },

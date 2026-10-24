@@ -56,7 +56,8 @@ Rules that never bend:
 ## Documentation
 
 - [Quickstart](docs/quickstart.md) and [core concepts](docs/concepts.md)
-- [Self-hosting and setup](docs/setup.md): GitHub App, Neon, Vercel, model, alerts, roles
+- [Setup](docs/setup.md): GitHub App, Neon, Vercel, model, alerts, roles
+- [Self-hosting with Docker Compose](docs/self-hosting.md): everything on one machine
 - [Integrations](docs/integrations.md): every alert and ticket source, authentication, payloads
 - [Notifications](docs/notifications.md): Slack, signed webhooks, events, retries
 - [Still guarding](docs/still-guarding.md): weekly re-proofs, Weak and Drifted tests

@@ -1,4 +1,6 @@
-# Self-hosting and setup
+# Setup
+
+This guide deploys Aftershock to Vercel with Neon. To run everything on one machine instead, see [Self-hosting with Docker Compose](self-hosting.md).
 
 ## Local development
 

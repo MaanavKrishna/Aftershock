@@ -1,0 +1,40 @@
+# Self-hosted Aftershock on one machine. See docs/self-hosting.md.
+#   cp .env.example .env   # fill in AUTH_SECRET, APP_URL, the GitHub App and a model
+#   docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ""
+      AFTERSHOCK_DEMO: "0"
+    ports:
+      - "3000:3000"
+    volumes:
+      # Embedded Postgres (PGlite) lives here; back this up.
+      - aftershock-data:/app/data
+      # Runs talk to the host's Docker. Bind mounts resolve on the host, so the run folder
+      # must have the same path inside and outside the container.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/aftershock/runs:/var/lib/aftershock/runs
+      - aftershock-git:/root/.cache/aftershock/repos
+
+  # Nightly re-checks, retention, re-proofs and digests: one protected call a day.
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    env_file: .env
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          sleep 86400
+          curl -fsS -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/nightly || echo "nightly call failed"
+        done
+    depends_on:
+      - app
+
+volumes:
+  aftershock-data:
+  aftershock-git:
