@@ -250,8 +250,30 @@ async function markUnproven(ctx: TravelContext, reason: string): Promise<void> {
 // Workflow: deterministic orchestration. Every side effect happens in a step above.
 // ---------------------------------------------------------------------------------------------
 
+/** Last resort: an incident must never stay "traveling" because something unexpected failed. */
+async function abandonTravel(incidentId: string, reason: string): Promise<void> {
+  "use step";
+  const { eq, and } = await import("drizzle-orm");
+  const { getDb } = await import("@/lib/db/client");
+  const s = await import("@/lib/db/schema");
+  const db = await getDb();
+  const msg = `Time travel could not finish: ${reason.slice(0, 300)}`;
+  const [inc] = await db.update(s.incidents).set({ status: "unproven", statusReason: msg, updatedAt: new Date() }).where(and(eq(s.incidents.id, incidentId), eq(s.incidents.status, "traveling"))).returning();
+  if (inc) await db.insert(s.activity).values({ workspaceId: inc.workspaceId, incidentId, title: "Time travel stopped", detail: msg, tone: "fail" });
+  (await import("@/lib/obs/log")).log.error("time travel abandoned", { incidentId, reason });
+}
+
 export async function timeTravel(incidentId: string, opts: { hint?: string }): Promise<{ status: string }> {
   "use workflow";
+  try {
+    return await travel(incidentId, opts);
+  } catch (err) {
+    await abandonTravel(incidentId, err instanceof Error ? err.message : String(err));
+    return { status: "failed" };
+  }
+}
+
+async function travel(incidentId: string, opts: { hint?: string }): Promise<{ status: string }> {
   const prepared = await prepare(incidentId);
   if (!prepared.ok) return { status: "not_reproducible" };
   const ctx = prepared.ctx;

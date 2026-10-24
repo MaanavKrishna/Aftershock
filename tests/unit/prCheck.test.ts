@@ -86,3 +86,25 @@ test("triage may add a test, which then runs too", async () => {
   const results = await db.select().from(s.prCheckResults).where(eq(s.prCheckResults.checkId, check.id));
   expect(results.map((r) => r.selectedBy).sort()).toEqual(["files", "triage"]);
 });
+
+test("a runner that cannot start makes the check inconclusive with the reason, never stuck in progress", async () => {
+  const { db, check } = await world();
+  const broken: Runner = { kind: "sandbox", run: async () => { throw Object.assign(new Error("Status code 402 is not ok: Hobby plan usage limit exceeded for Snapshots Storage."), { status: 402 }); } };
+  setDeps({ runner: () => broken, drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
+  expect(after).toMatchObject({ status: "done", verdict: "inconclusive" });
+  const [r] = await db.select().from(s.prCheckResults).where(eq(s.prCheckResults.checkId, check.id));
+  expect(r.failureExcerpt).toMatch(/sandbox capacity/i);
+  expect(completed).toEqual([{ conclusion: "neutral" }]);
+});
+
+test("an unexpected failure still finishes the GitHub check", async () => {
+  const { db, check } = await world();
+  setGithubApi({ completeCheckRun: async (_w, _r, _id, conclusion) => void completed.push({ conclusion }), upsertComment: async () => { throw new Error("GitHub is down"); } });
+  setDeps({ runner: () => runnerReturning("passed"), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id).catch(() => undefined);
+  const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
+  expect(after.status).toBe("done");
+  expect(completed.length).toBeGreaterThan(0);
+});

@@ -58,7 +58,10 @@ const pausedRunner: Runner = {
 
 export async function deps(): Promise<Deps> {
   const { runsDisabled } = await import("@/lib/flags");
-  const runner = runsDisabled() ? pausedRunner : override.runner ? override.runner() : await defaultRunner();
+  const raw = runsDisabled() ? pausedRunner : override.runner ? override.runner() : await defaultRunner();
+  const { runSafely } = await import("@/lib/runner/safeRun");
+  // Every caller gets results, never an exception, when a runner cannot start.
+  const runner: Runner = { kind: raw.kind, run: (spec) => runSafely(raw, spec) };
   const drafter = override.drafter ? override.drafter() : (await import("@/lib/model/draft")).modelDrafter();
   return {
     runner: () => runner,

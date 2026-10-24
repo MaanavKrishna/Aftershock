@@ -165,3 +165,14 @@ describe("kill switch", () => {
     expect((await w.reload()).statusReason).toMatch(/paused/i);
   });
 });
+
+describe("runner failures", () => {
+  test("a runner that cannot start ends time travel as unproven with the reason", async () => {
+    const w = await ledgerWorld();
+    setDeps({ runner: () => ({ kind: "sandbox", run: async () => { throw new Error("Sandbox create failed: 503"); } }), drafter: () => fakeDrafter(["GOOD"]), openBotPr: async () => null });
+    await timeTravel(w.incident.id, {});
+    const inc = await w.reload();
+    expect(inc.status).toBe("unproven");
+    expect(inc.statusReason).toMatch(/could not start/i);
+  });
+});

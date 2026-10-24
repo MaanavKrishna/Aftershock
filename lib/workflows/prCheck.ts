@@ -132,8 +132,34 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
   }
 }
 
+/** Last resort: a check must never stay "in progress" because something unexpected failed. */
+async function abandonCheck(checkId: string, reason: string): Promise<void> {
+  "use step";
+  const { eq } = await import("drizzle-orm");
+  const { getDb } = await import("@/lib/db/client");
+  const s = await import("@/lib/db/schema");
+  const { github } = await import("@/lib/github/api");
+  const db = await getDb();
+  const [check] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, checkId));
+  if (!check || check.status === "done") return;
+  await db.update(s.prChecks).set({ status: "done", verdict: "inconclusive" }).where(eq(s.prChecks.id, checkId));
+  const [repo] = await db.select().from(s.repositories).where(eq(s.repositories.id, check.repoId));
+  await github
+    .completeCheckRun(check.workspaceId, repo.fullName, check.checkRunId, "neutral", `Aftershock could not finish this check: ${reason.slice(0, 300)}`, `${process.env.APP_URL ?? ""}/pulls/${check.prNumber}?repo=${repo.name}`)
+    .catch(() => undefined);
+  (await import("@/lib/obs/log")).log.error("pull request check abandoned", { checkId, reason });
+}
+
 export async function prCheck(checkId: string): Promise<void> {
   "use workflow";
+  try {
+    await runCheck(checkId);
+  } catch (err) {
+    await abandonCheck(checkId, err instanceof Error ? err.message : String(err));
+  }
+}
+
+async function runCheck(checkId: string): Promise<void> {
   const p = await plan(checkId);
   if (!p.ok) return;
   if (p.mode === "actions") return; // results arrive from the team's runner via /api/v1/checks/report
