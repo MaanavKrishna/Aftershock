@@ -10,7 +10,7 @@ type Plan = {
   chain: { sha: string; subject: string }[];
   reachedRoot: boolean;
   provenAsMissing: boolean;
-  run: { repoUrl: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string; testPath: string; testCode: string };
+  run: { repoUrl: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string; workdir: string; testPath: string; testCode: string };
 };
 
 const DEPTH = 64;
@@ -37,7 +37,7 @@ async function plan(memoryTestId: string): Promise<Plan | null> {
   return {
     memoryTestId, repoId: repo.id, incidentId: inc.id, workspaceId: ws.id, key: incidentKey(ws.incidentPrefix, inc.number), chain, reachedRoot: chain.length < DEPTH,
     provenAsMissing: (proof?.before ?? []).some((x) => MISSING_CODE.test(x.message ?? "")),
-    run: { repoUrl: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd, testPath: t.path, testCode: t.code },
+    run: { repoUrl: repo.cloneUrl, fullName: repo.fullName, framework: t.framework ?? repo.framework, install: t.installCmd ?? repo.installCmd, workdir: t.workdir, testPath: t.path, testCode: t.code },
   };
 }
 

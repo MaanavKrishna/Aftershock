@@ -130,6 +130,10 @@ export const memoryTests = pgTable("memory_tests", {
   nights: jsonb("nights").$type<boolean[]>().notNull().default([]),
   provenAt: timestamp("proven_at", { withTimezone: true }).notNull().defaultNow(),
   /** Flaky on main: skipped on pull requests (when enforcement is on) until seven green nights. */
+  /** Monorepo package the test runs in ("" = repository root), and its framework and install (null = the repository's). */
+  workdir: text("workdir").notNull().default(""),
+  framework: text("framework").$type<Framework>(),
+  installCmd: text("install_cmd"),
   quarantined: boolean("quarantined").notNull().default(false),
   quarantinedAt: timestamp("quarantined_at", { withTimezone: true }),
   quarantineReason: text("quarantine_reason"),

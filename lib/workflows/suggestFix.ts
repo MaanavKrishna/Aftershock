@@ -8,7 +8,7 @@ type Plan =
       workspaceId: string;
       repo: { id: string; url: string; fullName: string; framework: import("@/lib/runner/frameworks").Framework; install: string };
       headSha: string;
-      tests: { id: string; path: string; code: string }[];
+      tests: { id: string; path: string; code: string; workdir: string; framework: import("@/lib/runner/frameworks").Framework | null; install: string | null }[];
       prompt: { file: string; content: string; failing: string; failure: string; diff: string };
       changedFiles: string[];
     };
@@ -39,7 +39,7 @@ async function plan(checkId: string): Promise<Plan> {
   return {
     ok: true, fixId: fix.id, workspaceId: check.workspaceId,
     repo: { id: repo.id, url: repo.cloneUrl, fullName: repo.fullName, framework: repo.framework, install: repo.installCmd },
-    headSha: check.headSha, tests: tests.map((t) => ({ id: t.id, path: t.path, code: t.code })),
+    headSha: check.headSha, tests: tests.map((t) => ({ id: t.id, path: t.path, code: t.code, workdir: t.workdir, framework: t.framework, install: t.installCmd })),
     prompt: { file, content, failing: failing.t.code, failure: failing.r.failureExcerpt ?? "the test failed", diff: check.diff },
     changedFiles: check.changedFiles,
   };
@@ -83,7 +83,7 @@ async function verifyOne(p: Extract<Plan, { ok: true }>, t: Extract<Plan, { ok: 
   const { prVerdict } = await import("@/lib/domain/verdict");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
-  const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch], cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
+  const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: t.framework ?? p.repo.framework, install: t.install ?? p.repo.install, workdir: t.workdir, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch], cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
   return { memoryTestId: t.id, verdict: prVerdict(r.results) };
 }
 

@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const x = byPath.get(r.path);
     if (!x) return [];
     const touched = check.changedFiles.find((f) => x.i.watchedFiles.includes(f));
-    return [{ selected: { memoryTestId: x.t.id, incidentId: x.i.id, key: incidentKey(w.incidentPrefix, x.i.number), title: x.i.title, path: x.t.path, code: x.t.code, selectedBy: "files" as const, why: touched ? `Touches ${touched}` : "Run on your GitHub Actions runner" }, runs: r.runs }];
+    return [{ selected: { memoryTestId: x.t.id, incidentId: x.i.id, key: incidentKey(w.incidentPrefix, x.i.number), title: x.i.title, path: x.t.path, code: x.t.code, selectedBy: "files" as const, why: touched ? `Touches ${touched}` : "Run on your GitHub Actions runner", workdir: x.t.workdir, framework: x.t.framework, install: x.t.installCmd }, runs: r.runs }];
   });
   const reported = new Set(results.map((r) => r.selected.memoryTestId));
   const skips = tests.filter((x) => !reported.has(x.t.id)).map((x) => ({ incidentId: x.i.id, reason: "Not part of this run" }));

@@ -3,7 +3,7 @@ import type { TraceStep } from "@/lib/db/schema";
 
 export const PR_RUNS = 3;
 
-type Selected = { memoryTestId: string; incidentId: string; key: string; title: string; path: string; code: string; selectedBy: "files" | "triage"; why: string };
+type Selected = { memoryTestId: string; incidentId: string; key: string; title: string; path: string; code: string; selectedBy: "files" | "triage"; why: string; workdir: string; framework: import("@/lib/runner/frameworks").Framework | null; install: string | null };
 type Plan =
   | { ok: false }
   | {
@@ -51,7 +51,7 @@ async function plan(checkId: string): Promise<Plan> {
   const selectedAll: Selected[] = sel.run.map((r) => {
     const x = byId[r.id];
     const touched = check.changedFiles.find((f) => x.i.watchedFiles.includes(f));
-    return { memoryTestId: x.t.id, incidentId: x.i.id, key: incidentKey(ws.incidentPrefix, x.i.number), title: x.i.title, path: x.t.path, code: x.t.code, selectedBy: r.selectedBy, why: r.selectedBy === "files" ? `Touches ${touched}` : "Added by triage: related behaviour" };
+    return { memoryTestId: x.t.id, incidentId: x.i.id, key: incidentKey(ws.incidentPrefix, x.i.number), title: x.i.title, path: x.t.path, code: x.t.code, selectedBy: r.selectedBy, why: r.selectedBy === "files" ? `Touches ${touched}` : "Added by triage: related behaviour", workdir: x.t.workdir, framework: x.t.framework, install: x.t.installCmd };
   });
   // Flaky tests cannot block a pull request on noise: they are skipped, with the reason, while quarantined.
   const selected = selectedAll.filter((x) => {
@@ -98,7 +98,7 @@ async function runSelected(p: Extract<Plan, { ok: true }>, t: Selected): Promise
   const { deps } = await import("@/lib/timetravel/deps");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
-  const report = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.testedSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: PR_RUNS, timeoutMs: 120_000, cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
+  const report = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.testedSha, framework: t.framework ?? p.repo.framework, install: t.install ?? p.repo.install, workdir: t.workdir, testPath: t.path, testCode: t.code, runs: PR_RUNS, timeoutMs: 120_000, cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
   return { runs: report.results, cpuMs: report.cpuMs, kind: d.runner().kind };
 }
 

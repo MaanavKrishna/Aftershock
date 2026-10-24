@@ -17,6 +17,8 @@ export type TravelContext = {
   framework: Framework;
   install: string;
   testDir: string;
+  /** Monorepo package folder ("" = repository root). */
+  workdir: string;
   fixSha: string;
   parentSha: string;
   fixTitle: string;
@@ -65,11 +67,10 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
     const token = await (await deps()).tokenFor(repo);
     const src = await git.sourceFor(repo, token);
     const { applyRepoConfig, loadRepoConfig } = await import("@/lib/config/repoConfig");
-    const cfg = applyRepoConfig(repo, await loadRepoConfig(src, repo.defaultBranch));
+    const rawCfg = await loadRepoConfig(src, repo.defaultBranch);
+    const cfg = applyRepoConfig(repo, rawCfg);
     const { frameworkDef } = await import("@/lib/runner/frameworks");
     const { FLAGS, flagEnabled } = await import("@/lib/flags");
-    const lang = frameworkDef(cfg.framework);
-    if (lang.flag && !flagEnabled(lang.flag, ws.settings)) return fail(`${lang.language} support is in Labs. Turn on “${FLAGS[lang.flag]}” in Settings → Labs, then start time travel again.`);
     let fixRef = inc.fixSha;
     if (!fixRef && inc.fixPr) {
       const { mergeCommitForPr } = await import("@/lib/github/pulls");
@@ -78,7 +79,16 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
       if (!fixRef) return fail(`Pull request #${inc.fixPr} is not merged yet. Time travel starts when it merges.`);
     }
     const resolved = await src.resolveFix(fixRef!);
-    const context = await git.draftContext(src, resolved.parentSha, resolved.changedFiles, cfg.framework);
+    // Monorepos: the fix belongs to the package that contains most of its changed files.
+    const { resolvePackage } = await import("@/lib/domain/packages");
+    const pkg = resolvePackage(resolved.changedFiles, rawCfg.packages ?? []);
+    const framework = pkg?.framework ?? cfg.framework;
+    const lang = frameworkDef(framework);
+    if (lang.flag && !flagEnabled(lang.flag, ws.settings)) return fail(`${lang.language} support is in Labs. Turn on “${FLAGS[lang.flag]}” in Settings → Labs, then start time travel again.`);
+    const workdir = pkg?.path ?? "";
+    const testDir = pkg ? [pkg.path, pkg.testDir ?? lang.defaultTestDir].filter(Boolean).join("/") : cfg.testDir;
+    const install = pkg?.installCmd ?? cfg.installCmd;
+    const context = await git.draftContext(src, resolved.parentSha, resolved.changedFiles, framework);
     const { sql } = await import("drizzle-orm");
     const [{ max }] = await db.select({ max: sql<number>`coalesce(max(${s.timeTravelRuns.attempt}), 0)` }).from(s.timeTravelRuns).where(eq(s.timeTravelRuns.incidentId, inc.id));
     await db
@@ -91,7 +101,7 @@ async function prepare(incidentId: string): Promise<{ ok: true; ctx: TravelConte
       ctx: {
         incidentId: inc.id, workspaceId: inc.workspaceId, repoId: repo.id, repoUrl: repo.cloneUrl, fullName: repo.fullName, key,
         incident: { title: inc.title, trigger: inc.trigger, observed: inc.observed, expected: inc.expected },
-        framework: cfg.framework, install: cfg.installCmd, testDir: cfg.testDir,
+        framework, install, testDir, workdir,
         fixSha: resolved.fixSha, parentSha: resolved.parentSha, fixTitle: resolved.title,
         changedFiles: resolved.changedFiles, diff: resolved.diff, context, firstAttempt: Number(max) + 1,
       },
@@ -170,7 +180,7 @@ async function runOn(runId: string, ctx: TravelContext, which: "before" | "fix",
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: ctx.workspaceId, fullName: ctx.fullName });
   const sha = which === "before" ? ctx.parentSha : ctx.fixSha;
-  const report = await d.runner().run({ repoUrl: ctx.repoUrl, token, sha, framework: ctx.framework, install: ctx.install, testPath: draft.path, testCode: draft.code, runs: RUNS_PER_COMMIT, timeoutMs: 120_000, cache: { workspaceId: ctx.workspaceId, repoId: ctx.repoId, trusted: true } });
+  const report = await d.runner().run({ repoUrl: ctx.repoUrl, token, sha, framework: ctx.framework, install: ctx.install, testPath: draft.path, testCode: draft.code, runs: RUNS_PER_COMMIT, timeoutMs: 120_000, workdir: ctx.workdir, cache: { workspaceId: ctx.workspaceId, repoId: ctx.repoId, trusted: true } });
   const outcomes = report.results.map((r) => r.outcome);
   const failed = outcomes.filter((o) => o === "failed").length;
   const passed = outcomes.filter((o) => o === "passed").length;
@@ -212,7 +222,7 @@ async function admit(runId: string, ctx: TravelContext, draft: { path: string; c
   const watched = ctx.changedFiles.filter((f) => !def.isTestFile(f) && !(ctx.testDir && f.startsWith(ctx.testDir)) && !/(^|\/)(tests?|__tests__|spec)\//.test(f));
   // One memory test per incident: a newer proof replaces the old test.
   const [existing] = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(eq(s.memoryTests.incidentId, ctx.incidentId));
-  const values = { repoId: ctx.repoId, runId, path: draft.path, fn, code: draft.code, health: "healthy" as const, nights: [] };
+  const values = { repoId: ctx.repoId, runId, path: draft.path, fn, code: draft.code, health: "healthy" as const, nights: [], workdir: ctx.workdir, framework: ctx.framework, installCmd: ctx.install };
   const [mem] = existing
     ? await db.update(s.memoryTests).set(values).where(eq(s.memoryTests.id, existing.id)).returning()
     : await db.insert(s.memoryTests).values({ workspaceId: ctx.workspaceId, incidentId: ctx.incidentId, ...values }).returning();

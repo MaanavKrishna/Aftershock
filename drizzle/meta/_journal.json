@@ -43,6 +43,13 @@
       "when": 1792847470031,
       "tag": "0005_metering_quarantine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792849405006,
+      "tag": "0006_package_tests",
+      "breakpoints": true
     }
   ]
 }
