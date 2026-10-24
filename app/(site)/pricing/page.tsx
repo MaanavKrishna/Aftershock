@@ -7,8 +7,8 @@ export const metadata: Metadata = { title: "Pricing" };
 const COMPARE = [["Setup", "None", "One workflow file"], ["Cost", "Counts sandbox CPU-hours", "Your Actions minutes"], ["Isolation", "Fresh microVM per run", "Your runner"], ["Secrets available", "None, ever", "Only ones you pass in"], ["Best for", "Getting started, private code you want isolated", "High PR volume, custom services"]];
 const FAQ = [
   ["Does our source code leave GitHub?", "With your own runners, no. In our sandbox, the repository is cloned into a throwaway machine for the run and deleted with it. We store test results and logs, never your source."],
-  ["What counts against sandbox time?", "Only CPU time spent running your tests. Waiting on installs over the network or on the model does not count."],
-  ["What happens when we hit the sandbox limit?", "Pull request checks move to your GitHub Actions runners automatically. Nothing is skipped silently; the check says where it ran."],
+  ["What counts against sandbox time?", "Active CPU time in the sandbox: installing dependencies and running your tests. Waiting on the network or on the model does not count."],
+  ["What happens when we hit the sandbox limit?", "Pull request checks pause and say so on the pull request; nothing is skipped silently. Switch a repository to run on your own GitHub Actions at any time — that is unlimited on every plan."],
   ["Can we bring our own model?", "Yes. Any OpenAI-compatible endpoint works, including self-hosted models. Model output is always a draft until git history proves it."],
   ["Is there a limit on incidents?", "No. Incidents, admitted tests and history are unlimited on every plan."],
 ];

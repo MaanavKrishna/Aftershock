@@ -50,7 +50,7 @@ export async function Sidebar({ scope, userId }: { scope: Scoped; userId: string
           <div className="h-1.5 overflow-hidden rounded-[3px] bg-ink-line">
             <div className={`h-full ${pct >= 100 ? "bg-fail-dark" : "bg-pass-dark"}`} style={{ width: `${pct}%` }} />
           </div>
-          <span className="text-[11.5px] text-[#7D8896]">Checks fall back to your Actions at the limit</span>
+          <span className="text-[11.5px] text-[#7D8896]">At the limit, checks pause until you switch a repo to Actions</span>
         </div>
         <div className="flex items-center gap-2.5 px-1.5">
           <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#344150] text-xs font-semibold text-white">{name[0].toUpperCase()}</span>

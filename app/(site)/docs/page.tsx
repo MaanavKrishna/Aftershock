@@ -129,7 +129,7 @@ export default function Docs() {
             <h2 className={h2}>Current limits</h2>
             <ul className="m-0 flex flex-col gap-1.5 pl-5 text-body">
               <li>GitHub only. GitLab and Bitbucket are not supported yet.</li>
-              <li>Python 3.10–3.13 with pytest; Node 20+ with vitest or jest.</li>
+              <li>Python 3.13 with pytest; Node 22 with vitest or jest (in the Aftershock sandbox).</li>
               <li>Tests that need live third-party services cannot be proven in the sandbox. Use your runners and fixtures.</li>
               <li>Incidents without a fix commit stay in “Awaiting fix” and are never proven by guesswork.</li>
             </ul>
