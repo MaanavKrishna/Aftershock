@@ -53,6 +53,7 @@ Rules that never bend:
 - [Self-hosting and setup](docs/setup.md): GitHub App, Neon, Vercel, model, Sentry, PagerDuty, roles
 - [API and CLI](docs/api.md): HTTP API, `aftershock` command line, GitHub Actions runner, `.aftershock/config.yaml`
 - [Architecture](docs/architecture.md): flows, code layout, security model
+- [Operations](docs/operations.md): logs, kill switch, feature flags, migrations, rollback
 - [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
 
 ## Development
