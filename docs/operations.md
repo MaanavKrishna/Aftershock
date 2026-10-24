@@ -21,6 +21,14 @@ Set `AFTERSHOCK_RUNS_DISABLED=1` in Vercel and redeploy (or use an environment v
 
 With the `installCache` flag on, the first trusted run for a repository (time travel, nightly, Epicenter) snapshots the installed environment; later runs with the same framework, image, install command and lockfiles restore it and skip the install. At most two snapshots are kept per repository and each expires after 7 days. `node scripts/sandbox-snapshots.mjs` lists all snapshots in the project (and deletes them with `--yes`).
 
+## Data lifecycle
+
+- **Deleting**: admins delete incidents and repositories; owners delete the workspace; anyone can delete their own account (Settings → Danger zone). Each needs the name typed to confirm, and is written to the audit log (Settings → Audit log), which is kept even after a workspace is deleted.
+- **Repositories removed from the GitHub App** are archived (no longer checked or listed) and purged after 30 days unless access returns.
+- **Uninstalled workspaces** are kept for 30 days so a reinstall continues where it left off, then purged.
+- **Retention**: run logs and webhook delivery records older than 30 days are cleared by the daily job. Verdicts, proofs and evidence stay until deleted.
+- Deleting a repository or workspace also deletes its cached environments at the sandbox provider.
+
 ## Feature flags
 
 New features ship dark. Each flag (`lib/flags.ts`) is off unless:
