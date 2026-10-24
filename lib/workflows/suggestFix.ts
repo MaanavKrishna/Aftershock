@@ -76,18 +76,15 @@ async function propose(p: Extract<Plan, { ok: true }>): Promise<{ ok: true; path
   }
 }
 
-async function verify(p: Extract<Plan, { ok: true }>, patch: { path: string; content: string }): Promise<{ memoryTestId: string; verdict: CheckVerdict }[]> {
+/** One memory test per step: verifying a fix against many tests never exceeds one function's time limit. */
+async function verifyOne(p: Extract<Plan, { ok: true }>, t: Extract<Plan, { ok: true }>["tests"][number], patch: { path: string; content: string }): Promise<{ memoryTestId: string; verdict: CheckVerdict }> {
   "use step";
   const { deps } = await import("@/lib/timetravel/deps");
   const { prVerdict } = await import("@/lib/domain/verdict");
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
-  const out: { memoryTestId: string; verdict: CheckVerdict }[] = [];
-  for (const t of p.tests) {
-    const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch] });
-    out.push({ memoryTestId: t.id, verdict: prVerdict(r.results) });
-  }
-  return out;
+  const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: p.repo.framework, install: p.repo.install, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch] });
+  return { memoryTestId: t.id, verdict: prVerdict(r.results) };
 }
 
 async function save(fixId: string, status: "passed" | "failed", patch: string, explanation: string, results: { memoryTestId: string; verdict: CheckVerdict }[]): Promise<void> {
@@ -113,7 +110,8 @@ export async function suggestFix(checkId: string): Promise<void> {
     await save(p.fixId, "failed", "", proposal.reason, []);
     return;
   }
-  const results = await verify(p, { path: proposal.path, content: proposal.content });
+  const results: { memoryTestId: string; verdict: CheckVerdict }[] = [];
+  for (const test of p.tests) results.push(await verifyOne(p, test, { path: proposal.path, content: proposal.content }));
   const passed = results.length > 0 && results.every((r) => r.verdict === "safe");
   await save(p.fixId, passed ? "passed" : "failed", JSON.stringify({ path: proposal.path, content: proposal.content }), passed ? proposal.explanation : `${proposal.explanation} It did not pass every memory test, so it was not posted.`.trim(), results);
 }
