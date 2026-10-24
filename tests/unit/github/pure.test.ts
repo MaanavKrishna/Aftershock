@@ -34,3 +34,10 @@ test("an inconclusive comment never reads as green", () => {
   expect(md).toContain("Inconclusive");
   expect(md).not.toMatch(/stayed fixed/);
 });
+
+test("an inconclusive comment says why, once per distinct reason", () => {
+  const r = (key: string) => ({ key, title: key, testPath: `t/${key}.py`, verdict: "inconclusive" as const, passed: 0, runs: 3, failure: "Dependency install failed (exit 1)" });
+  const md = renderComment({ verdict: "inconclusive", results: [r("INC-1"), r("INC-3")], skipped: 0, url: "u" });
+  expect(md).toContain("Why: Dependency install failed (exit 1)");
+  expect(md.match(/Dependency install failed/g)).toHaveLength(1);
+});

@@ -22,6 +22,10 @@ export function renderComment(c: { verdict: CheckVerdict; results: CommentResult
     for (const r of c.results) lines.push(`| ${r.key} | \`${r.testPath}\` | ${r.passed}/${r.runs} pass |`);
   }
   for (const r of recur) if (r.failure) lines.push("", "```", r.failure.slice(0, 1500), "```");
+  if (c.verdict === "inconclusive") {
+    const reasons = [...new Set(c.results.filter((r) => r.verdict === "inconclusive" && r.failure).map((r) => r.failure!.slice(0, 300)))];
+    for (const why of reasons.slice(0, 3)) lines.push("", `Why: ${why}`);
+  }
   lines.push("", `${c.results.length} relevant · ${c.skipped} skipped${c.runner ? ` · ran in ${c.runner}` : ""} · [Open the trace](${c.url})`);
   return lines.join("\n");
 }
