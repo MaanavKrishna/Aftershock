@@ -12,6 +12,11 @@ In Vercel: **Project → Logs**, filter by `level:error` or search a request id 
 
 Set `AFTERSHOCK_RUNS_DISABLED=1` in Vercel and redeploy (or use an environment variable change + instant redeploy). No sandbox or Docker run starts while it is set; time travel and checks finish as *unproven* / *inconclusive* with the reason “Runs are paused by the operator”. Remove it to resume.
 
+## Time budget and the daily job
+
+- Every hosted sandbox run must finish inside one function invocation. `AFTERSHOCK_STEP_BUDGET_MS` (default 270000) caps install and test timeouts for a run, and the sandbox stops itself one minute after the budget if the function is cut off. Each run is its own workflow step, so long jobs (Epicenter, verifying a suggested fix) are many short steps.
+- Vercel Cron calls `/api/cron/nightly` once a day. It only starts the durable `daily` workflow, which re-checks every memory test as separate steps. Retention and weekly re-proofs run from the same job.
+
 ## Feature flags
 
 New features ship dark. Each flag (`lib/flags.ts`) is off unless:

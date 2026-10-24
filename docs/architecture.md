@@ -30,7 +30,7 @@ One Next.js 16 (App Router) application. Pure decision logic is separated from I
 
 **Epicenter** (`lib/workflows/epicenter.ts`) gallops back through first-parent history until the test passes, or until the code it tests does not exist yet, then binary-searches the boundary (`lib/domain/epicenter.ts`, capped at 12 runs). It can be re-run from the incident page.
 
-**Nightly** (`lib/workflows/nightly.ts`) runs each memory test once on the default branch and keeps 14 nights of health.
+**Daily** (`lib/workflows/daily.ts`, started by the daily cron) re-checks each memory test once on the default branch as its own step (`lib/workflows/nightly.ts`) and keeps 14 nights of health.
 
 Each workflow is a deterministic `"use workflow"` function calling `"use step"` functions. On Vercel the Workflow SDK makes them durable; locally and in tests the same code runs in-process (`lib/workflows/start.ts`).
 
