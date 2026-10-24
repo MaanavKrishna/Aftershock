@@ -465,3 +465,25 @@ export async function measureStrength(form: FormData): Promise<void> {
   await startStrength(t.id);
   revalidatePath("/memory");
 }
+
+async function setReportToken(token: string | undefined): Promise<void> {
+  const { session, allowed } = await authorize("manageWorkspace");
+  if (!allowed) return;
+  const db = await getDb();
+  const [cur] = await db.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, session.workspaceId));
+  const { reportToken: _old, ...rest } = cur?.settings ?? {};
+  await db.update(s.workspaces).set({ settings: token ? { ...rest, reportToken: token } : rest }).where(eq(s.workspaces.id, session.workspaceId));
+  const { audit } = await import("@/lib/data/lifecycle");
+  await audit(session.workspaceId, session.userId, token ? "report.shared" : "report.unshared");
+  revalidatePath("/insights");
+}
+
+/** Creates the secret link for the read-only reliability report. */
+export async function shareReport(): Promise<void> {
+  const { randomBytes } = await import("node:crypto");
+  await setReportToken(`rr_${randomBytes(18).toString("base64url")}`);
+}
+
+export async function unshareReport(): Promise<void> {
+  await setReportToken(undefined);
+}

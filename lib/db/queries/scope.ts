@@ -131,6 +131,27 @@ export function scoped(workspaceId: string) {
       return db.select().from(s.timeTravelRuns).where(eq(s.timeTravelRuns.incidentId, inc.id)).orderBy(asc(s.timeTravelRuns.attempt));
     },
 
+    /** Inputs for lib/domain/insights.ts: incidents with when they were first proven, checks, and test health. */
+    async insightsData() {
+      const db = await getDb();
+      const incidents = await db.select({ id: s.incidents.id, status: s.incidents.status, createdAt: s.incidents.createdAt, watchedFiles: s.incidents.watchedFiles }).from(s.incidents).where(eq(s.incidents.workspaceId, workspaceId));
+      const proofs = await db
+        .select({ incidentId: s.timeTravelRuns.incidentId, at: sql<Date>`min(${s.timeTravelRuns.finishedAt})` })
+        .from(s.timeTravelRuns)
+        .innerJoin(s.incidents, eq(s.incidents.id, s.timeTravelRuns.incidentId))
+        .where(and(eq(s.incidents.workspaceId, workspaceId), eq(s.timeTravelRuns.status, "proven")))
+        .groupBy(s.timeTravelRuns.incidentId);
+      const provenAt = new Map(proofs.map((p) => [p.incidentId, p.at ? new Date(p.at) : null]));
+      const checks = await db.select({ verdict: s.prChecks.verdict, overridden: s.prChecks.overridden, createdAt: s.prChecks.createdAt }).from(s.prChecks).where(and(eq(s.prChecks.workspaceId, workspaceId), eq(s.prChecks.status, "done")));
+      const tests = await db.select({ health: s.memoryTests.health, guardStatus: s.memoryTests.guardStatus, strength: s.memoryTests.strength }).from(s.memoryTests).where(eq(s.memoryTests.workspaceId, workspaceId));
+      return {
+        now: new Date(),
+        incidents: incidents.map((i) => ({ ...i, provenAt: i.status === "proven" ? (provenAt.get(i.id) ?? null) : null })),
+        checks,
+        tests: tests.map((t) => ({ health: t.health, guardStatus: t.guardStatus, strength: t.strength?.score ?? null })),
+      };
+    },
+
     async memoryTestsForIncident(incidentId: string) {
       const db = await getDb();
       return db.select().from(s.memoryTests).where(and(eq(s.memoryTests.workspaceId, workspaceId), eq(s.memoryTests.incidentId, incidentId)));

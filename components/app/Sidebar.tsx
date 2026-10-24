@@ -34,6 +34,7 @@ export async function Sidebar({ scope, userId }: { scope: Scoped; userId: string
           { id: "incidents", label: "Incidents", badge: counts.open },
           { id: "memory", label: "Memory", badge: counts.memory },
           { id: "pulls", label: "Pull requests", badge: counts.recur, hot: true },
+          { id: "insights", label: "Insights" },
           { id: "repositories", label: "Repositories" },
           { id: "integrations", label: "Integrations" },
           { id: "settings", label: "Settings" },

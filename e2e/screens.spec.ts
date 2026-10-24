@@ -34,6 +34,7 @@ test.describe("product app (demo workspace)", () => {
     ["/memory", /lessons? your codebase can’t forget/],
     ["/pulls", /Every change, checked against what already broke/],
     ["/pulls/214", /This change would ship INC-12 again/],
+    ["/insights", /What your incidents taught the codebase/],
     ["/repositories", /Where checks run/],
     ["/integrations", /Where incidents come from/],
     ["/settings", /Workspace/],
@@ -91,7 +92,7 @@ test.describe("product app (demo workspace)", () => {
 
   test("app routes fit a 390px phone without horizontal scroll", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const path of ["/overview", "/incidents", "/incidents/12", "/incidents/12/travel", "/incidents/12/evidence", "/memory", "/pulls", "/pulls/214", "/repositories", "/integrations", "/settings"]) {
+    for (const path of ["/overview", "/incidents", "/incidents/12", "/incidents/12/travel", "/incidents/12/evidence", "/memory", "/pulls", "/pulls/214", "/insights", "/repositories", "/integrations", "/settings"]) {
       await page.goto(path);
       const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
       expect(fits, path).toBe(true);

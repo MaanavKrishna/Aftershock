@@ -14,7 +14,7 @@ export const workspaces = pgTable("workspaces", {
   uninstalledAt: timestamp("uninstalled_at", { withTimezone: true }),
   incidentPrefix: text("incident_prefix").notNull().default("INC"),
   installationId: bigint("installation_id", { mode: "number" }),
-  settings: jsonb("settings").$type<{ autoImportIssues?: boolean; autoTravelOnMerge?: boolean; issueLabel?: string; flags?: Partial<Record<string, boolean>> }>().notNull().default({}),
+  settings: jsonb("settings").$type<{ autoImportIssues?: boolean; autoTravelOnMerge?: boolean; issueLabel?: string; flags?: Partial<Record<string, boolean>>; /** Secret for the public read-only reliability report. */ reportToken?: string }>().notNull().default({}),
   createdAt: created(),
 });
 
@@ -328,7 +328,7 @@ export const auditLog = pgTable("audit_log", {
 });
 
 /** Events a notification target can subscribe to (lib/notify). */
-export type NotifyEvent = "incident.opened" | "incident.proven" | "incident.unproven" | "pr.blocked" | "epicenter.found" | "nightly.failing" | "test.quarantined" | "check.overridden" | "test.weakened";
+export type NotifyEvent = "incident.opened" | "incident.proven" | "incident.unproven" | "pr.blocked" | "epicenter.found" | "nightly.failing" | "test.quarantined" | "check.overridden" | "test.weakened" | "digest.weekly";
 
 export const notificationTargets = pgTable("notification_targets", {
   id: id(),

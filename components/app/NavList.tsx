@@ -6,6 +6,7 @@ const ICONS: Record<string, string> = {
   overview: "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z",
   incidents: "M12 3 2 20h20L12 3z M12 10v4 M12 17h.01",
   memory: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z M9 12l2 2 4-4",
+  insights: "M4 20V10 M10 20V4 M16 20v-7 M22 20H2",
   pulls: "M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4",
   repositories: "M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z M4 16a4 4 0 0 1 4-4h12",
   integrations: "M9 2v6 M15 2v6 M6 8h12v4a6 6 0 0 1-12 0z M12 18v4",
