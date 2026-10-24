@@ -61,3 +61,9 @@ export async function startNightly(memoryTestId: string): Promise<void> {
   const { nightly } = await import("./nightly");
   await launch(nightly, [memoryTestId], "nightly re-check");
 }
+
+/** The single daily job: nightly re-checks now; retention and re-proof hook in here too. */
+export async function startDaily(day: string): Promise<void> {
+  const { daily } = await import("./daily");
+  await launch(daily, [day], "daily");
+}

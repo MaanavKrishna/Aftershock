@@ -1,5 +1,5 @@
 /** Runs one memory test once on the default branch and updates its 14-night health. */
-async function runNightly(memoryTestId: string): Promise<void> {
+export async function runNightly(memoryTestId: string): Promise<void> {
   "use step";
   const { eq } = await import("drizzle-orm");
   const { getDb } = await import("@/lib/db/client");
