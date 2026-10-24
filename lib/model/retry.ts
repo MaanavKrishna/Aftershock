@@ -13,6 +13,7 @@ export async function withModelRetry<T>(fn: () => Promise<T>, delayMs = 5_000, t
       return await fn();
     } catch (err) {
       if (i >= tries || !isTransientModelError(err)) throw err;
+      (await import("@/lib/obs/log")).log.warn("model call failed, retrying", { attempt: i, err });
       await new Promise((r) => setTimeout(r, delayMs * 2 ** (i - 1)));
     }
   }

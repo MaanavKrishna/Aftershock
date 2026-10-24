@@ -59,7 +59,9 @@ export class SandboxRunner implements Runner {
         const xml = await sandbox.readFileToBuffer({ path: junit });
         results.push(parseJUnit(xml ? xml.toString("utf8") : "", ms));
       }
-      return { installOk: true, results, log: logs.join("\n\n"), cpuMs: sandbox.activeCpuUsageMs ?? Date.now() - started, wallMs: Date.now() - started };
+      const report = { installOk: true, results, log: logs.join("\n\n"), cpuMs: sandbox.activeCpuUsageMs ?? Date.now() - started, wallMs: Date.now() - started };
+      (await import("@/lib/obs/log")).log.info("sandbox run finished", { sha: spec.sha.slice(0, 12), framework: spec.framework, outcomes: results.map((r) => r.outcome), wallMs: report.wallMs });
+      return report;
     } finally {
       await sandbox.stop().catch(() => undefined);
     }

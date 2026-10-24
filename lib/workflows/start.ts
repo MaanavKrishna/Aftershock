@@ -20,12 +20,14 @@ async function launch<A extends unknown[]>(fn: (...args: A) => Promise<unknown>,
     override(fn.name, String(args[0]));
     return;
   }
+  const { log } = await import("@/lib/obs/log");
+  log.info("workflow started", { workflow: label, id: String(args[0]), durable: durable() });
   if (durable()) {
     const { start } = await import("workflow/api");
     await start(fn as never, args as never);
     return;
   }
-  void fn(...args).catch((err) => console.error(`[aftershock] ${label} failed`, err));
+  void fn(...args).catch((err) => log.error("workflow failed", { workflow: label, id: String(args[0]), err }));
 }
 
 export async function startTimeTravel(incidentId: string, opts: { hint?: string } = {}): Promise<void> {

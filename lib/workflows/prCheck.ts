@@ -110,6 +110,7 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
   const verdict = aggregatePr(rows.map((r) => r.verdict));
   const durationMs = Date.now() - new Date(check.createdAt).getTime();
   await db.update(s.prChecks).set({ status: "done", verdict, runner, durationMs }).where(eq(s.prChecks.id, checkId));
+  (await import("@/lib/obs/log")).log.info("pull request check finished", { checkId, verdict, runner, durationMs, tests: rows.length });
   if (runner === "sandbox" && cpuMs > 0) {
     const month = new Date().toISOString().slice(0, 7);
     await db.insert(s.usage).values({ workspaceId: check.workspaceId, month, sandboxCpuMs: cpuMs }).onConflictDoUpdate({ target: [s.usage.workspaceId, s.usage.month], set: { sandboxCpuMs: sql`${s.usage.sandboxCpuMs} + ${cpuMs}` } });
