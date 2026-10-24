@@ -13,7 +13,7 @@ import { SOURCES } from "@/components/app/sources";
 import { AutoRefresh } from "@/components/app/AutoRefresh";
 import { incidentKey } from "@/lib/domain/ids";
 import { stamp } from "@/lib/format";
-import { addNote, deleteIncidentAction, linkFix, retryTimeTravel, searchEpicenter } from "../../actions";
+import { acceptSuggestedFix, addNote, deleteIncidentAction, dismissSuggestedFix, linkFix, rerunRelated, retryTimeTravel, searchEpicenter } from "../../actions";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { can } from "@/lib/auth/roles";
 
@@ -58,6 +58,19 @@ export default async function IncidentPage({ params, searchParams }: { params: P
             {runs.length > 0 && <ButtonLink href={`/incidents/${inc.number}/evidence`} variant="secondary">Evidence</ButtonLink>}
             {mem?.botPr && <a href={repo ? `https://github.com/${repo.fullName}/pull/${mem.botPr}` : "#"} className="inline-flex min-h-[42px] items-center rounded-[9px] bg-ink px-3.5 text-[13.5px] font-semibold text-white no-underline">{mem.botPrState === "open" ? `Review bot PR #${mem.botPr}` : `Bot PR #${mem.botPr} · ${mem.botPrState}`}</a>}
           </div>
+        {inc.related.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-[#E8C4B0] bg-fail-tint px-4 py-3 text-[13.5px] text-fail-ink">
+            <span className="flex-[1_1_320px]"><strong>Looks like <Link href={`/incidents/${inc.related[0].key.split("-").pop()}`} className="text-inherit">{inc.related[0].key}</Link> again</strong> · {inc.related[0].why}{inc.related.length > 1 ? ` · also similar: ${inc.related.slice(1).map((r) => r.key).join(", ")}` : ""}</span>
+            <form action={rerunRelated}><input type="hidden" name="incidentId" value={inc.related[0].id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] border border-[#E8C4B0] bg-white px-3.5 font-semibold text-fail-ink" pendingLabel="Starting…">{`Re-run ${inc.related[0].key}'s test on main`}</SubmitButton></form>
+          </div>
+        )}
+        {inc.suggestedFix && inc.status === "awaiting_fix" && (
+          <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-line bg-pass-wash px-4 py-3 text-[13.5px] text-pass-deep">
+            <span className="flex-[1_1_320px]"><strong>PR #{inc.suggestedFix.pr} probably fixed this</strong> · {inc.suggestedFix.title} · {inc.suggestedFix.why}</span>
+            <form action={acceptSuggestedFix}><input type="hidden" name="incidentId" value={inc.id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] bg-ink px-3.5 font-semibold text-white" pendingLabel="Starting…">Link and time travel</SubmitButton></form>
+            <form action={dismissSuggestedFix}><input type="hidden" name="incidentId" value={inc.id} /><SubmitButton className="min-h-10 cursor-pointer rounded-[9px] border border-line-strong bg-white px-3.5 font-semibold text-ink" pendingLabel="…">Not this one</SubmitButton></form>
+          </div>
+        )}
         </div>
 
         {inc.statusReason && (inc.status === "awaiting_fix" || inc.status === "unproven" || inc.status === "rejected") && (

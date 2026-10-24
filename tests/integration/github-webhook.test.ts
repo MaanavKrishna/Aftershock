@@ -132,5 +132,18 @@ describe("GitHub webhooks", () => {
     await handleGithubEvent("repository", { action: "publicized", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api`, private: false } });
     expect((await db.select().from(s.repositories).where(eq(s.repositories.id, repo.id)))[0].isPrivate).toBe(false);
   });
+
+  test("a merged PR that doesn't mention an incident but changes its files is suggested as the fix", async () => {
+    const org = login();
+    const { db, ws, repo } = await installed(org);
+    const [inc] = await db.insert(s.incidents).values({ workspaceId: ws.id, repoId: repo.id, number: 21, title: "IntegrityError", observed: "IntegrityError — app/services/payment_service.py in charge", source: "sentry", status: "awaiting_fix" }).returning();
+    const [other] = await db.insert(s.incidents).values({ workspaceId: ws.id, repoId: repo.id, number: 22, title: "Slow search", observed: "app/search.py timeout", source: "sentry", status: "awaiting_fix" }).returning();
+    await handleGithubEvent("pull_request", { action: "closed", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api` }, pull_request: { number: 88, title: "Guard duplicate charge", body: "", merged: true, merge_commit_sha: "f".repeat(40), head: { ref: "fix/charge", sha: "e".repeat(40) }, base: { sha: "d".repeat(40) } } });
+    const [after] = await db.select().from(s.incidents).where(eq(s.incidents.id, inc.id));
+    expect(after.suggestedFix).toMatchObject({ pr: 88, sha: "f".repeat(40), title: "Guard duplicate charge", why: "changes app/services/payment_service.py" });
+    expect(after.status).toBe("awaiting_fix");
+    expect((await db.select().from(s.incidents).where(eq(s.incidents.id, other.id)))[0].suggestedFix).toBeNull();
+    expect(started).toEqual([]);
+  });
 });
 

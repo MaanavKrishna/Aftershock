@@ -411,3 +411,34 @@ export async function backfillAction(form: FormData): Promise<void> {
   await audit(session.workspaceId, session.userId, "incidents.backfill", `${limit} issues`);
   redirect("/incidents?backfill=started");
 }
+
+/** Re-runs an earlier incident's memory tests on the default branch now (the nightly re-check, on demand). */
+export async function rerunRelated(form: FormData): Promise<void> {
+  const { session } = await currentScope();
+  const db = await getDb();
+  const tests = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(and(eq(s.memoryTests.incidentId, String(form.get("incidentId") ?? "")), eq(s.memoryTests.workspaceId, session.workspaceId)));
+  const { startNightly } = await import("@/lib/workflows/start");
+  for (const t of tests) await startNightly(t.id);
+  revalidatePath("/incidents");
+}
+
+/** Confirms the suggested fix: links it and starts time travel. */
+export async function acceptSuggestedFix(form: FormData): Promise<void> {
+  const { session } = await currentScope();
+  const db = await getDb();
+  const [inc] = await db.select().from(s.incidents).where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)));
+  if (!inc?.suggestedFix || inc.status !== "awaiting_fix") return;
+  const fix = inc.suggestedFix;
+  await db.update(s.incidents).set({ fixSha: fix.sha, fixPr: fix.pr, fixTitle: fix.title, parentSha: null, suggestedFix: null, statusReason: null, updatedAt: new Date() }).where(eq(s.incidents.id, inc.id));
+  await recordActivity({ workspaceId: session.workspaceId, incidentId: inc.id, title: "Fix linked", detail: `PR #${fix.pr} (suggested)`, tone: "pass" });
+  const { startTimeTravel } = await import("@/lib/workflows/start");
+  await startTimeTravel(inc.id);
+  redirect(`/incidents/${inc.number}/travel`);
+}
+
+export async function dismissSuggestedFix(form: FormData): Promise<void> {
+  const { session } = await currentScope();
+  const db = await getDb();
+  await db.update(s.incidents).set({ suggestedFix: null }).where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)));
+  revalidatePath("/incidents");
+}

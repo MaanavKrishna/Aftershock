@@ -109,6 +109,7 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
       })
       .returning();
     await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `Imported from issue #${p.issue.number}`, detail: `${incidentKey(ws.incidentPrefix, inc.number)} · ${repo.name}`, tone: "pass", event: "incident.opened" });
+    await (await import("@/lib/incidents/related")).linkRelated(inc.id);
     await logDelivery(ws.id, "issues.closed", `#${p.issue.number} labelled ${label}`);
     if (fix.sha || fix.pr) await startTimeTravel(inc.id);
     return { note: "incident imported" };
@@ -132,6 +133,9 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
           await startTimeTravel(inc.id);
         }
       }
+      // Alerts that nobody linked: a merged PR changing the files they point at is offered as their fix.
+      const { suggestFixes } = await import("@/lib/incidents/suggestFix");
+      const suggested = await suggestFixes(ws, repo, { number: pr.number, sha: String(pr.merge_commit_sha ?? ""), title: String(pr.title ?? "") }, refs);
       await logDelivery(ws.id, "pull_request.closed", `#${pr.number} merged${refs.length ? ` · fixes ${refs.map((n) => incidentKey(ws.incidentPrefix, n)).join(", ")}` : ""}`);
       return { note: "merged" };
     }
