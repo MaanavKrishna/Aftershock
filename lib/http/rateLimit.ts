@@ -26,14 +26,17 @@ export function createLimiter(opts: { limit: number; windowMs: number; now?: () 
 const webhooks = createLimiter({ limit: 300, windowMs: 60_000 });
 const api = createLimiter({ limit: 120, windowMs: 60_000 });
 
-function clientKey(req: NextRequest): string {
+const ipOf = (req: NextRequest) => req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? "local";
+
+/** API callers are limited per token. Webhooks are limited per address: their Authorization header is caller-chosen. */
+function clientKey(req: NextRequest, kind: "webhook" | "api"): string {
   const auth = req.headers.get("authorization");
-  if (auth) return `t:${auth.slice(-16)}`;
-  return `ip:${req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? "local"}`;
+  if (auth && kind === "api") return `t:${auth.slice(-16)}`;
+  return `ip:${ipOf(req)}`;
 }
 
 /** Returns a 429 response when the caller is over its limit, otherwise null. */
 export function limited(req: NextRequest, kind: "webhook" | "api"): NextResponse | null {
-  const r = (kind === "webhook" ? webhooks : api)(`${kind}:${req.nextUrl.pathname.split("/").slice(0, 4).join("/")}:${clientKey(req)}`);
+  const r = (kind === "webhook" ? webhooks : api)(`${kind}:${req.nextUrl.pathname.split("/").slice(0, 4).join("/")}:${clientKey(req, kind)}`);
   return r.ok ? null : NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "retry-after": String(r.retryAfterSeconds) } });
 }

@@ -25,3 +25,12 @@ test("only owners and admins can override checks or manage secrets and tokens", 
   }
   expect(can("member", "recordIncident")).toBe(true);
 });
+
+test("webhook limits follow the sender's address, so changing the Authorization header does not reset them", async () => {
+  const { limited } = await import("@/lib/http/rateLimit");
+  const { NextRequest } = await import("next/server");
+  const req = (i: number) => new NextRequest("http://x/api/webhooks/datadog?workspace=w", { method: "POST", headers: { authorization: `Bearer guess-${i}`, "x-forwarded-for": "203.0.113.77" } });
+  let blocked = 0;
+  for (let i = 0; i < 320; i++) if (limited(req(i), "webhook")) blocked++;
+  expect(blocked).toBeGreaterThan(0);
+});
