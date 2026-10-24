@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { InsightsView } from "@/components/app/InsightsView";
+import { AskPanel } from "@/components/app/AskPanel";
 import { insightsFrom } from "@/lib/domain/insights";
 import { can } from "@/lib/auth/roles";
 import { shareReport, unshareReport } from "../actions";
@@ -20,6 +21,7 @@ export default async function InsightsPage() {
       <TopBar title="Insights" />
       <Main>
         <PageTitle title="What your incidents taught the codebase." sub="Proofs, recurrences stopped and the health of your memory tests." />
+        <AskPanel />
         <InsightsView i={i} />
         {admin && (
           <section className="flex flex-wrap items-center gap-3 rounded-[14px] border border-line bg-card px-5 py-4 text-[13.5px]">

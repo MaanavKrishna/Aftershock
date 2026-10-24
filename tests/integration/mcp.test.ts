@@ -38,7 +38,7 @@ describe("MCP server", () => {
     const n = await rpc(w.token, "notifications/initialized", undefined, JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }));
     expect(n.status).toBe(202);
     const tools = (await rpc(w.token, "tools/list")).body.result.tools.map((t: { name: string }) => t.name);
-    expect(tools).toEqual(["check_change", "list_lessons", "get_incident", "list_incidents"]);
+    expect(tools).toEqual(["check_change", "list_lessons", "get_incident", "list_incidents", "ask"]);
   });
   test("check_change tells an agent which incidents a change touches, before it commits", async () => {
     const w = await mcpWorld();

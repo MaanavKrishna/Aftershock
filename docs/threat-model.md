@@ -67,6 +67,8 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 | Forged webhook creates incidents or starts runs (cost) | Signatures or tokens, rate limits, ±5 minute replay window on signed timestamps, 256 KiB cap, dedupe, one 404 for unknown or disabled sources | Shipped (milestone 8) |
 | Leaked intake token (token sources) | Header delivery preferred over `?token=`; rotate from Integrations; tokens are encrypted and shown once | Shipped (milestone 8) |
 | Prompt injection in issue or alert text steers the model to exfiltrate data | Fencing, no tools for the model, output validation, sandbox without network or secrets | Shipped |
+| Ask Aftershock is steered by incident text, or invents incidents | Local retrieval; question and incidents fenced; JSON output; citations must be among the incidents it was given, otherwise no answer is shown | Shipped (milestone 13) |
+| Public reliability report leaks details | Aggregate numbers only (no titles, files or code), 24-byte secret link compared in constant time, revocable, `noindex` | Shipped (milestone 13) |
 | Draft test reads environment secrets | No secrets in the sandbox; network denied | Shipped |
 | Malicious repository code escapes its run | Firecracker microVM isolation; network denied during tests; no shared state between runs | Shipped; shared dependency caches are per-repository and read-only during tests (milestone 4) |
 | Install cache poisoning: a pull request's install scripts tamper with a cached environment that later runs reuse | Snapshots are only saved from trusted default-branch commits; pull requests may restore only an identical-lockfile snapshot and never save; keys are per repository; network denied after every restore | Milestone 4 |

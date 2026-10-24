@@ -12,6 +12,7 @@ Turn on **MCP server for coding agents** in **Settings → Labs**, then create a
 | `list_lessons` | Lessons from production as markdown, optionally for one path |
 | `get_incident` | One incident: what happened, the fix, its test, health and Epicenter |
 | `list_incidents` | Incidents and their status |
+| `ask` | Ask a question about past incidents; answers come only from recorded incidents and cite them |
 | `run_check` | Re-run a pull request's check (only offered to tokens with write access) |
 
 ### Claude Code

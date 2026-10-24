@@ -83,6 +83,19 @@ export const TOOLS = [
     },
   }),
   tool({
+    name: "ask",
+    title: "Ask about past incidents",
+    description: "Ask a question about this team's production incidents (for example: what went wrong in the payments code before?). Answers come only from recorded incidents and cite their keys.",
+    input: z.object({ question: z.string().min(4).max(500) }),
+    readOnly: true,
+    async run({ question }, ctx) {
+      const { askAftershock } = await import("@/lib/model/ask");
+      const r = await askAftershock(ctx.workspaceId, question);
+      const text = [r.answer, ...r.citations.map((c) => `- ${c.key}: ${c.title}`)].join("\n");
+      return { text, data: { answered: r.answered, answer: r.answer, citations: r.citations } };
+    },
+  }),
+  tool({
     name: "run_check",
     title: "Re-run a pull request check",
     description: "Re-runs Aftershock's check for a pull request (needs a token with write access). Results appear on the pull request.",

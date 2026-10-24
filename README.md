@@ -33,7 +33,7 @@ Supported: Python (pytest) and TypeScript or JavaScript (vitest, jest), plus Go,
 | **Seen it before** | A new alert or issue that looks like a past incident (same files, similar error) is linked to it, with one click to re-run that incident's test on main. A merged pull request that changes the files an open alert points at is suggested as its fix. |
 | **Still guarding** | Weekly, the fix is undone on today's default branch and each memory test must fail again. Tests that pass anyway are flagged *Weak*; fixes that can no longer be undone are *Drifted* (Labs). |
 | **Merge queue** | Queued pull requests are checked on GitHub's merge-queue commit before they land (Labs). |
-| **Insights** | Proof rate, median time to proof, recurrences blocked, test health and strength, fault-line files and an 8-week trend. Share a read-only reliability report (numbers only) by secret link; a weekly digest goes to Slack or a webhook. |
+| **Insights** | Proof rate, median time to proof, recurrences blocked, test health and strength, fault-line files and an 8-week trend. Share a read-only reliability report (numbers only) by secret link; a weekly digest goes to Slack or a webhook. **Ask Aftershock** answers questions from your incidents, always with citations. |
 | **Epicenter** | Bisects history with the proven test to find the commit and pull request that introduced the bug. |
 | **Retro-check** | A newly proven test runs at once against every open pull request. |
 | **Suggested fix** | On a *Recur* check, a fix is posted only if it passes every memory test for the repository. A person applies it. |
