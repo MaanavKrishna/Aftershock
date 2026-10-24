@@ -1,6 +1,6 @@
 {
   "name": "aftershock",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Every incident becomes a regression test that git history proves, then guards every pull request.",
   "license": "Apache-2.0",
   "homepage": "https://aftershock-mk.vercel.app",
