@@ -41,3 +41,20 @@ test("the daily workflow re-checks every memory test, one step each", async () =
   expect(after.nights).toEqual([true]);
   expect(runs).toBeGreaterThanOrEqual(1);
 });
+
+test("a nightly re-check that makes a test flaky quarantines it, and green nights release it", async () => {
+  const w = await ledgerWorld();
+  const db = await getDb();
+  const [mem] = await db.insert(s.memoryTests).values({ workspaceId: w.ws.id, incidentId: w.incident.id, repoId: w.repo.id, path: "tests/aftershock/test_q.py", fn: "test_q", code: LEDGER_TEST, nights: [true, false, true, false] }).returning();
+  setDeps({ runner: () => ({ kind: "docker", run: async () => ({ installOk: true, results: [{ outcome: "passed", durationMs: 1 }], log: "", cpuMs: 1, wallMs: 1 }) }), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  const { runNightly } = await import("@/lib/workflows/nightly");
+  await runNightly(mem.id);
+  let [t] = await db.select().from(s.memoryTests).where(eq(s.memoryTests.id, mem.id));
+  expect(t.quarantined).toBe(true);
+  expect(t.quarantineReason).toMatch(/Flaky on main/);
+  for (let i = 0; i < 7; i++) await runNightly(mem.id);
+  [t] = await db.select().from(s.memoryTests).where(eq(s.memoryTests.id, mem.id));
+  expect(t.quarantined).toBe(false);
+  const trail = await db.select().from(s.activity).where(eq(s.activity.incidentId, w.incident.id));
+  expect(trail.map((a) => a.title)).toEqual(expect.arrayContaining([expect.stringMatching(/quarantined/i), expect.stringMatching(/released/i)]));
+});

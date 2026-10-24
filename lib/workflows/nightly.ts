@@ -20,7 +20,20 @@ export async function runNightly(memoryTestId: string): Promise<void> {
   if (outcome === "error" || !outcome) return; // environment failures say nothing about the code
   const nights = [...t.nights, outcome === "passed"].slice(-14);
   const health = healthFrom(nights);
-  await db.update(s.memoryTests).set({ nights, health }).where(eq(s.memoryTests.id, t.id));
+  const { quarantineDecision } = await import("@/lib/domain/quarantine");
+  const q = quarantineDecision(nights, t.quarantined);
+  await db
+    .update(s.memoryTests)
+    .set({ nights, health, quarantined: q.quarantined, quarantineReason: q.reason, quarantinedAt: q.quarantined ? (t.quarantinedAt ?? new Date()) : null })
+    .where(eq(s.memoryTests.id, t.id));
+  if (q.quarantined !== t.quarantined) {
+    await db.insert(s.activity).values({
+      workspaceId: t.workspaceId, incidentId: t.incidentId,
+      title: q.quarantined ? "Memory test quarantined" : "Memory test released from quarantine",
+      detail: q.quarantined ? `${q.reason}. It no longer blocks pull requests until it is stable.` : "Seven green nights in a row.",
+      tone: q.quarantined ? "neutral" : "pass",
+    });
+  }
   if (health === "failing" && t.health !== "failing") {
     await db.insert(s.activity).values({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test failing on main", detail: `${t.path} at ${head.slice(0, 7)}`, tone: "fail" });
   }
