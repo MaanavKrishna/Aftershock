@@ -1,5 +1,4 @@
 "use server";
-import { randomBytes, createHmac } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
@@ -8,10 +7,24 @@ import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { encrypt, decrypt } from "@/lib/crypto";
 import type { FormState } from "../actions";
+import type { IntakeKind } from "@/lib/db/schema";
+import { flagEnabled } from "@/lib/flags";
+import { audit } from "@/lib/data/lifecycle";
+import { receive } from "@/lib/integrations/receive";
+import { isSource, SOURCES, type SourceDef } from "@/lib/integrations/sources";
 
-type Kind = "sentry" | "pagerduty";
+type Scope = Awaited<ReturnType<typeof authorize>>["scope"];
 
-async function upsert(workspaceId: string, kind: "sentry" | "pagerduty" | "model", config: Record<string, string>, secret?: string) {
+/** The source named in the form, if it exists and (for Labs sources) is switched on for this workspace. */
+async function sourceFrom(form: FormData, scope: Scope): Promise<SourceDef | null> {
+  const id = String(form.get("kind") ?? "");
+  if (!isSource(id)) return null;
+  const def = SOURCES[id];
+  if (def.labs && !flagEnabled("intakeExtra", (await scope.workspace())?.settings)) return null;
+  return def;
+}
+
+async function upsert(workspaceId: string, kind: IntakeKind | "model", config: Record<string, string>, secret?: string) {
   const db = await getDb();
   const [existing] = await db.select().from(s.integrations).where(and(eq(s.integrations.workspaceId, workspaceId), eq(s.integrations.kind, kind)));
   const merged = { ...(existing?.config ?? {}), ...config };
@@ -22,45 +35,60 @@ async function upsert(workspaceId: string, kind: "sentry" | "pagerduty" | "model
 }
 
 export async function saveMapping(_p: FormState, form: FormData): Promise<FormState> {
-  const { session, allowed } = await authorize("manageIntegrations");
+  const { scope, session, allowed } = await authorize("manageIntegrations");
   if (!allowed) return { error: "Only owners and admins can do this." };
-  const kind = form.get("kind") as Kind;
-  if (kind !== "sentry" && kind !== "pagerduty") return { error: "Unknown integration." };
+  const def = await sourceFrom(form, scope);
+  if (!def) return { error: "Unknown integration." };
   const value = String(form.get("mapping") ?? "").trim().slice(0, 1000);
-  await upsert(session.workspaceId, kind, kind === "sentry" ? { projects: value, rule: value ? `projects: ${value}` : "all projects" } : { services: value });
+  await upsert(session.workspaceId, def.id, { [def.mapping.key]: value, ...(def.id === "sentry" ? { rule: value ? `projects: ${value}` : "all projects" } : {}) });
   revalidatePath("/integrations");
   return { ok: "Saved." };
 }
 
+/** For sources where Aftershock creates the secret or token: generate one and show it once. */
 export async function rotateSecret(_p: FormState, form: FormData): Promise<FormState> {
-  const { session, allowed } = await authorize("manageIntegrations");
+  const { scope, session, allowed } = await authorize("manageIntegrations");
   if (!allowed) return { error: "Only owners and admins can do this." };
-  const kind = form.get("kind") as Kind;
-  if (kind !== "sentry" && kind !== "pagerduty") return { error: "Unknown integration." };
-  const secret = randomBytes(24).toString("hex");
-  await upsert(session.workspaceId, kind, { secretHint: secret.slice(-4) }, secret);
+  const def = await sourceFrom(form, scope);
+  if (!def) return { error: "Unknown integration." };
+  if (def.secretFrom === "provider") return { error: `${def.label} creates the signing secret. Paste it instead.` };
+  const secret = def.newSecret();
+  await upsert(session.workspaceId, def.id, { secretHint: secret.slice(-4) }, secret);
+  await audit(session.workspaceId, session.userId, "integration.secret_rotated", def.id);
   revalidatePath("/integrations");
-  return { ok: `Paste this signing secret into ${kind === "sentry" ? "Sentry" : "PagerDuty"} now. It will not be shown again.`, token: secret };
+  return { ok: `Paste this ${def.auth === "token" ? "token" : "signing secret"} into ${def.label} now. It will not be shown again.`, token: secret };
 }
 
-/** Signs a harmless ping with the stored secret and sends it through the real webhook route. */
+/** For sources that create their own signing secret (Sentry, PagerDuty, incident.io, Linear): store the pasted value. */
+export async function saveSecret(_p: FormState, form: FormData): Promise<FormState> {
+  const { scope, session, allowed } = await authorize("manageIntegrations");
+  if (!allowed) return { error: "Only owners and admins can do this." };
+  const def = await sourceFrom(form, scope);
+  if (!def) return { error: "Unknown integration." };
+  const secret = String(form.get("secret") ?? "").trim();
+  if (secret.length < 8 || secret.length > 500 || /\s/.test(secret)) return { error: "Paste the whole signing secret (no spaces)." };
+  if (def.id === "incidentio" && !/^(whsec_)?[A-Za-z0-9+/]+={0,2}$/.test(secret)) return { error: "incident.io secrets look like whsec_…" };
+  await upsert(session.workspaceId, def.id, { secretHint: secret.slice(-4) }, secret);
+  await audit(session.workspaceId, session.userId, "integration.secret_saved", def.id);
+  revalidatePath("/integrations");
+  return { ok: "Signing secret saved. Send a test delivery to check it." };
+}
+
+/** Signs a harmless ping with the stored secret and sends it through the real intake path. */
 export async function testDelivery(_p: FormState, form: FormData): Promise<FormState> {
   const { scope, session, allowed } = await authorize("manageIntegrations");
   if (!allowed) return { error: "Only owners and admins can do this." };
-  const kind = form.get("kind") as Kind;
+  const def = await sourceFrom(form, scope);
+  if (!def) return { error: "Unknown integration." };
   const ws = await scope.workspace();
   const db = await getDb();
-  const [integ] = await db.select().from(s.integrations).where(and(eq(s.integrations.workspaceId, session.workspaceId), eq(s.integrations.kind, kind)));
-  if (!integ?.secretCiphertext || !ws) return { error: "Generate a signing secret first." };
-  const secret = decrypt(integ.secretCiphertext);
-  const body = kind === "sentry" ? JSON.stringify({ action: "test", data: {} }) : JSON.stringify({ event: { event_type: "pagey.ping", data: {} } });
-  const sig = createHmac("sha256", secret).update(body).digest("hex");
-  const url = `http://internal/api/webhooks/${kind}?workspace=${encodeURIComponent(ws.login)}`;
-  const req = new NextRequest(url, { method: "POST", body, headers: kind === "sentry" ? { "sentry-hook-signature": sig } : { "x-pagerduty-signature": `v1=${sig}` } });
-  const route = kind === "sentry" ? await import("@/app/api/webhooks/sentry/route") : await import("@/app/api/webhooks/pagerduty/route");
-  const res = await route.POST(req);
+  const [integ] = await db.select().from(s.integrations).where(and(eq(s.integrations.workspaceId, session.workspaceId), eq(s.integrations.kind, def.id)));
+  if (!integ?.secretCiphertext || !ws) return { error: def.secretFrom === "provider" ? "Save the signing secret first." : "Generate a secret first." };
+  const { body, headers } = def.testRequest(decrypt(integ.secretCiphertext), Date.now());
+  const req = new NextRequest(`http://internal/api/webhooks/${def.id}?workspace=${encodeURIComponent(ws.login)}`, { method: "POST", body, headers });
+  const res = await receive(def.id, req);
   revalidatePath("/integrations");
-  return res.ok ? { ok: "Test delivery accepted: the signature verified." } : { error: `Test delivery failed (${res.status}).` };
+  return res.ok ? { ok: `Test delivery accepted: the ${def.auth === "token" ? "token" : "signature"} verified.` } : { error: `Test delivery failed (${res.status}).` };
 }
 
 export async function saveModel(_p: FormState, form: FormData): Promise<FormState> {

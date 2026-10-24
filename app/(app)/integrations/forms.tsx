@@ -1,7 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import type { FormState } from "../actions";
-import { rotateSecret, saveMapping, testDelivery, saveModel, testModel } from "./actions";
+import { rotateSecret, saveMapping, saveSecret, testDelivery, saveModel, testModel } from "./actions";
 
 const btn = "min-h-[42px] cursor-pointer rounded-[9px] px-4 text-[13.5px] font-semibold";
 function Status({ s }: { s: FormState }) {
@@ -10,19 +10,30 @@ function Status({ s }: { s: FormState }) {
   return null;
 }
 
-export function AlertForms({ kind, mapping }: { kind: "sentry" | "pagerduty"; mapping: string }) {
+type AlertProps = { kind: string; label: string; auth: "signature" | "token"; secretFrom: "provider" | "aftershock"; mappingLabel: string; placeholder: string; mapping: string };
+
+export function AlertForms({ kind, label, auth, secretFrom, mappingLabel, placeholder, mapping }: AlertProps) {
   const [m, saveM, p1] = useActionState<FormState, FormData>(saveMapping, {});
   const [r, rotate, p2] = useActionState<FormState, FormData>(rotateSecret, {});
+  const [k, keep, p4] = useActionState<FormState, FormData>(saveSecret, {});
   const [t, test, p3] = useActionState<FormState, FormData>(testDelivery, {});
+  const input = "min-h-[44px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal";
   return (
     <div className="flex flex-col gap-4 border-t border-[#EDEEE9] pt-4">
       <form action={saveM} className="flex flex-col gap-2">
         <input type="hidden" name="kind" value={kind} />
-        <label className="flex flex-col gap-1.5 text-[13px] font-semibold">{kind === "sentry" ? "Sentry project → repository" : "PagerDuty service → repository"}<input name="mapping" defaultValue={mapping} placeholder={kind === "sentry" ? "shop-backend:ecommerce-api, web:storefront-web" : "payments:ecommerce-api"} className="min-h-[44px] rounded-[9px] border border-field px-3 font-mono text-[13px] font-normal" /></label>
+        <label className="flex flex-col gap-1.5 text-[13px] font-semibold">{mappingLabel}<input name="mapping" defaultValue={mapping} placeholder={placeholder} className={input} /></label>
         <div className="flex items-center gap-3"><button type="submit" disabled={p1} className={`${btn} bg-ink text-white`}>Save mapping</button><Status s={m} /></div>
       </form>
+      {secretFrom === "provider" && (
+        <form action={keep} className="flex flex-col gap-2">
+          <input type="hidden" name="kind" value={kind} />
+          <label className="flex flex-col gap-1.5 text-[13px] font-semibold">Signing secret from {label}<input name="secret" type="password" autoComplete="off" spellCheck={false} placeholder="Paste the secret" className={input} /></label>
+          <div className="flex items-center gap-3"><button type="submit" disabled={p4} className={`${btn} border border-line-strong bg-white`}>Save signing secret</button><Status s={k} /></div>
+        </form>
+      )}
       <div className="flex flex-wrap items-start gap-3">
-        <form action={rotate}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p2} className={`${btn} border border-line-strong bg-white`}>Generate signing secret</button></form>
+        {secretFrom === "aftershock" && <form action={rotate}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p2} className={`${btn} border border-line-strong bg-white`}>{auth === "token" ? "Generate token" : "Generate signing secret"}</button></form>}
         <form action={test}><input type="hidden" name="kind" value={kind} /><button type="submit" disabled={p3} className={`${btn} border border-line-strong bg-white`}>Send test delivery</button></form>
       </div>
       <Status s={r} />
