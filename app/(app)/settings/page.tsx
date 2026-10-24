@@ -9,11 +9,14 @@ import { FLAGS, flagEnabled, type Flag } from "@/lib/flags";
 import { planFor } from "@/lib/billing/plans";
 import { can } from "@/lib/auth/roles";
 import { WorkspaceForm, TokenForm } from "./forms";
+import { AddTargetForm, TestTargetButton } from "./notifyForms";
+import { updateTarget } from "./notifyActions";
+import { NOTIFY_EVENTS, NOTIFY_EVENT_IDS } from "@/lib/notify/format";
 import { hours, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Settings" };
 
-const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["labs", "Labs"], ["audit", "Audit log"], ["danger", "Danger zone"]] as const;
+const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["notifications", "Notifications"], ["labs", "Labs"], ["audit", "Audit log"], ["danger", "Danger zone"]] as const;
 const sectionCls = "overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]";
 
 function Head({ title, sub, children }: { title: string; sub: string; children?: React.ReactNode }) {
@@ -33,6 +36,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const admin = can(me?.role, "manageWorkspace");
   const owner = me?.role === "owner";
   const audit = tab === "audit" && admin ? await scope.auditLog(100) : [];
+  const [targets, sent] = tab === "notifications" ? await Promise.all([scope.notificationTargets(), scope.notificationLog(15)]) : [[], []];
   if (!ws) return null;
   const privateRepos = repos.length;
   return (
@@ -46,6 +50,52 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           ))}
         </nav>
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+          {tab === "notifications" && (
+            <section className={sectionCls}>
+              <Head title="Notifications" sub="Send proofs, blocked pull requests and failing memory tests to Slack or any signed webhook." />
+              {!flagEnabled("notifications", ws.settings) ? (
+                <p className="m-0 px-6 py-5 text-sm text-body">Notifications are in Labs. <Link href="/settings?tab=labs">Turn them on</Link> to add targets.</p>
+              ) : !admin ? (
+                <p className="m-0 px-6 py-5 text-sm text-muted">Only owners and admins can manage notification targets.</p>
+              ) : (
+                <>
+                  <AddTargetForm events={NOTIFY_EVENT_IDS.map((e) => [e, NOTIFY_EVENTS[e]])} />
+                  {targets.map((t) => (
+                    <div key={t.id} className="flex flex-col gap-3 border-b border-line-soft px-6 py-4">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <span className="flex flex-[1_1_220px] flex-col"><span className="font-semibold">{t.name} <span className="font-normal text-muted">· {t.kind === "slack" ? "Slack" : "Signed webhook"}</span></span><span className="font-mono text-xs text-muted">{t.urlHint}</span></span>
+                        <span className={`text-[12.5px] ${t.enabled ? "text-pass" : "text-fail-deep"}`}>{t.enabled ? (t.lastDeliveryAt ? `last ${t.lastStatus} ${timeAgo(t.lastDeliveryAt).toLowerCase()}` : "on") : "off"}</span>
+                        <TestTargetButton targetId={t.id} />
+                        <form action={updateTarget}><input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value={t.enabled ? "disable" : "enable"} /><button type="submit" className="min-h-[38px] cursor-pointer rounded-lg border border-line-strong bg-white px-3 font-semibold">{t.enabled ? "Turn off" : "Turn on"}</button></form>
+                        <form action={updateTarget}><input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value="remove" /><button type="submit" aria-label={`Remove ${t.name}`} className="min-h-[38px] cursor-pointer rounded-lg border border-[#E8C4B0] bg-white px-3 font-semibold text-fail-deep">Remove</button></form>
+                      </div>
+                      {t.disabledReason && <p className="m-0 text-[12.5px] text-fail-deep">{t.disabledReason}</p>}
+                      <form action={updateTarget} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <input type="hidden" name="targetId" value={t.id} /><input type="hidden" name="op" value="events" />
+                        {NOTIFY_EVENT_IDS.map((e) => (
+                          <label key={e} className="flex min-h-8 cursor-pointer items-center gap-1.5 text-[12.5px]"><input type="checkbox" name="events" value={e} defaultChecked={t.events.includes(e)} className="h-4 w-4 accent-ink" />{NOTIFY_EVENTS[e]}</label>
+                        ))}
+                        <button type="submit" className="min-h-[34px] cursor-pointer rounded-lg border border-line-strong bg-white px-3 text-[12.5px] font-semibold">Save events</button>
+                      </form>
+                    </div>
+                  ))}
+                  {targets.length === 0 && <p className="m-0 px-6 py-5 text-muted">No targets yet.</p>}
+                  {sent.length > 0 && (
+                    <div className="flex flex-col">
+                      <h3 className="m-0 px-6 pb-1 pt-4 text-sm font-semibold">Recent deliveries</h3>
+                      {sent.map((n) => (
+                        <div key={n.id} className="flex items-center gap-3 border-b border-line-soft px-6 py-2.5 text-[13px] last:border-b-0">
+                          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${n.status === "sent" ? "bg-pass" : n.status === "failed" ? "bg-fail" : "bg-line-strong"}`} aria-label={n.status} />
+                          <span className="flex min-w-0 flex-1 flex-col"><span className="truncate font-semibold">{n.title}</span><span className="font-mono text-[11.5px] text-muted-2">{n.target} · {n.status}{n.attempts > 1 ? ` after ${n.attempts} attempts` : ""}{n.lastError ? ` · ${n.lastError}` : ""}</span></span>
+                          <span className="font-mono text-xs text-muted">{timeAgo(n.createdAt)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          )}
           {tab === "labs" && (
             <section className={sectionCls}>
               <Head title="Labs" sub="Features that are new. Turn them on for this workspace; turn them off any time." />

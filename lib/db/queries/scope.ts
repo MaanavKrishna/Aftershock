@@ -280,6 +280,22 @@ export function scoped(workspaceId: string) {
         .limit(limit);
     },
 
+    async notificationTargets() {
+      const db = await getDb();
+      return db.select().from(s.notificationTargets).where(eq(s.notificationTargets.workspaceId, workspaceId)).orderBy(desc(s.notificationTargets.createdAt));
+    },
+
+    async notificationLog(limit = 20) {
+      const db = await getDb();
+      return db
+        .select({ id: s.notifications.id, event: s.notifications.event, status: s.notifications.status, attempts: s.notifications.attempts, lastError: s.notifications.lastError, createdAt: s.notifications.createdAt, target: s.notificationTargets.name, title: sql<string>`${s.notifications.payload}->>'title'` })
+        .from(s.notifications)
+        .innerJoin(s.notificationTargets, eq(s.notificationTargets.id, s.notifications.targetId))
+        .where(eq(s.notifications.workspaceId, workspaceId))
+        .orderBy(desc(s.notifications.createdAt))
+        .limit(limit);
+    },
+
     async tokens() {
       const db = await getDb();
       return db.select().from(s.apiTokens).where(eq(s.apiTokens.workspaceId, workspaceId)).orderBy(desc(s.apiTokens.createdAt));
