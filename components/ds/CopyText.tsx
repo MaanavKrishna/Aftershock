@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export function CopyButton({ text }: { text: string }) {
+export function CopyText({ text, label = "Copy" }: { text: string; label?: string }) {
   const [done, setDone] = useState(false);
   return (
     <button
@@ -15,9 +15,9 @@ export function CopyButton({ text }: { text: string }) {
           setDone(false);
         }
       }}
-      className="min-h-8 cursor-pointer rounded-md border border-[#344150] bg-transparent px-2.5 text-xs text-on-dark"
+      className="min-h-8 cursor-pointer rounded-chip border border-rule bg-transparent px-2.5 font-ui text-xs text-fg-2 hover:text-fg"
     >
-      <span aria-live="polite">{done ? "Copied" : "Copy"}</span>
+      <span aria-live="polite">{done ? "Copied" : label}</span>
     </button>
   );
 }
