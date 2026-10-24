@@ -7,6 +7,7 @@ import { safeTestPath } from "./paths";
 import type { RunReport, RunSpec, Runner } from "./types";
 
 const SANDBOX_TIMEOUT_MS = 45 * 60_000;
+const FIND_CHECKOUT = 'for d in "$PWD" "$PWD"/*/; do git -C "$d" rev-parse --show-toplevel 2>/dev/null && break; done';
 
 /**
  * Vercel Sandbox: one Firecracker microVM per call. Clone one commit, install with network,
@@ -31,7 +32,12 @@ export class SandboxRunner implements Runner {
     });
     const logs: string[] = [];
     try {
-      const sh = (script: string, timeoutMs: number) => sandbox.runCommand("sh", ["-c", script], { timeoutMs });
+      // Image-based sandboxes clone into a folder under the home directory; everything runs inside the checkout.
+      const found = await sandbox.runCommand("sh", ["-c", FIND_CHECKOUT], { timeoutMs: 30_000 });
+      const root = (await found.output("stdout")).trim().split("\n")[0];
+      if (!root.startsWith("/")) throw new Error("The repository checkout was not found in the sandbox");
+      const sh = (script: string, timeoutMs: number) => sandbox.runCommand({ cmd: "sh", args: ["-c", script], cwd: root, timeoutMs });
+      const at = (p: string) => `${root}/${p}`;
       await sh(SCRUB_GIT_CREDENTIALS, 30_000);
       const install = await sh(frameworkDef(spec.framework).setup(spec.install), 15 * 60_000);
       logs.push(`$ ${spec.install}\n${(await install.output("both")).slice(-4000)}`);
@@ -39,7 +45,7 @@ export class SandboxRunner implements Runner {
         return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message: `Dependency install failed (exit ${install.exitCode})` })), log: redactToken(logs.join("\n\n"), spec.token), cpuMs: sandbox.activeCpuUsageMs ?? 0, wallMs: Date.now() - started };
       }
       await sandbox.update({ networkPolicy: "deny-all" });
-      await sandbox.writeFiles([{ path: testPath, content: spec.testCode }, ...(spec.overlay ?? []).map((o) => ({ path: safeTestPath(o.path), content: o.content }))]);
+      await sandbox.writeFiles([{ path: at(testPath), content: spec.testCode }, ...(spec.overlay ?? []).map((o) => ({ path: at(safeTestPath(o.path)), content: o.content }))]);
       const results: RunResult[] = [];
       for (let i = 0; i < spec.runs; i++) {
         const junit = `.aftershock-out/junit-${i}.xml`;
@@ -60,7 +66,7 @@ export class SandboxRunner implements Runner {
           results.push({ outcome: "error", durationMs: ms, message: `Test exceeded the ${Math.round(spec.timeoutMs / 1000)}s time limit` });
           continue;
         }
-        const xml = await sandbox.readFileToBuffer({ path: junit });
+        const xml = await sandbox.readFileToBuffer({ path: at(junit) });
         results.push(parseJUnit(redactToken(xml ? xml.toString("utf8") : "", spec.token), ms));
       }
       const report = { installOk: true, results, log: redactToken(logs.join("\n\n"), spec.token), cpuMs: sandbox.activeCpuUsageMs ?? Date.now() - started, wallMs: Date.now() - started };
