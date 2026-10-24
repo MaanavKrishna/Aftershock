@@ -1,4 +1,5 @@
 import { runNightly } from "./nightly";
+import { runReproof } from "./reproof";
 
 async function memoryTestIds(): Promise<string[]> {
   "use step";
@@ -33,7 +34,7 @@ async function purge(day: string): Promise<{ repositories: number; workspaces: n
  * The one daily job (Vercel Hobby allows a daily cron). Each re-check is its own durable step, so
  * the whole run is never bound by a single function's time limit, and one failure skips only itself.
  */
-export async function daily(day: string): Promise<{ day: string; nightly: number; failed: number; retention: { logs: number; deliveries: number; notifications: number }; notified: number; purged: { repositories: number; workspaces: number } }> {
+export async function daily(day: string): Promise<{ day: string; nightly: number; failed: number; retention: { logs: number; deliveries: number; notifications: number }; notified: number; reproved: number; purged: { repositories: number; workspaces: number } }> {
   "use workflow";
   const ids = await memoryTestIds();
   let failed = 0;
@@ -44,8 +45,20 @@ export async function daily(day: string): Promise<{ day: string; nightly: number
       failed++;
     }
   }
+  // Weekly, on Sundays (UTC): is every memory test still guarding against its incident?
+  let reproved = 0;
+  if (new Date(`${day}T00:00:00Z`).getUTCDay() === 0) {
+    for (const id of ids) {
+      try {
+        const r = await runReproof(id);
+        if (r !== "skipped") reproved++;
+      } catch {
+        failed++;
+      }
+    }
+  }
   const notified = await sweepNotifications();
   const kept = await retention(day);
   const purged = await purge(day);
-  return { day, nightly: ids.length, failed, retention: kept, notified, purged };
+  return { day, nightly: ids.length, failed, retention: kept, notified, reproved, purged };
 }

@@ -10,6 +10,7 @@ export const NOTIFY_EVENTS: Record<NotifyEvent, string> = {
   "nightly.failing": "Memory test failing on main",
   "test.quarantined": "Memory test quarantined",
   "check.overridden": "Failing check overridden",
+  "test.weakened": "Memory test no longer guards (weak or drifted)",
 };
 export const NOTIFY_EVENT_IDS = Object.keys(NOTIFY_EVENTS) as NotifyEvent[];
 

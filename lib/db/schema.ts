@@ -139,7 +139,15 @@ export const memoryTests = pgTable("memory_tests", {
   quarantined: boolean("quarantined").notNull().default(false),
   quarantinedAt: timestamp("quarantined_at", { withTimezone: true }),
   quarantineReason: text("quarantine_reason"),
+  /** Weekly re-proof: does the test still fail when the fix is undone on today's default branch? */
+  guardStatus: text("guard_status").$type<GuardStatus>(),
+  guardCheckedAt: timestamp("guard_checked_at", { withTimezone: true }),
+  guardSha: text("guard_sha"),
+  guardDetail: text("guard_detail").notNull().default(""),
 });
+
+/** guarding: fails with the fix undone. weak: passes anyway. drifted: the fix can no longer be undone on the current code. */
+export type GuardStatus = "guarding" | "weak" | "drifted";
 
 export type CheckVerdict = "recur" | "safe" | "inconclusive" | "skipped";
 
@@ -153,6 +161,8 @@ export const prChecks = pgTable("pr_checks", {
   baseSha: text("base_sha").notNull(),
   /** The commit the tests ran on: GitHub's test merge of head into base, or the head when the PR conflicts. */
   testedSha: text("tested_sha"),
+  /** Set for merge queue checks: the merge group's head ref (gh-readonly-queue/...). No PR comment is posted for these. */
+  mergeGroupRef: text("merge_group_ref"),
   /** Pull request author, for active-committer counts. Bots are recorded but never counted. */
   author: text("author"),
   authorIsBot: boolean("author_is_bot").notNull().default(false),
@@ -306,7 +316,7 @@ export const auditLog = pgTable("audit_log", {
 });
 
 /** Events a notification target can subscribe to (lib/notify). */
-export type NotifyEvent = "incident.opened" | "incident.proven" | "incident.unproven" | "pr.blocked" | "epicenter.found" | "nightly.failing" | "test.quarantined" | "check.overridden";
+export type NotifyEvent = "incident.opened" | "incident.proven" | "incident.unproven" | "pr.blocked" | "epicenter.found" | "nightly.failing" | "test.quarantined" | "check.overridden" | "test.weakened";
 
 export const notificationTargets = pgTable("notification_targets", {
   id: id(),

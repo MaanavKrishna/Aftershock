@@ -387,3 +387,15 @@ export async function releaseQuarantine(form: FormData): Promise<void> {
   }
   revalidatePath("/memory");
 }
+
+/** Starts a still-guarding re-proof for one memory test. */
+export async function reproveNow(form: FormData): Promise<void> {
+  const { session, allowed } = await authorize("manageRepositories");
+  if (!allowed) return;
+  const db = await getDb();
+  const [t] = await db.select().from(s.memoryTests).where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)));
+  if (!t) return;
+  const { startReproof } = await import("@/lib/workflows/start");
+  await startReproof(t.id);
+  revalidatePath("/memory");
+}

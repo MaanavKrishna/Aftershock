@@ -72,3 +72,8 @@ export async function startNotify(workspaceId: string): Promise<void> {
   const { notify } = await import("./notify");
   await launch(notify, [workspaceId], "notifications");
 }
+
+export async function startReproof(memoryTestId: string): Promise<void> {
+  const { reproof } = await import("./reproof");
+  await launch(reproof, [memoryTestId], "re-proof");
+}
