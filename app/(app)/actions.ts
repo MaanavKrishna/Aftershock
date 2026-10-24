@@ -37,20 +37,7 @@ export async function parseFixRef(raw: string): Promise<{ sha?: string; pr?: num
   return null;
 }
 
-async function insertIncident(workspaceId: string, values: Omit<typeof s.incidents.$inferInsert, "workspaceId" | "number">) {
-  const db = await getDb();
-  const { scoped } = await import("@/lib/db/queries/scope");
-  for (let tries = 0; tries < 3; tries++) {
-    const number = await scoped(workspaceId).nextIncidentNumber();
-    try {
-      const [row] = await db.insert(s.incidents).values({ ...values, workspaceId, number }).returning();
-      return row;
-    } catch (err) {
-      if (tries === 2) throw err;
-    }
-  }
-  throw new Error("unreachable");
-}
+const insertIncident = async (...a: Parameters<typeof import("@/lib/incidents/create").insertIncident>) => (await import("@/lib/incidents/create")).insertIncident(...a);
 
 export async function createIncident(_prev: FormState, form: FormData): Promise<FormState> {
   const { scope, session } = await currentScope();
@@ -84,14 +71,8 @@ export async function importIssue(form: FormData): Promise<void> {
   const issue = (await listImportableIssues(scope)).find((i) => `${i.repoId}:${i.number}` === key);
   if (!issue) redirect("/incidents/new?tab=issue&error=issue_missing");
   const ws = await scope.workspace();
-  const hasFix = Boolean(issue.fixSha || issue.fixPr);
-  const row = await insertIncident(session.workspaceId, {
-    repoId: issue.repoId, title: issue.title, ...fieldsFromIssue(issue.body), source: "issue", sourceRef: `${issue.repo}#${issue.number}`,
-    fixSha: issue.fixSha ?? null, parentSha: issue.parentSha ?? null, fixPr: issue.fixPr ?? null, status: "awaiting_fix",
-    statusReason: hasFix ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
-  });
-  const db = await getDb();
-  await recordActivity({ workspaceId: session.workspaceId, incidentId: row.id, title: `Imported from issue #${issue.number}`, detail: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} · ${issue.repo}`, tone: "pass", event: "incident.opened" });
+  const { importIssueAsIncident } = await import("@/lib/incidents/create");
+  const { row, hasFix } = await importIssueAsIncident(session.workspaceId, ws?.incidentPrefix ?? "INC", issue);
   if (hasFix && form.get("intent") === "travel") {
     const { startTimeTravel } = await import("@/lib/workflows/start");
     await startTimeTravel(row.id);
@@ -417,4 +398,16 @@ export async function syncLessonsAction(_p: FormState, form: FormData): Promise<
   } catch (err) {
     return { error: `GitHub refused the change: ${err instanceof Error ? err.message.slice(0, 160) : "unknown error"}` };
   }
+}
+
+/** Imports every waiting closed incident issue (up to 25) and proves those with fixes in the background. */
+export async function backfillAction(form: FormData): Promise<void> {
+  const { session, allowed } = await authorize("recordIncident");
+  if (!allowed) return;
+  const limit = Math.max(1, Math.min(25, Number(form.get("limit")) || 25));
+  const { startBackfill } = await import("@/lib/workflows/start");
+  await startBackfill(session.workspaceId, limit);
+  const { audit } = await import("@/lib/data/lifecycle");
+  await audit(session.workspaceId, session.userId, "incidents.backfill", `${limit} issues`);
+  redirect("/incidents?backfill=started");
 }

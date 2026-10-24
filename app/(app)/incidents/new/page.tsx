@@ -5,7 +5,7 @@ import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { ButtonLink } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { listImportableIssues } from "@/lib/github/issues";
-import { importIssue } from "../../actions";
+import { importIssue, backfillAction } from "../../actions";
 import { IncidentForm, PostmortemForm } from "./forms";
 
 export const metadata: Metadata = { title: "New incident" };
@@ -60,6 +60,13 @@ export default async function NewIncident({ searchParams }: { searchParams: Prom
                     <button type="submit" name="intent" value="travel" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] bg-ink px-[18px] font-semibold text-white">Save and time travel</button>
                   </div>
                 )}
+              </form>
+            )}
+            {tab === "issue" && issues.length > 1 && (
+              <form action={backfillAction} className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDEEE9] px-6 py-4">
+                <input type="hidden" name="limit" value={Math.min(issues.length, 25)} />
+                <span className="flex-[1_1_300px] text-[13px] text-muted">Import all {Math.min(issues.length, 25)} at once. Those closed by a fix start time travel, three at a time.</span>
+                <button type="submit" className="inline-flex min-h-11 cursor-pointer items-center rounded-[9px] border border-line-strong bg-white px-4 font-semibold">Import all and time travel</button>
               </form>
             )}
             {tab === "postmortem" && <PostmortemForm repos={repoOpts} />}

@@ -80,6 +80,10 @@ Under **Integrations**, connect Sentry or PagerDuty (and, from **Settings → La
 
 Alerts open incidents in *Awaiting fix*. When a PR that mentions the incident (for example “Fixes INC-16”) merges, time travel starts. Per-source details: [Integrations](integrations.md).
 
+## Importing past incidents
+
+**New incident → GitHub issue** lists closed issues labelled `incident` (20 per repository). **Import all and time travel** brings up to 25 in at once. Issues closed by a fix start time travel in the background, three at a time, so you get a memory of past incidents on day one.
+
 ## Merge queue
 
 If the repository uses a [GitHub merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue):

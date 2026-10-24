@@ -77,3 +77,8 @@ export async function startReproof(memoryTestId: string): Promise<void> {
   const { reproof } = await import("./reproof");
   await launch(reproof, [memoryTestId], "re-proof");
 }
+
+export async function startBackfill(workspaceId: string, limit: number): Promise<void> {
+  const { backfill } = await import("./backfill");
+  await launch(backfill, [workspaceId, limit], "backfill");
+}
