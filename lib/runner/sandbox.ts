@@ -1,6 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
 import type { RunResult } from "@/lib/domain/verdict";
-import { commandFor, setupFor } from "./adapters";
+import { frameworkDef } from "./frameworks";
+import { redactToken, SCRUB_GIT_CREDENTIALS } from "./secrets";
 import { parseJUnit } from "./junit";
 import { safeTestPath } from "./paths";
 import type { RunReport, RunSpec, Runner } from "./types";
@@ -22,19 +23,20 @@ export class SandboxRunner implements Runner {
       source: spec.token
         ? { type: "git", url: spec.repoUrl, username: "x-access-token", password: spec.token, revision: spec.sha, depth: 1 }
         : { type: "git", url: spec.repoUrl, revision: spec.sha, depth: 1 },
-      runtime: spec.framework === "pytest" ? "python3.13" : "node22",
+      image: frameworkDef(spec.framework).sandboxImage,
       resources: { vcpus: 2 },
       timeout: SANDBOX_TIMEOUT_MS,
     });
     const logs: string[] = [];
     try {
       const sh = (script: string, timeoutMs: number) => sandbox.runCommand("sh", ["-c", script], { timeoutMs });
-      const install = await sh(setupFor(spec.framework, spec.install), 15 * 60_000);
+      await sh(SCRUB_GIT_CREDENTIALS, 30_000);
+      const install = await sh(frameworkDef(spec.framework).setup(spec.install), 15 * 60_000);
       logs.push(`$ ${spec.install}\n${(await install.output("both")).slice(-4000)}`);
       if (install.exitCode !== 0) {
-        return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message: `Dependency install failed (exit ${install.exitCode})` })), log: logs.join("\n\n"), cpuMs: sandbox.activeCpuUsageMs ?? 0, wallMs: Date.now() - started };
+        return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message: `Dependency install failed (exit ${install.exitCode})` })), log: redactToken(logs.join("\n\n"), spec.token), cpuMs: sandbox.activeCpuUsageMs ?? 0, wallMs: Date.now() - started };
       }
-      await sandbox.updateNetworkPolicy("deny-all");
+      await sandbox.update({ networkPolicy: "deny-all" });
       await sandbox.writeFiles([{ path: testPath, content: spec.testCode }, ...(spec.overlay ?? []).map((o) => ({ path: safeTestPath(o.path), content: o.content }))]);
       const results: RunResult[] = [];
       for (let i = 0; i < spec.runs; i++) {
@@ -44,7 +46,7 @@ export class SandboxRunner implements Runner {
         let out = "";
         let timedOut = false;
         try {
-          const r = await sh(`mkdir -p .aftershock-out && ${commandFor(spec.framework, testPath, junit)}`, spec.timeoutMs);
+          const r = await sh(`mkdir -p .aftershock-out && ${frameworkDef(spec.framework).command(testPath, junit)}`, spec.timeoutMs);
           exit = r.exitCode;
           out = await r.output("both");
         } catch {
@@ -57,9 +59,9 @@ export class SandboxRunner implements Runner {
           continue;
         }
         const xml = await sandbox.readFileToBuffer({ path: junit });
-        results.push(parseJUnit(xml ? xml.toString("utf8") : "", ms));
+        results.push(parseJUnit(redactToken(xml ? xml.toString("utf8") : "", spec.token), ms));
       }
-      const report = { installOk: true, results, log: logs.join("\n\n"), cpuMs: sandbox.activeCpuUsageMs ?? Date.now() - started, wallMs: Date.now() - started };
+      const report = { installOk: true, results, log: redactToken(logs.join("\n\n"), spec.token), cpuMs: sandbox.activeCpuUsageMs ?? Date.now() - started, wallMs: Date.now() - started };
       (await import("@/lib/obs/log")).log.info("sandbox run finished", { sha: spec.sha.slice(0, 12), framework: spec.framework, outcomes: results.map((r) => r.outcome), wallMs: report.wallMs });
       return report;
     } finally {

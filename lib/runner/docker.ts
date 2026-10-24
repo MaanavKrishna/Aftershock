@@ -8,6 +8,7 @@ import { commandFor, imageFor, setupFor } from "./adapters";
 import { parseJUnit } from "./junit";
 import type { RunReport, RunSpec, Runner } from "./types";
 import { safeTestPath } from "./paths";
+import { redactToken } from "./secrets";
 
 type Exec = { code: number | null; out: string; timedOut: boolean; ms: number };
 
@@ -110,7 +111,7 @@ export class DockerRunner implements Runner {
       logs.push(`$ ${spec.install}\n${install.out.slice(-4000)}`);
       if (install.code !== 0) {
         const message = install.timedOut ? "Dependency install timed out" : `Dependency install failed (exit ${install.code})`;
-        return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error", durationMs: 0, message })), log: logs.join("\n\n"), cpuMs: 0, wallMs: Date.now() - started };
+        return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error", durationMs: 0, message })), log: redactToken(logs.join("\n\n"), spec.token), cpuMs: 0, wallMs: Date.now() - started };
       }
 
       const results: RunResult[] = [];
@@ -131,7 +132,7 @@ export class DockerRunner implements Runner {
         const file = path.join(work, junit);
         results.push(parseJUnit(fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "", r.ms));
       }
-      return { installOk: true, results, log: logs.join("\n\n"), cpuMs: testMs, wallMs: Date.now() - started };
+      return { installOk: true, results, log: redactToken(logs.join("\n\n"), spec.token), cpuMs: testMs, wallMs: Date.now() - started };
     } finally {
       fs.rmSync(base, { recursive: true, force: true });
     }
