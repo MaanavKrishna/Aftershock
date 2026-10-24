@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     .insert(s.incidents)
     .values({ workspaceId: ws, repoId: repo.id, number: await sc.nextIncidentNumber(), title: parsed.data.title, trigger: parsed.data.trigger, observed: parsed.data.observed, expected: parsed.data.expected, fixSha: parsed.data.fix ?? null, source: "form", status: "awaiting_fix" })
     .returning();
+  await (await import("@/lib/incidents/related")).linkRelated(inc.id);
   const w = await sc.workspace();
   return NextResponse.json({ key: incidentKey(w!.incidentPrefix, inc.number), number: inc.number, status: inc.status }, { status: 201 });
 }

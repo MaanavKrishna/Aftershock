@@ -47,5 +47,7 @@ export async function intakeAlert(ws: typeof s.workspaces.$inferSelect, source: 
     .values({ workspaceId: ws.id, repoId: repo?.id ?? null, number, title: a.title.slice(0, 200), observed: a.observed.slice(0, 4000), source, sourceRef: a.link ?? null, fingerprint: a.fingerprint, status: "awaiting_fix", statusReason: `Opened from ${label}. Time travel starts when a pull request mentioning ${incidentKey(ws.incidentPrefix, number)} merges.` })
     .returning();
   await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, number)} opened from ${label}`, detail: "Awaiting fix", tone: "neutral", event: "incident.opened" });
+  const { linkRelated } = await import("@/lib/incidents/related");
+  await linkRelated(inc.id);
   return { created: true, key: incidentKey(ws.incidentPrefix, number) };
 }

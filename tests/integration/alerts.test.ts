@@ -131,3 +131,17 @@ describe("intake registry", async () => {
     expect((await call("myspace", w.ws.login, "{}", {})).status).toBe(404);
   });
 });
+
+describe("recurrence detection", () => {
+  test("a new alert that looks like a past incident is linked to it", async () => {
+    const w = await world();
+    const db = await getDb();
+    const [past] = await db.insert(s.incidents).values({ workspaceId: w.ws.id, repoId: w.repo.id, number: 1, title: "IntegrityError in create_order", observed: "duplicate key value violates unique constraint orders_cart_id_key", source: "form", status: "proven", watchedFiles: ["app/services/order_service.py"] }).returning();
+    const body = JSON.stringify({ action: "created", data: { issue: { id: "9001", title: "IntegrityError: duplicate key value violates unique constraint", culprit: "app/services/order_service.py in create_order", project: { slug: "shop-backend" } } } });
+    expect((await sentry(sentryReq(w.ws.login, body, hmac("sentry-secret", body)))).status).toBe(200);
+    const fresh = (await w.incidents()).find((i) => i.fingerprint === "sentry-9001")!;
+    expect(fresh.related[0]).toMatchObject({ id: past.id, key: "INC-1" });
+    const acts = await db.select().from(s.activity).where(eq(s.activity.incidentId, fresh.id));
+    expect(acts.map((a) => a.title)).toContain(`INC-${fresh.number} looks like INC-1 again`);
+  });
+});

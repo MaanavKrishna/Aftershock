@@ -13,6 +13,8 @@ export async function insertIncident(workspaceId: string, values: Omit<typeof s.
     const number = await scoped(workspaceId).nextIncidentNumber();
     try {
       const [row] = await db.insert(s.incidents).values({ ...values, workspaceId, number }).returning();
+      const { linkRelated } = await import("./related");
+      await linkRelated(row.id);
       return row;
     } catch (err) {
       if (tries === 2) throw err;
