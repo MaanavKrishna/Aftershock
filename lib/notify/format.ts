@@ -11,6 +11,7 @@ export const NOTIFY_EVENTS: Record<NotifyEvent, string> = {
   "test.quarantined": "Memory test quarantined",
   "check.overridden": "Failing check overridden",
   "test.weakened": "Memory test no longer guards (weak or drifted)",
+  "digest.weekly": "Weekly summary (Mondays)",
 };
 export const NOTIFY_EVENT_IDS = Object.keys(NOTIFY_EVENTS) as NotifyEvent[];
 

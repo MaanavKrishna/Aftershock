@@ -32,6 +32,6 @@ describe("back-off", () => {
     expect(nextDelayMs(MAX_ATTEMPTS)).toBeNull();
   });
   test("every event has a label", () => {
-    expect(Object.keys(NOTIFY_EVENTS).length).toBe(9);
+    expect(Object.keys(NOTIFY_EVENTS).length).toBe(10);
   });
 });
