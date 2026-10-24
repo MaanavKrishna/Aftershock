@@ -10,8 +10,8 @@ next-env.d.ts
 app/.well-known/workflow/
 
 # local data and caches
-data/
-samples/
+/data/
+/samples/
 
 # tests
 test-results/

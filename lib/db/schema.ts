@@ -10,6 +10,8 @@ export const workspaces = pgTable("workspaces", {
   login: text("login").notNull().unique(),
   name: text("name").notNull(),
   plan: text("plan").notNull().default("free"),
+  /** Set when the GitHub App is uninstalled; the workspace is purged 30 days later unless it is reinstalled. */
+  uninstalledAt: timestamp("uninstalled_at", { withTimezone: true }),
   incidentPrefix: text("incident_prefix").notNull().default("INC"),
   installationId: bigint("installation_id", { mode: "number" }),
   settings: jsonb("settings").$type<{ autoImportIssues?: boolean; autoTravelOnMerge?: boolean; issueLabel?: string; flags?: Partial<Record<string, boolean>> }>().notNull().default({}),
@@ -50,6 +52,8 @@ export const repositories = pgTable("repositories", {
   runner: text("runner").$type<"sandbox" | "actions">().notNull().default("sandbox"),
   checkMode: text("check_mode").$type<"blocking" | "advisory">().notNull().default("blocking"),
   lastCheckAt: timestamp("last_check_at", { withTimezone: true }),
+  /** Set when the GitHub App loses access; the repository is purged 30 days later unless access returns. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: created(),
 });
 
@@ -276,3 +280,14 @@ export const envSnapshots = pgTable(
   },
   (t) => [uniqueIndex("env_snapshots_repo_key").on(t.repoId, t.key)],
 );
+
+/** Who deleted or changed what. Not tied to the workspace row, so it outlives the workspace. */
+export const auditLog = pgTable("audit_log", {
+  id: id(),
+  workspaceId: text("workspace_id").notNull(),
+  actorUserId: text("actor_user_id"),
+  action: text("action").notNull(),
+  target: text("target").notNull().default(""),
+  detail: text("detail").notNull().default(""),
+  createdAt: created(),
+});

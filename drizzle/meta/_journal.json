@@ -29,6 +29,13 @@
       "when": 1792846520156,
       "tag": "0003_author_set_null",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792846736129,
+      "tag": "0004_lifecycle",
+      "breakpoints": true
     }
   ]
 }
