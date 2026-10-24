@@ -1,0 +1,51 @@
+name: Aftershock guard
+description: Run the incident memory tests relevant to a pull request on your own runner and report to Aftershock.
+author: MaanavKrishna
+branding:
+  icon: activity
+  color: orange
+inputs:
+  token:
+    description: Aftershock API token with write access (store it as a secret).
+    required: true
+  url:
+    description: Aftershock server.
+    default: https://aftershock-mk.vercel.app
+  pr:
+    description: Pull request number.
+    default: ${{ github.event.pull_request.number }}
+  install:
+    description: Command that installs your dependencies before the tests run (for example `npm ci` or `pip install -r requirements.txt pytest`). Leave empty if an earlier step did it.
+    default: ""
+  framework:
+    description: Override the detected framework (pytest, vitest, jest, go, junit, rspec, playwright).
+    default: ""
+  tests:
+    description: Folder of memory tests in the repository.
+    default: tests/aftershock
+  working-directory:
+    description: Where to run (monorepo package).
+    default: .
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      if: ${{ inputs.install != '' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ inputs.install }}
+    - name: Check against past incidents
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        AFTERSHOCK_TOKEN: ${{ inputs.token }}
+        AFTERSHOCK_URL: ${{ inputs.url }}
+        PR: ${{ inputs.pr }}
+        FRAMEWORK: ${{ inputs.framework }}
+        TESTS: ${{ inputs.tests }}
+      run: |
+        set -euo pipefail
+        args=(check --in-place --report --tests "$TESTS")
+        if [ -n "$PR" ]; then args+=(--pr "$PR"); fi
+        if [ -n "$FRAMEWORK" ]; then args+=(--framework "$FRAMEWORK"); fi
+        node "$GITHUB_ACTION_PATH/dist/aftershock.mjs" "${args[@]}"

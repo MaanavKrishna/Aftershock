@@ -156,7 +156,7 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
             </Card>
             <Card>
               <CardHead>Reproduce locally</CardHead>
-              <pre className="m-0 overflow-x-auto bg-[#FAFAF8] px-5 py-3.5 font-mono text-xs">{`npx aftershock prove --fix ${inc.fixSha?.slice(0, 7) ?? "<fix>"} --test ${run.testPath ?? "<test file>"}`}</pre>
+              <pre className="m-0 overflow-x-auto bg-[#FAFAF8] px-5 py-3.5 font-mono text-xs">{`curl -fsSLo aftershock.mjs https://raw.githubusercontent.com/MaanavKrishna/Aftershock/main/action/dist/aftershock.mjs\nnode aftershock.mjs prove --fix ${inc.fixSha?.slice(0, 7) ?? "<fix>"} --test ${run.testPath ?? "<test file>"}`}</pre>
             </Card>
             {run.status !== "running" && !proven && (
               <form action={retryTimeTravel} className="flex flex-col gap-3 rounded-[14px] bg-ink p-5 text-on-dark">

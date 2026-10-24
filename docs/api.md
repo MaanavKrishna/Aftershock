@@ -25,7 +25,7 @@ Webhooks: `/api/webhooks/github`, and `/api/webhooks/<source>?workspace=<login>`
 
 ```bash
 npm run build:cli
-node dist/aftershock.mjs <command>      # or `npx aftershock` inside the repo
+node dist/aftershock.mjs <command>
 ```
 
 | Command | |
@@ -35,7 +35,7 @@ node dist/aftershock.mjs <command>      # or `npx aftershock` inside the repo
 | `check --in-place --pr <n> --report` | In CI: run in the current checkout and report to Aftershock |
 | `verify INC-12` | Start a hosted time travel |
 
-Options: `--framework pytest|vitest|jest`, `--install "<command>"`. Exit codes: `0` safe or proven, `1` recur, `2` inconclusive or unproven. `--report` and `verify` read `AFTERSHOCK_URL` and `AFTERSHOCK_TOKEN`.
+Options: `--framework pytest|vitest|jest|go|junit|rspec|playwright`, `--install "<command>"`. Exit codes: `0` safe or proven, `1` recur, `2` inconclusive or unproven. `--report` and `verify` read `AFTERSHOCK_URL` and `AFTERSHOCK_TOKEN`.
 
 ## Running checks on your GitHub Actions
 
@@ -50,12 +50,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - run: pip install -r requirements.txt pytest   # or: npm ci
-      - run: npx aftershock check --in-place --pr ${{ github.event.number }} --report
-        env:
-          AFTERSHOCK_TOKEN: ${{ secrets.AFTERSHOCK_TOKEN }}
-          AFTERSHOCK_URL: https://aftershock-mk.vercel.app
+      - uses: MaanavKrishna/Aftershock/action@v0.2.0
+        with:
+          token: ${{ secrets.AFTERSHOCK_TOKEN }}
+          install: pip install -r requirements.txt pytest   # or: npm ci
 ```
+
+The token needs write access. Options are in [action/README.md](../action/README.md).
 
 Results complete the same GitHub check and comment as sandboxed runs.
 
@@ -64,7 +65,7 @@ Results complete the same GitHub check and comment as sandboxed runs.
 Optional. When present on the default branch it overrides the repository's settings for time travel and pull request checks:
 
 ```yaml
-framework: pytest            # pytest | vitest | jest
+framework: pytest            # pytest | vitest | jest | go | junit | rspec | playwright
 runner: sandbox              # sandbox | actions
 install: pip install -r requirements.txt
 test_dir: tests/aftershock

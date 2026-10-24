@@ -28,10 +28,11 @@ check:
   runs: 3
 incidents:
   issue_label: incident`;
-const CLI = `npx aftershock prove --fix aa86f56 --test tests/aftershock/test_retry.py   # time travel your own test in Docker
-npx aftershock check                     # run every memory test at HEAD in Docker
-npx aftershock check --in-place --pr 214 --report   # in CI: run in this checkout, report to Aftershock
-npx aftershock verify INC-12             # start a hosted time travel (needs AFTERSHOCK_URL and AFTERSHOCK_TOKEN)`;
+const CLI = `curl -fsSLo aftershock.mjs https://raw.githubusercontent.com/MaanavKrishna/Aftershock/main/action/dist/aftershock.mjs
+node aftershock.mjs prove --fix aa86f56 --test tests/aftershock/test_retry.py   # time travel your own test in Docker
+node aftershock.mjs check                # run every memory test at HEAD in Docker
+node aftershock.mjs check --in-place --pr 214 --report   # in CI: run in this checkout, report to Aftershock
+node aftershock.mjs verify INC-12         # start a hosted time travel (needs AFTERSHOCK_URL and AFTERSHOCK_TOKEN)`;
 const ACTION = `name: Aftershock
 on: [pull_request]
 jobs:
@@ -40,11 +41,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - run: pip install -r requirements.txt pytest   # or: npm ci
-      - run: npx aftershock check --in-place --pr \${{ github.event.number }} --report
-        env:
-          AFTERSHOCK_TOKEN: \${{ secrets.AFTERSHOCK_TOKEN }}
-          AFTERSHOCK_URL: https://aftershock-mk.vercel.app`;
+      - uses: MaanavKrishna/Aftershock/action@v0.2.0
+        with:
+          token: \${{ secrets.AFTERSHOCK_TOKEN }}
+          install: pip install -r requirements.txt pytest   # or: npm ci`;
 const API = [["GET", "/api/v1/incidents", "List incidents and their status"], ["POST", "/api/v1/incidents", "Create an incident from text"], ["POST", "/api/v1/incidents/:number/verify", "Start time travel"], ["GET", "/api/v1/runs/:id/evidence", "One time-travel run with its evidence"], ["GET", "/api/v1/memory", "Admitted tests"], ["GET", "/api/v1/lessons", "LESSONS.md for coding agents"], ["POST", "/api/v1/checks/report", "Report a check run from your own runner"]];
 const RULES = ["A model never marks anything proven or safe. Only test runs do.", "A test that passes before the fix is rejected, however good it looks.", "Mixed results are inconclusive — never green.", "Aftershock never pushes to your default branch. Tests arrive as pull requests.", "Sandboxed runs never receive your secrets."];
 

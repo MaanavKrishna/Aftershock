@@ -18,5 +18,7 @@ jobs:
         env:
           AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
       - run: npm run build:cli
+      - name: Action bundle matches the CLI source
+        run: npm run build:action && git diff --exit-code -- action/dist
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
