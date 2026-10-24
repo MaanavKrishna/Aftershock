@@ -69,4 +69,8 @@ check:
   runs: 3
 incidents:
   issue_label: incident
+packages:                    # monorepos; see docs/languages.md
+  - path: services/api
+    framework: go
+    install: go mod download
 ```

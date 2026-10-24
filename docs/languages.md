@@ -17,3 +17,20 @@ Frameworks marked *Labs* are turned on per workspace in **Settings → Labs**. U
 1. **Install** (network allowed): the toolchain if the image lacks it, then your install command. Caches (Go modules, Maven repository, Gradle home, Bundler path) live inside the checkout so the next phase can run offline.
 2. **Test** (network denied): exactly one test file, written after the install, three times. The result is read from a JUnit report.
 3. If the test cannot even compile or load because the code it covers does not exist at that commit, the result is *missing code*, never a recurrence, and Epicenter uses it as a boundary.
+
+## Monorepos
+
+List your packages in `.aftershock/config.yaml`. Each incident is matched to the package that contains most of its fix's changed files (the longest matching path wins); install and tests then run inside that folder with its own framework.
+
+```yaml
+packages:
+  - path: services/api
+    framework: go
+    install: go mod download
+  - path: apps/web
+    framework: vitest
+    install: npm ci
+    test_dir: tests/aftershock      # relative to the package
+```
+
+Changes outside every listed package use the repository-level settings. Each proven test remembers its package, so nightly re-checks, pull request checks, Epicenter and suggested fixes all run it in the right place.
