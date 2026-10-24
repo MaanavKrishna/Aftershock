@@ -29,3 +29,23 @@ test("repository settings are overridden only by what the file sets", () => {
 test("an empty or missing file changes nothing", () => {
   expect(parseRepoConfig("")).toEqual({});
 });
+
+test("a monorepo lists packages, each with its own path, framework, install and test folder", () => {
+  const cfg = parseRepoConfig(`framework: vitest
+packages:
+  - path: services/api
+    framework: go
+    install: go mod download
+  - path: apps/web/
+    framework: vitest
+    install: npm ci
+    test_dir: tests/aftershock
+  - path: ../escape
+    framework: go
+`);
+  expect(cfg.framework).toBe("vitest");
+  expect(cfg.packages).toEqual([
+    { path: "services/api", framework: "go", installCmd: "go mod download" },
+    { path: "apps/web", framework: "vitest", installCmd: "npm ci", testDir: "tests/aftershock" },
+  ]);
+});
