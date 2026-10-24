@@ -49,6 +49,7 @@ async function probe(p: Plan, sha: string): Promise<Probe> {
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.run.fullName });
   const r = await d.runner().run({ ...p.run, token, sha, runs: 1, timeoutMs: 120_000, cache: { workspaceId: p.workspaceId, repoId: p.repoId, trusted: true } });
+  await (await import("@/lib/billing/meter")).meterSandbox(p.workspaceId, r.cpuMs, d.runner().kind);
   const first = r.results[0];
   // A missing name only marks absent code when the proven failure itself was not that kind of error.
   if (r.installOk && first && codeAbsent(first) && !p.provenAsMissing) return "absent";

@@ -84,6 +84,7 @@ async function verifyOne(p: Extract<Plan, { ok: true }>, t: Extract<Plan, { ok: 
   const d = await deps();
   const token = await d.tokenFor({ workspaceId: p.workspaceId, fullName: p.repo.fullName });
   const r = await d.runner().run({ repoUrl: p.repo.url, token, sha: p.headSha, framework: t.framework ?? p.repo.framework, install: t.install ?? p.repo.install, workdir: t.workdir, testPath: t.path, testCode: t.code, runs: 2, timeoutMs: 120_000, overlay: [patch], cache: { workspaceId: p.workspaceId, repoId: p.repo.id, trusted: false } });
+  await (await import("@/lib/billing/meter")).meterSandbox(p.workspaceId, r.cpuMs, d.runner().kind);
   return { memoryTestId: t.id, verdict: prVerdict(r.results) };
 }
 

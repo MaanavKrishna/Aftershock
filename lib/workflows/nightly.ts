@@ -16,6 +16,7 @@ export async function runNightly(memoryTestId: string): Promise<void> {
   const head = await (await sourceFor(repo, token)).revParse(repo.defaultBranch);
   if (!head) return;
   const report = await d.runner().run({ repoUrl: repo.cloneUrl, token, sha: head, framework: t.framework ?? repo.framework, install: t.installCmd ?? repo.installCmd, workdir: t.workdir, testPath: t.path, testCode: t.code, runs: 1, timeoutMs: 120_000, cache: { workspaceId: t.workspaceId, repoId: t.repoId, trusted: true } });
+  await (await import("@/lib/billing/meter")).meterSandbox(t.workspaceId, report.cpuMs, d.runner().kind);
   const outcome = report.results[0]?.outcome;
   if (outcome === "error" || !outcome) return; // environment failures say nothing about the code
   const nights = [...t.nights, outcome === "passed"].slice(-14);
