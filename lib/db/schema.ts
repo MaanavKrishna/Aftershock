@@ -129,6 +129,10 @@ export const memoryTests = pgTable("memory_tests", {
   health: text("health").$type<"healthy" | "flaky" | "failing">().notNull().default("healthy"),
   nights: jsonb("nights").$type<boolean[]>().notNull().default([]),
   provenAt: timestamp("proven_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Flaky on main: skipped on pull requests (when enforcement is on) until seven green nights. */
+  quarantined: boolean("quarantined").notNull().default(false),
+  quarantinedAt: timestamp("quarantined_at", { withTimezone: true }),
+  quarantineReason: text("quarantine_reason"),
 });
 
 export type CheckVerdict = "recur" | "safe" | "inconclusive" | "skipped";
@@ -143,6 +147,9 @@ export const prChecks = pgTable("pr_checks", {
   baseSha: text("base_sha").notNull(),
   /** The commit the tests ran on: GitHub's test merge of head into base, or the head when the PR conflicts. */
   testedSha: text("tested_sha"),
+  /** Pull request author, for active-committer counts. Bots are recorded but never counted. */
+  author: text("author"),
+  authorIsBot: boolean("author_is_bot").notNull().default(false),
   filesChanged: integer("files_changed").notNull().default(0),
   changedFiles: jsonb("changed_files").$type<string[]>().notNull().default([]),
   diff: text("diff").notNull().default(""),

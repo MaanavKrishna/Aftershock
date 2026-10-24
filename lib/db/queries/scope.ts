@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, sql, type SQL, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, sql, type SQL, isNull, isNotNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { faultLines } from "@/lib/domain/faultlines";
@@ -6,7 +6,6 @@ import { faultLines } from "@/lib/domain/faultlines";
 export type IncidentFilter = { status?: s.IncidentStatus; source?: s.IncidentSource };
 
 const month = () => new Date().toISOString().slice(0, 7);
-export const SANDBOX_ALLOWANCE_MS = 5 * 3_600_000;
 
 /**
  * Every read and write for a signed-in request goes through here, so no query can
@@ -286,10 +285,23 @@ export function scoped(workspaceId: string) {
       return db.select().from(s.apiTokens).where(eq(s.apiTokens.workspaceId, workspaceId)).orderBy(desc(s.apiTokens.createdAt));
     },
 
+    /** Distinct human pull request authors in the last 30 days (bots never count). */
+    async activeCommitters() {
+      const db = await getDb();
+      const [row] = await db
+        .select({ n: sql<number>`count(distinct ${s.prChecks.author})` })
+        .from(s.prChecks)
+        .where(and(eq(s.prChecks.workspaceId, workspaceId), eq(s.prChecks.authorIsBot, false), isNotNull(s.prChecks.author), gte(s.prChecks.createdAt, new Date(Date.now() - 30 * 86_400_000))));
+      return Number(row?.n ?? 0);
+    },
+
     async usage() {
       const db = await getDb();
       const [u] = await db.select().from(s.usage).where(and(eq(s.usage.workspaceId, workspaceId), eq(s.usage.month, month())));
-      return { sandboxCpuMs: u?.sandboxCpuMs ?? 0, drafts: u?.drafts ?? 0, allowanceMs: SANDBOX_ALLOWANCE_MS };
+      const [ws] = await db.select({ plan: s.workspaces.plan }).from(s.workspaces).where(eq(s.workspaces.id, workspaceId));
+      const committers = await api.activeCommitters();
+      const { allowanceMs } = await import("@/lib/billing/plans");
+      return { sandboxCpuMs: u?.sandboxCpuMs ?? 0, drafts: u?.drafts ?? 0, allowanceMs: allowanceMs(ws?.plan ?? "free", committers), committers, plan: ws?.plan ?? "free" };
     },
 
     /** Sandbox time split by repository (pull request checks) plus time travel, for the usage bar. */

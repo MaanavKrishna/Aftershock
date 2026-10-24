@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { incidentKey, parseIncidentRefs } from "@/lib/domain/ids";
 import { github } from "./api";
+import { isBot } from "@/lib/billing/plans";
 import { fieldsFromIssue } from "@/lib/domain/issueBody";
 
 const clip = (f: { trigger: string; observed: string; expected: string }) => ({ trigger: f.trigger.slice(0, 2000), observed: f.observed.slice(0, 4000), expected: f.expected.slice(0, 2000) });
@@ -138,7 +139,7 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
       const [prev] = await db.select().from(s.prChecks).where(and(eq(s.prChecks.repoId, repo.id), eq(s.prChecks.prNumber, pr.number))).limit(1);
       const [check] = await db
         .insert(s.prChecks)
-        .values({ workspaceId: ws.id, repoId: repo.id, prNumber: pr.number, title: String(pr.title).slice(0, 200), headSha: pr.head.sha, baseSha: pr.base.sha, filesChanged: files.length, changedFiles: files, diff, status: "queued", checkRunId, commentId: prev?.commentId ?? null })
+        .values({ workspaceId: ws.id, repoId: repo.id, prNumber: pr.number, title: String(pr.title).slice(0, 200), headSha: pr.head.sha, baseSha: pr.base.sha, filesChanged: files.length, changedFiles: files, diff, status: "queued", checkRunId, commentId: prev?.commentId ?? null, author: pr.user?.login ?? null, authorIsBot: pr.user ? isBot(pr.user) : false })
         .returning();
       await db.update(s.repositories).set({ lastCheckAt: new Date() }).where(eq(s.repositories.id, repo.id));
       await logDelivery(ws.id, `pull_request.${p.action}`, `#${pr.number} · signature ok`);
