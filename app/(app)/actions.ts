@@ -213,9 +213,11 @@ export async function saveWorkspace(_prev: FormState, form: FormData): Promise<F
   if (name.length < 2) return { error: "Name must be at least 2 characters." };
   if (!/^[A-Z]{2,6}$/.test(prefix)) return { error: "Prefix must be 2–6 letters." };
   const db = await getDb();
+  const [current] = await db.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, session.workspaceId));
   await db
     .update(s.workspaces)
-    .set({ name, incidentPrefix: prefix, settings: { autoImportIssues: form.get("autoImport") === "on", autoTravelOnMerge: form.get("autoTravel") === "on", issueLabel: String(form.get("label") || "incident").slice(0, 50) } })
+    // Merge: other settings (feature flags) must survive saving this form.
+    .set({ name, incidentPrefix: prefix, settings: { ...current?.settings, autoImportIssues: form.get("autoImport") === "on", autoTravelOnMerge: form.get("autoTravel") === "on", issueLabel: String(form.get("label") || "incident").slice(0, 50) } })
     .where(eq(s.workspaces.id, session.workspaceId));
   revalidatePath("/", "layout");
   return { ok: "Saved." };
@@ -258,4 +260,21 @@ export async function finishOnboarding(form: FormData): Promise<void> {
     .values({ workspaceId: session.workspaceId, kind: "model", config, secretCiphertext: key ? encrypt(key) : null })
     .onConflictDoUpdate({ target: [s.integrations.workspaceId, s.integrations.kind], set: { config, ...(key ? { secretCiphertext: encrypt(key) } : {}) } });
   redirect("/incidents/new?tab=issue");
+}
+
+/** Turns a Labs feature on or off for this workspace (owners and admins). */
+export async function setFlag(form: FormData): Promise<void> {
+  const { session, allowed } = await authorize("manageWorkspace");
+  if (!allowed) return;
+  const { FLAGS } = await import("@/lib/flags");
+  const flag = String(form.get("flag") ?? "");
+  if (!(flag in FLAGS)) return;
+  const on = form.get("on") === "1";
+  const db = await getDb();
+  const [current] = await db.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, session.workspaceId));
+  await db
+    .update(s.workspaces)
+    .set({ settings: { ...current?.settings, flags: { ...current?.settings.flags, [flag]: on } } })
+    .where(eq(s.workspaces.id, session.workspaceId));
+  revalidatePath("/settings");
 }

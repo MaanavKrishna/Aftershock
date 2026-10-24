@@ -3,13 +3,15 @@ import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar } from "@/components/app/TopBar";
 import { ButtonLink } from "@/components/ui/Button";
-import { revokeToken } from "../actions";
+import { revokeToken, setFlag } from "../actions";
+import { FLAGS, flagEnabled, type Flag } from "@/lib/flags";
+import { can } from "@/lib/auth/roles";
 import { WorkspaceForm, TokenForm } from "./forms";
 import { hours, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Settings" };
 
-const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["danger", "Danger zone"]] as const;
+const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["labs", "Labs"], ["danger", "Danger zone"]] as const;
 const sectionCls = "overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]";
 
 function Head({ title, sub, children }: { title: string; sub: string; children?: React.ReactNode }) {
@@ -24,8 +26,9 @@ function Head({ title, sub, children }: { title: string; sub: string; children?:
 export default async function Settings({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: t } = await searchParams;
   const tab = TABS.some(([id]) => id === t) ? t! : "workspace";
-  const { scope } = await currentScope();
-  const [ws, members, tokens, usage, repos] = await Promise.all([scope.workspace(), scope.members(), scope.tokens(), scope.usage(), scope.repos()]);
+  const { scope, session } = await currentScope();
+  const [ws, members, tokens, usage, repos, me] = await Promise.all([scope.workspace(), scope.members(), scope.tokens(), scope.usage(), scope.repos(), scope.me(session.userId)]);
+  const admin = can(me?.role, "manageWorkspace");
   if (!ws) return null;
   const privateRepos = repos.length;
   return (
@@ -39,6 +42,29 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           ))}
         </nav>
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+          {tab === "labs" && (
+            <section className={sectionCls}>
+              <Head title="Labs" sub="Features that are new. Turn them on for this workspace; turn them off any time." />
+              <ul className="m-0 list-none p-0">
+                {(Object.keys(FLAGS) as Flag[]).map((flag) => {
+                  const on = flagEnabled(flag, ws.settings);
+                  return (
+                    <li key={flag} className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-6 py-4 last:border-b-0">
+                      <span className="text-sm font-medium" id={`flag-${flag}`}>{FLAGS[flag]}</span>
+                      <form action={setFlag}>
+                        <input type="hidden" name="flag" value={flag} />
+                        <input type="hidden" name="on" value={on ? "0" : "1"} />
+                        <button type="submit" role="switch" aria-checked={on} aria-labelledby={`flag-${flag}`} disabled={!admin} className={`relative h-7 w-12 cursor-pointer rounded-full border-0 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${on ? "bg-pass" : "bg-line-strong"}`}>
+                          <span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${on ? "left-6" : "left-1"}`} />
+                        </button>
+                      </form>
+                    </li>
+                  );
+                })}
+              </ul>
+              {!admin && <p className="m-0 px-6 py-4 text-[12.5px] text-muted">Only owners and admins can change Labs features.</p>}
+            </section>
+          )}
           {tab === "workspace" && (
             <section className={sectionCls}>
               <Head title="Workspace" sub="Linked to your GitHub account or organisation." />
