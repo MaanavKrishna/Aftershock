@@ -64,6 +64,13 @@
       "when": 1792853275379,
       "tag": "0008_reproof_merge_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792858736312,
+      "tag": "0009_scopes_visibility",
+      "breakpoints": true
     }
   ]
 }

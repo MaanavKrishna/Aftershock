@@ -2,7 +2,7 @@ import { limited } from "@/lib/http/rateLimit";
 import { NextResponse, type NextRequest } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { apiWorkspace, unauthorized } from "@/lib/auth/api";
+import { apiWriteWorkspace } from "@/lib/auth/api";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { incidentKey } from "@/lib/domain/ids";
@@ -20,8 +20,8 @@ const body = z.object({
 export async function POST(req: NextRequest) {
   const tooMany = limited(req, "api");
   if (tooMany) return tooMany;
-  const ws = await apiWorkspace(req);
-  if (!ws) return unauthorized();
+  const ws = await apiWriteWorkspace(req);
+  if (typeof ws !== "string") return ws;
   const parsed = body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 422 });
   const d = parsed.data;

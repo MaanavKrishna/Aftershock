@@ -168,7 +168,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <TokenForm />
               {tokens.map((t) => (
                 <div key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-line-soft px-6 py-3.5">
-                  <span className="flex flex-[1_1_200px] flex-col"><span className="font-semibold">{t.name}</span><span className="font-mono text-xs text-muted">{t.prefix}</span></span>
+                  <span className="flex flex-[1_1_200px] flex-col"><span className="font-semibold">{t.name}</span><span className="font-mono text-xs text-muted">{t.prefix} · {t.scope === "read" ? "read only" : "read and write"}</span></span>
                   <span className="text-[12.5px] text-muted">{t.lastUsedAt ? `used ${timeAgo(t.lastUsedAt).toLowerCase()}` : "never used"}</span>
                   <form action={revokeToken}><input type="hidden" name="tokenId" value={t.id} /><button type="submit" className="min-h-[38px] cursor-pointer rounded-lg border border-[#E8C4B0] bg-white px-3 font-semibold text-fail-deep">Revoke</button></form>
                 </div>

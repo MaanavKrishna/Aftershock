@@ -228,9 +228,12 @@ export async function createToken(_prev: FormState, form: FormData): Promise<For
   const { session, allowed } = await authorize("manageTokens");
   if (!allowed) return { error: "Only owners and admins can do this." };
   const name = String(form.get("name") ?? "").trim() || "API token";
+  const scope = form.get("scope") === "read" ? "read" : "write";
   const token = newToken();
   const db = await getDb();
-  await db.insert(s.apiTokens).values({ workspaceId: session.workspaceId, name: name.slice(0, 100), prefix: `as_live_••••${token.slice(-4)}`, hash: hashToken(token) });
+  await db.insert(s.apiTokens).values({ workspaceId: session.workspaceId, name: name.slice(0, 100), prefix: `as_live_••••${token.slice(-4)}`, hash: hashToken(token), scope });
+  const { audit } = await import("@/lib/data/lifecycle");
+  await audit(session.workspaceId, session.userId, "token.created", name.slice(0, 100), scope);
   revalidatePath("/settings");
   return { ok: "Copy this token now. It will not be shown again.", token };
 }

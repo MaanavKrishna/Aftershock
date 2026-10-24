@@ -49,6 +49,8 @@ export const repositories = pgTable("repositories", {
   framework: text("framework").$type<Framework>().notNull(),
   installCmd: text("install_cmd").notNull(),
   testDir: text("test_dir").notNull().default("tests/aftershock"),
+  /** From GitHub. Null (unknown) is treated as private: nothing public is ever served for it. */
+  isPrivate: boolean("is_private"),
   runner: text("runner").$type<"sandbox" | "actions">().notNull().default("sandbox"),
   checkMode: text("check_mode").$type<"blocking" | "advisory">().notNull().default("blocking"),
   lastCheckAt: timestamp("last_check_at", { withTimezone: true }),
@@ -257,6 +259,8 @@ export const apiTokens = pgTable("api_tokens", {
   name: text("name").notNull(),
   prefix: text("prefix").notNull(),
   hash: text("hash").notNull().unique(),
+  /** read: GET endpoints and read-only MCP tools. write: also creates incidents, reports results, starts checks. */
+  scope: text("scope").$type<"read" | "write">().notNull().default("write"),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   createdAt: created(),
 });

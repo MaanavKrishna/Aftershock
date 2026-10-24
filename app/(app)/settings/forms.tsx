@@ -29,6 +29,7 @@ export function TokenForm() {
     <form action={action} className="flex flex-col gap-3 border-b border-[#EDEEE9] px-6 py-[18px]">
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-[1_1_220px] flex-col gap-1.5 text-[13px] font-semibold">Token name<input name="name" placeholder="e.g. GitHub Action · storefront-web" className="min-h-[42px] rounded-[9px] border border-field px-3 font-normal" /></label>
+        <label className="flex flex-[0_1_200px] flex-col gap-1.5 text-[13px] font-semibold">Access<select name="scope" defaultValue="read" className="min-h-[42px] rounded-[9px] border border-field px-3 font-normal"><option value="read">Read only (MCP, badges, exports)</option><option value="write">Read and write (CI, Actions)</option></select></label>
         <button type="submit" disabled={pending} className="min-h-[42px] cursor-pointer rounded-[9px] bg-ink px-4 font-semibold text-white">Create token</button>
       </div>
       {state.token && (

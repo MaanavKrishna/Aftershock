@@ -9,13 +9,13 @@ import { POST as report } from "@/app/api/v1/checks/report/route";
 import { GET as lessons } from "@/app/api/v1/lessons/route";
 import { LEDGER_TEST } from "../support/fixtureRepo";
 
-async function tokenWorld() {
+async function tokenWorld(scope: "read" | "write" = "write") {
   const db = await getDb();
   const login = `api-${crypto.randomUUID().slice(0, 8)}`;
   const [ws] = await db.insert(s.workspaces).values({ login, name: login }).returning();
   const [repo] = await db.insert(s.repositories).values({ workspaceId: ws.id, fullName: `${login}/ledger`, name: "ledger", cloneUrl: "https://github.com/x/ledger.git", framework: "pytest", installCmd: "pip install -r requirements.txt", runner: "actions" }).returning();
   const token = newToken();
-  await db.insert(s.apiTokens).values({ workspaceId: ws.id, name: "ci", prefix: "x", hash: hashToken(token) });
+  await db.insert(s.apiTokens).values({ workspaceId: ws.id, name: "ci", prefix: "x", hash: hashToken(token), scope });
   const auth = { authorization: `Bearer ${token}` };
   return { db, ws, repo, auth };
 }
@@ -60,4 +60,13 @@ describe("HTTP API", () => {
     expect(res.headers.get("content-type")).toMatch(/text\/markdown/);
     expect(await res.text()).toMatch(/^# Lessons from production/);
   });
+
+  test("read-only tokens can read but not write", async () => {
+    const w = await tokenWorld("read");
+    expect((await listIncidents(new NextRequest("http://x/api/v1/incidents", { headers: w.auth }))).status).toBe(200);
+    const created = await createIncident(new NextRequest("http://x/api/v1/incidents", { method: "POST", headers: { ...w.auth, "content-type": "application/json" }, body: JSON.stringify({ title: "Retry charged twice", repository: "ledger" }) }));
+    expect(created.status).toBe(403);
+    expect((await report(new NextRequest("http://x/api/v1/checks/report", { method: "POST", headers: { ...w.auth, "content-type": "application/json" }, body: "{}" }))).status).toBe(403);
+  });
 });
+

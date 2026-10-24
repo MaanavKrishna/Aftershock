@@ -36,7 +36,7 @@ describe("GitHub webhooks", () => {
     const org = login();
     const { ws, repo } = await installed(org);
     expect(ws.installationId).toBe(inst);
-    expect(repo).toMatchObject({ fullName: `${org}/ecommerce-api`, framework: "pytest", cloneUrl: `https://github.com/${org}/ecommerce-api.git` });
+    expect(repo).toMatchObject({ fullName: `${org}/ecommerce-api`, framework: "pytest", cloneUrl: `https://github.com/${org}/ecommerce-api.git`, isPrivate: false });
   });
 
   test("a closed issue labelled incident is imported with its fix and starts time travel", async () => {
@@ -122,6 +122,15 @@ describe("GitHub webhooks", () => {
     const { db, ws } = await installed(org);
     await db.update(s.workspaces).set({ settings: { flags: { mergeQueue: true } } }).where(eq(s.workspaces.id, ws.id));
     expect((await handleGithubEvent("merge_group", { ...mergeGroup(org), action: "destroyed" })).note).toBe("ignored");
+  });
+
+  test("a repository made private or public updates its visibility", async () => {
+    const org = login();
+    const { db, repo } = await installed(org);
+    await handleGithubEvent("repository", { action: "privatized", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api`, private: true } });
+    expect((await db.select().from(s.repositories).where(eq(s.repositories.id, repo.id)))[0].isPrivate).toBe(true);
+    await handleGithubEvent("repository", { action: "publicized", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api`, private: false } });
+    expect((await db.select().from(s.repositories).where(eq(s.repositories.id, repo.id)))[0].isPrivate).toBe(false);
   });
 });
 

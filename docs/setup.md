@@ -27,7 +27,7 @@ One GitHub App handles both “Sign in with GitHub” and repository access.
 | Setup URL | `APP_URL/onboarding` |
 | Webhook URL | `APP_URL/api/webhooks/github`, with a long random **Webhook secret** |
 | Repository permissions | Contents **read & write**, Issues **read**, Metadata **read**, Checks **read & write**, Pull requests **read & write** |
-| Events | Issues, Pull request, Check run, Merge group (installation events are always sent) |
+| Events | Issues, Pull request, Check run, Merge group, Repository (installation events are always sent) |
 
 3. After creating it, generate a **private key** and a **client secret**, then add these to Vercel (Production) and redeploy:
 

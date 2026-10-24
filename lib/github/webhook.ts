@@ -9,7 +9,7 @@ import { fieldsFromIssue } from "@/lib/domain/issueBody";
 
 const clip = (f: { trigger: string; observed: string; expected: string }) => ({ trigger: f.trigger.slice(0, 2000), observed: f.observed.slice(0, 4000), expected: f.expected.slice(0, 2000) });
 
-type Repo = { id: number; name: string; full_name: string };
+type Repo = { id: number; name: string; full_name: string; private?: boolean };
 type Payload = Record<string, any>; // GitHub payloads; only the fields read below are trusted, after the signature check.
 
 async function workspaceByInstallation(installationId: number | undefined) {
@@ -36,12 +36,12 @@ async function addRepos(workspaceId: string, repos: Repo[]) {
     const known = await repoByFullName(workspaceId, r.full_name, true);
     if (known) {
       // Access came back: the repository is checked again and no longer scheduled for purge.
-      if (known.archivedAt) await db.update(s.repositories).set({ archivedAt: null }).where(eq(s.repositories.id, known.id));
+      if (known.archivedAt || (typeof r.private === "boolean" && known.isPrivate !== r.private)) await db.update(s.repositories).set({ archivedAt: null, ...(typeof r.private === "boolean" ? { isPrivate: r.private } : {}) }).where(eq(s.repositories.id, known.id));
       continue;
     }
     const d = await github.detectFramework(workspaceId, r.full_name);
     const { frameworkDef } = await import("@/lib/runner/frameworks");
-    await db.insert(s.repositories).values({ workspaceId, githubRepoId: String(r.id), fullName: r.full_name, name: r.name, cloneUrl: `https://github.com/${r.full_name}.git`, framework: d.framework, installCmd: d.install, language: d.language, testDir: frameworkDef(d.framework).defaultTestDir });
+    await db.insert(s.repositories).values({ workspaceId, githubRepoId: String(r.id), fullName: r.full_name, name: r.name, cloneUrl: `https://github.com/${r.full_name}.git`, framework: d.framework, installCmd: d.install, language: d.language, testDir: frameworkDef(d.framework).defaultTestDir, isPrivate: typeof r.private === "boolean" ? r.private : null });
   }
 }
 
@@ -148,6 +148,11 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
       await startPrCheck(check.id);
       return { note: "check started" };
     }
+  }
+
+  if (name === "repository" && (p.action === "privatized" || p.action === "publicized")) {
+    await db.update(s.repositories).set({ isPrivate: p.action === "privatized" }).where(eq(s.repositories.id, repo.id));
+    return { note: `repository ${p.action}` };
   }
 
   // Merge queue: GitHub asks for checks on a temporary commit that is the queued PR merged onto the queue's base.
