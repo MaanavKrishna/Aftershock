@@ -149,8 +149,8 @@ export default async function IncidentPage({ params, searchParams }: { params: P
               <div className="flex flex-col gap-3.5 px-[22px] py-[18px]">
                 {notes.map(({ note, user }) => (
                   <div key={note.id} className="flex gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-tint text-xs font-semibold">{(user.name ?? user.login)[0].toUpperCase()}</span>
-                    <div className="flex flex-col gap-0.5"><span className="text-[12.5px] text-muted"><span className="font-semibold text-ink">{user.name ?? user.login}</span> · {stamp(note.createdAt)}</span><span>{note.text}</span></div>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-tint text-xs font-semibold">{(user?.name ?? user?.login ?? "?")[0].toUpperCase()}</span>
+                    <div className="flex flex-col gap-0.5"><span className="text-[12.5px] text-muted"><span className="font-semibold text-ink">{user ? (user.name ?? user.login) : "Former member"}</span> · {stamp(note.createdAt)}</span><span>{note.text}</span></div>
                   </div>
                 ))}
                 <form action={addNote} className="flex flex-col gap-2">

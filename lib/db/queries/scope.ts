@@ -133,7 +133,7 @@ export function scoped(workspaceId: string) {
       return db
         .select({ note: s.notes, user: s.users })
         .from(s.notes)
-        .innerJoin(s.users, eq(s.users.id, s.notes.userId))
+        .leftJoin(s.users, eq(s.users.id, s.notes.userId))
         .where(eq(s.notes.incidentId, incidentId))
         .orderBy(asc(s.notes.createdAt));
     },
@@ -248,7 +248,7 @@ export function scoped(workspaceId: string) {
       const overrides = await db
         .select({ o: s.overrides, user: s.users })
         .from(s.overrides)
-        .innerJoin(s.users, eq(s.users.id, s.overrides.userId))
+        .leftJoin(s.users, eq(s.users.id, s.overrides.userId))
         .where(eq(s.overrides.checkId, row.check.id));
       const order: Record<string, number> = { recur: 0, inconclusive: 1, safe: 2, skipped: 3 };
       results.sort((a, b) => order[a.result.verdict] - order[b.result.verdict] || b.incident.number - a.incident.number);

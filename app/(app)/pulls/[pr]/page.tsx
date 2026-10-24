@@ -169,7 +169,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
             {overrides.length > 0 && (
               <Card>
                 <CardHead>Overrides</CardHead>
-                {overrides.map(({ o, user }) => <div key={o.id} className="border-b border-line-soft px-5 py-3 text-[13px]"><span className="font-semibold">{user.name ?? user.login}</span> · {stamp(o.createdAt)}<p className="m-0 mt-1 text-body">{o.reason}</p></div>)}
+                {overrides.map(({ o, user }) => <div key={o.id} className="border-b border-line-soft px-5 py-3 text-[13px]"><span className="font-semibold">{user ? (user.name ?? user.login) : "Former member"}</span> · {stamp(o.createdAt)}<p className="m-0 mt-1 text-body">{o.reason}</p></div>)}
               </Card>
             )}
             <Card>

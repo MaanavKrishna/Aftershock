@@ -186,7 +186,8 @@ export const suggestedFixes = pgTable("suggested_fixes", {
 export const overrides = pgTable("overrides", {
   id: id(),
   checkId: text("check_id").notNull().references(() => prChecks.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull().references(() => users.id),
+  /** Null once the author deletes their account; the record of the override stays. */
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   reason: text("reason").notNull(),
   createdAt: created(),
 });
@@ -194,7 +195,8 @@ export const overrides = pgTable("overrides", {
 export const notes = pgTable("notes", {
   id: id(),
   incidentId: text("incident_id").notNull().references(() => incidents.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull().references(() => users.id),
+  /** Null once the author deletes their account; the note stays on the trail. */
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   text: text("text").notNull(),
   createdAt: created(),
 });

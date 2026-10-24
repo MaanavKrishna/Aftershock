@@ -22,6 +22,13 @@
       "when": 1792845816356,
       "tag": "0002_env_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792846520156,
+      "tag": "0003_author_set_null",
+      "breakpoints": true
     }
   ]
 }
