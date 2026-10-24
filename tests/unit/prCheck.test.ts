@@ -120,3 +120,31 @@ test("a failure caused by code missing from the branch is inconclusive with a re
   expect(r.failureExcerpt).toMatch(/not on this branch/i);
   expect(comments[0]).toMatch(/Why: .*rebase/i);
 });
+
+test("a quarantined test is skipped with its reason when enforcement is on, and still runs when it is off", async () => {
+  const { db, check, w } = await world();
+  const { scoped } = await import("@/lib/db/queries/scope");
+  await db.update(s.memoryTests).set({ quarantined: true, quarantineReason: "Flaky on main: failed 2 of the last 7 nights" }).where(eq(s.memoryTests.incidentId, w.incident.id));
+  setDeps({ runner: () => runnerReturning("failed"), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  expect((await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id)))[0].verdict).toBe("recur");
+
+  await db.update(s.workspaces).set({ settings: { flags: { quarantineEnforce: true } } }).where(eq(s.workspaces.id, w.ws.id));
+  await db.update(s.prChecks).set({ status: "queued" }).where(eq(s.prChecks.id, check.id));
+  await prCheck(check.id);
+  const after = (await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id)))[0];
+  expect(after.verdict).toBe("skipped");
+  const skips = await db.select().from(s.prCheckSkips).where(eq(s.prCheckSkips.checkId, check.id));
+  expect(skips.map((k) => k.reason)).toContain("Quarantined — Flaky on main: failed 2 of the last 7 nights");
+  void scoped;
+});
+
+test("when sandbox hours run out, a repository that already reports from GitHub Actions moves there instead of pausing", async () => {
+  const { db, check, w } = await world();
+  const month = new Date().toISOString().slice(0, 7);
+  await db.insert(s.usage).values({ workspaceId: w.ws.id, month, sandboxCpuMs: 10 * 3_600_000 }).onConflictDoUpdate({ target: [s.usage.workspaceId, s.usage.month], set: { sandboxCpuMs: 10 * 3_600_000 } });
+  await db.insert(s.prChecks).values({ workspaceId: w.ws.id, repoId: w.repo.id, prNumber: 1, title: "earlier", headSha: "h", baseSha: "b", status: "done", verdict: "safe", runner: "actions" });
+  setDeps({ runner: () => runnerReturning("passed"), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  expect((await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id)))[0].runner).toBe("actions");
+});

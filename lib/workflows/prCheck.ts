@@ -27,7 +27,7 @@ async function plan(checkId: string): Promise<Plan> {
   const { incidentKey } = await import("@/lib/domain/ids");
   const { pickRunner } = await import("@/lib/runner/select");
   const { triageIncidents } = await import("@/lib/model/triage");
-  const { scoped, SANDBOX_ALLOWANCE_MS } = await import("@/lib/db/queries/scope");
+  const { scoped } = await import("@/lib/db/queries/scope");
   const db = await getDb();
   const [check] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, checkId));
   if (!check) return { ok: false };
@@ -45,12 +45,22 @@ async function plan(checkId: string): Promise<Plan> {
   const adds = candidates.length && fileSelected.run.length < tests.length ? await triageIncidents(ws.id, { title: check.title, diff: check.diff }, candidates) : [];
   const sel = relevantTests(check.changedFiles, tests.map((x) => ({ id: x.t.id, watchedFiles: x.i.watchedFiles })), adds);
   const byId = Object.fromEntries(tests.map((x) => [x.t.id, x]));
-  const selected: Selected[] = sel.run.map((r) => {
+  const { flagEnabled } = await import("@/lib/flags");
+  const enforceQuarantine = flagEnabled("quarantineEnforce", ws.settings);
+  const quarantinedSkips: { incidentId: string; reason: string }[] = [];
+  const selectedAll: Selected[] = sel.run.map((r) => {
     const x = byId[r.id];
     const touched = check.changedFiles.find((f) => x.i.watchedFiles.includes(f));
     return { memoryTestId: x.t.id, incidentId: x.i.id, key: incidentKey(ws.incidentPrefix, x.i.number), title: x.i.title, path: x.t.path, code: x.t.code, selectedBy: r.selectedBy, why: r.selectedBy === "files" ? `Touches ${touched}` : "Added by triage: related behaviour" };
   });
-  const skips = sel.skipped.map((k) => ({ incidentId: byId[k.id].i.id, reason: k.reason }));
+  // Flaky tests cannot block a pull request on noise: they are skipped, with the reason, while quarantined.
+  const selected = selectedAll.filter((x) => {
+    const t = byId[x.memoryTestId].t;
+    if (!enforceQuarantine || !t.quarantined) return true;
+    quarantinedSkips.push({ incidentId: x.incidentId, reason: `Quarantined — ${t.quarantineReason ?? "flaky on main"}` });
+    return false;
+  });
+  const skips = [...sel.skipped.map((k) => ({ incidentId: byId[k.id].i.id, reason: k.reason })), ...quarantinedSkips];
   const awaiting = await db.select().from(s.incidents).where(and(eq(s.incidents.repoId, repo.id), eq(s.incidents.status, "awaiting_fix")));
   for (const a of awaiting) skips.push({ incidentId: a.id, reason: "Awaiting fix — no proven test yet" });
   const usage = await scoped(ws.id).usage();
@@ -65,7 +75,10 @@ async function plan(checkId: string): Promise<Plan> {
   const merged = selected.length > 0 ? await testMergeCommit((await octokitFor(ws.id)) as Parameters<typeof testMergeCommit>[0], repo.fullName, check.prNumber) : null;
   const testedSha = merged ?? check.headSha;
   await db.update(s.prChecks).set({ testedSha }).where(eq(s.prChecks.id, checkId));
-  const choice = pickRunner(cfg, { remainingCpuMs: SANDBOX_ALLOWANCE_MS - usage.sandboxCpuMs }, false);
+  // A repository that has reported results from its own GitHub Actions before can take over when sandbox hours run out.
+  const { gte } = await import("drizzle-orm");
+  const [viaActions] = await db.select({ id: s.prChecks.id }).from(s.prChecks).where(and(eq(s.prChecks.repoId, repo.id), eq(s.prChecks.runner, "actions"), gte(s.prChecks.createdAt, new Date(Date.now() - 90 * 86_400_000)))).limit(1);
+  const choice = pickRunner(cfg, { remainingCpuMs: usage.allowanceMs - usage.sandboxCpuMs }, Boolean(viaActions));
   const mode = choice === "actions" ? "actions" : choice === "unavailable" ? "unavailable" : "run";
   await db.update(s.prChecks).set({ status: "running", runner: mode === "actions" ? "actions" : mode === "run" ? "sandbox" : null }).where(eq(s.prChecks.id, checkId));
   return {
