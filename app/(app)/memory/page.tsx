@@ -10,6 +10,7 @@ import { renderLessons } from "@/lib/domain/lessons";
 import { stamp, timeAgo, word } from "@/lib/format";
 import { releaseQuarantine, reproveNow } from "../actions";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { SyncLessons } from "@/components/app/SyncLessons";
 import { flagEnabled } from "@/lib/flags";
 
 export const metadata: Metadata = { title: "Memory" };
@@ -118,6 +119,7 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
                 <Card dark>
                   <div className="flex flex-col gap-1 border-b border-[#222C38] px-5 py-4"><span className="font-semibold">LESSONS.md for coding agents</span><span className="text-[12.5px] text-on-dark-muted">Commit it, and AI assistants in your editor read your incident history before they change risky code.</span></div>
                   <pre className="m-0 max-h-[320px] overflow-auto px-5 py-4 font-mono text-xs leading-[1.7] text-[#C9D1DA]">{lessons}</pre>
+                  <SyncLessons repos={repos.filter((r) => all.some((m) => m.repo.id === r.id)).map((r) => ({ id: r.id, name: r.name }))} />
                 </Card>
               </aside>
             )}

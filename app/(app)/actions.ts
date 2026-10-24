@@ -402,3 +402,19 @@ export async function reproveNow(form: FormData): Promise<void> {
   await startReproof(t.id);
   revalidatePath("/memory");
 }
+
+/** Opens or updates the bot pull request that writes this repository's lessons into AGENTS.md. */
+export async function syncLessonsAction(_p: FormState, form: FormData): Promise<FormState> {
+  const { session, allowed } = await authorize("manageRepositories");
+  if (!allowed) return { error: "Only owners and admins can do this." };
+  const { syncAgentsMd } = await import("@/lib/github/agentsSync");
+  try {
+    const r = await syncAgentsMd(session.workspaceId, String(form.get("repoId") ?? ""));
+    if (r.status === "opened") return { ok: `Pull request #${r.pr} updates AGENTS.md. Merge it to share the lessons with coding agents.` };
+    if (r.status === "up to date") return { ok: "AGENTS.md already has every lesson." };
+    if (r.status === "not connected") return { error: "Install the GitHub App on this repository first." };
+    return { error: "This repository has no proven lessons yet." };
+  } catch (err) {
+    return { error: `GitHub refused the change: ${err instanceof Error ? err.message.slice(0, 160) : "unknown error"}` };
+  }
+}
