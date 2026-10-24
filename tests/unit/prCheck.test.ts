@@ -148,3 +148,16 @@ test("when sandbox hours run out, a repository that already reports from GitHub 
   await prCheck(check.id);
   expect((await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id)))[0].runner).toBe("actions");
 });
+
+test("merge queue checks run on the queue's own commit, report on the check run, and post no comment", async () => {
+  const { db, check } = await world();
+  await db.update(s.prChecks).set({ mergeGroupRef: "refs/heads/gh-readonly-queue/main/pr-214-abc", testedSha: check.headSha }).where(eq(s.prChecks.id, check.id));
+  const shas: string[] = [];
+  setDeps({ runner: () => ({ kind: "docker", run: async (spec) => (shas.push(spec.sha), { installOk: true, results: Array.from({ length: spec.runs }, () => ({ outcome: "failed" as const, durationMs: 1 })), log: "", cpuMs: 1, wallMs: 1 }) }), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
+  expect(after).toMatchObject({ status: "done", verdict: "recur", testedSha: check.headSha });
+  expect(new Set(shas)).toEqual(new Set([check.headSha]));
+  expect(completed).toEqual([{ conclusion: "failure" }]);
+  expect(comments).toEqual([]);
+});

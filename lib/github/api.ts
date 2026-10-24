@@ -6,6 +6,8 @@ export type GithubApi = {
   detectFramework(workspaceId: string, fullName: string): Promise<Detected>;
   closingCommit(workspaceId: string, fullName: string, issue: number): Promise<{ sha?: string; pr?: number }>;
   prFiles(workspaceId: string, fullName: string, pr: number): Promise<{ files: string[]; diff: string }>;
+  /** Files changed between two commits (merge queue: base → merge group head). */
+  compareFiles(workspaceId: string, fullName: string, base: string, head: string): Promise<{ files: string[]; diff: string }>;
   createCheckRun(workspaceId: string, fullName: string, headSha: string): Promise<number | null>;
   completeCheckRun(workspaceId: string, fullName: string, id: number | null, conclusion: "success" | "failure" | "neutral", summary: string, url: string): Promise<void>;
   upsertComment(workspaceId: string, fullName: string, pr: number, body: string, existing: number | null): Promise<number | null>;
@@ -63,6 +65,13 @@ const real: GithubApi = {
     const { data } = await ok.request("GET /repos/{owner}/{repo}/pulls/{pull_number}/files", { ...split(fullName), pull_number: pr, per_page: 100 });
     return { files: data.map((f) => f.filename), diff: data.map((f) => `--- ${f.filename}\n${f.patch ?? ""}`).join("\n").slice(0, 60_000) };
   },
+  async compareFiles(workspaceId, fullName, base, head) {
+    const ok = await octokitFor(workspaceId);
+    if (!ok) return { files: [], diff: "" };
+    const { data } = await ok.request("GET /repos/{owner}/{repo}/compare/{basehead}", { ...split(fullName), basehead: `${base}...${head}`, per_page: 100 });
+    const files = data.files ?? [];
+    return { files: files.map((f) => f.filename), diff: files.map((f) => `--- ${f.filename}\n${f.patch ?? ""}`).join("\n").slice(0, 60_000) };
+  },
   async createCheckRun(workspaceId, fullName, headSha) {
     const ok = await octokitFor(workspaceId);
     if (!ok) return null;
@@ -96,6 +105,7 @@ const noop: GithubApi = {
   detectFramework: async () => ({ framework: "pytest", install: "pip install -r requirements.txt", language: "Python" }),
   closingCommit: async () => ({}),
   prFiles: async () => ({ files: [], diff: "" }),
+  compareFiles: async () => ({ files: [], diff: "" }),
   createCheckRun: async () => null,
   completeCheckRun: async () => undefined,
   upsertComment: async () => null,

@@ -78,7 +78,8 @@ async function plan(checkId: string): Promise<Plan> {
   // Test what would land: the PR merged into its base (as CI does), not a head that may predate later fixes.
   const { testMergeCommit } = await import("@/lib/github/pulls");
   const { octokitFor } = await import("@/lib/github/app");
-  const merged = selected.length > 0 ? await testMergeCommit((await octokitFor(ws.id)) as Parameters<typeof testMergeCommit>[0], repo.fullName, check.prNumber) : null;
+  // A merge queue commit already is the merge; a pull request is tested as GitHub's test merge of head into base.
+  const merged = check.mergeGroupRef ? check.headSha : selected.length > 0 ? await testMergeCommit((await octokitFor(ws.id)) as Parameters<typeof testMergeCommit>[0], repo.fullName, check.prNumber) : null;
   const testedSha = merged ?? check.headSha;
   await db.update(s.prChecks).set({ testedSha }).where(eq(s.prChecks.id, checkId));
   // A repository that has reported results from its own GitHub Actions before can take over when sandbox hours run out.
@@ -146,13 +147,13 @@ export async function finalizeCheck(checkId: string, results: { selected: Select
   });
   const conclusion = verdict === "recur" ? ((mode ?? repo.checkMode) === "blocking" ? "failure" : "neutral") : verdict === "inconclusive" ? "neutral" : "success";
   await github.completeCheckRun(check.workspaceId, repo.fullName, check.checkRunId, conclusion, body, url);
-  if (verdict !== "skipped" || check.commentId) {
+  if (!check.mergeGroupRef && (verdict !== "skipped" || check.commentId)) {
     const commentId = await github.upsertComment(check.workspaceId, repo.fullName, check.prNumber, body, check.commentId);
     if (commentId) await db.update(s.prChecks).set({ commentId }).where(eq(s.prChecks.id, checkId));
   }
   if (verdict === "recur") {
     const first = results.find((_, i) => rows[i].verdict === "recur")!;
-    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: check.workspaceId, incidentId: first.selected.incidentId, title: `PR #${check.prNumber} blocked: ${first.selected.key} would recur`, detail: check.title, tone: "fail", event: "pr.blocked" as const });
+    await (await import("@/lib/notify/outbox")).recordActivity({ workspaceId: check.workspaceId, incidentId: first.selected.incidentId, title: `${check.mergeGroupRef ? "Merge queue blocked" : "PR"} #${check.prNumber}${check.mergeGroupRef ? "" : " blocked"}: ${first.selected.key} would recur`, detail: check.title, tone: "fail", event: "pr.blocked" as const });
   }
 }
 

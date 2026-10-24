@@ -150,6 +150,28 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
     }
   }
 
+  // Merge queue: GitHub asks for checks on a temporary commit that is the queued PR merged onto the queue's base.
+  if (name === "merge_group") {
+    if (p.action !== "checks_requested") return { note: "ignored" };
+    const { flagEnabled } = await import("@/lib/flags");
+    if (!flagEnabled("mergeQueue", ws.settings)) return { note: "merge queue off" };
+    const g = p.merge_group;
+    const headSha = String(g.head_sha ?? "");
+    const ref = String(g.head_ref ?? "");
+    if (!/^[0-9a-f]{40}$/.test(headSha)) return { note: "ignored" };
+    const prNumber = Number(ref.match(/\/pr-(\d+)-[0-9a-f]+$/)?.[1] ?? 0);
+    const { files, diff } = await github.compareFiles(ws.id, repo.fullName, String(g.base_sha), headSha);
+    const checkRunId = await github.createCheckRun(ws.id, repo.fullName, headSha);
+    const title = String(g.head_commit?.message ?? `Merge queue · PR #${prNumber}`).split("\n")[0].slice(0, 200);
+    const [check] = await db
+      .insert(s.prChecks)
+      .values({ workspaceId: ws.id, repoId: repo.id, prNumber, title, headSha, baseSha: String(g.base_sha), testedSha: headSha, mergeGroupRef: ref.slice(0, 300), filesChanged: files.length, changedFiles: files, diff, status: "queued", checkRunId })
+      .returning();
+    await logDelivery(ws.id, "merge_group.checks_requested", `PR #${prNumber} · ${headSha.slice(0, 7)}`);
+    await startPrCheck(check.id);
+    return { note: "check started" };
+  }
+
   if (name === "check_run" && p.action === "rerequested") {
     const [check] = await db.select().from(s.prChecks).where(and(eq(s.prChecks.workspaceId, ws.id), eq(s.prChecks.checkRunId, p.check_run.id)));
     if (check) {

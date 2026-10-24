@@ -17,6 +17,7 @@ beforeEach(() => {
     closingCommit: async () => ({ sha: "aa86f56aa86f56aa86f56aa86f56aa86f56aa86f" }),
     prFiles: async () => ({ files: ["app/services/payment_service.py"], diff: "-guard" }),
     createCheckRun: async () => 555,
+    compareFiles: async () => ({ files: ["app/services/payment_service.py"], diff: "-guard" }),
   });
 });
 
@@ -101,4 +102,26 @@ describe("GitHub webhooks", () => {
     await handleGithubEvent("installation", { action: "created", installation: { id: inst + 1, account: { login: org, id: 7, type: "Organization" } }, repositories: [], sender: { id: 99 } });
     expect((await db.select().from(s.workspaces).where(eq(s.workspaces.id, ws.id)))[0].uninstalledAt).toBeNull();
   });
+
+  const mergeGroup = (org: string) => ({ action: "checks_requested", installation: { id: inst }, repository: { full_name: `${org}/ecommerce-api` }, merge_group: { head_sha: "c0ffee".padEnd(40, "0"), head_ref: "refs/heads/gh-readonly-queue/main/pr-42-1234567890abcdef", base_sha: "ba5e".padEnd(40, "0"), base_ref: "refs/heads/main", head_commit: { message: "Refactor payments (#42)" } } });
+
+  test("a merge queue entry is checked on the queue's commit once the flag is on", async () => {
+    const org = login();
+    const { db, ws } = await installed(org);
+    expect((await handleGithubEvent("merge_group", mergeGroup(org))).note).toBe("merge queue off");
+    expect(started).toEqual([]);
+    await db.update(s.workspaces).set({ settings: { flags: { mergeQueue: true } } }).where(eq(s.workspaces.id, ws.id));
+    expect((await handleGithubEvent("merge_group", mergeGroup(org))).note).toBe("check started");
+    const [check] = await db.select().from(s.prChecks).where(eq(s.prChecks.workspaceId, ws.id));
+    expect(check).toMatchObject({ prNumber: 42, headSha: "c0ffee".padEnd(40, "0"), baseSha: "ba5e".padEnd(40, "0"), testedSha: "c0ffee".padEnd(40, "0"), mergeGroupRef: "refs/heads/gh-readonly-queue/main/pr-42-1234567890abcdef", changedFiles: ["app/services/payment_service.py"], title: "Refactor payments (#42)", checkRunId: 555 });
+    expect(started).toEqual([{ kind: "prCheck", id: check.id }]);
+  });
+
+  test("other merge_group actions are ignored", async () => {
+    const org = login();
+    const { db, ws } = await installed(org);
+    await db.update(s.workspaces).set({ settings: { flags: { mergeQueue: true } } }).where(eq(s.workspaces.id, ws.id));
+    expect((await handleGithubEvent("merge_group", { ...mergeGroup(org), action: "destroyed" })).note).toBe("ignored");
+  });
 });
+
