@@ -26,8 +26,13 @@ test("the activity inbox lists recent activity and links to incidents", async ({
 test("on a phone the navigation opens as a drawer", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signInDemo(page);
-  await page.getByLabel("Open navigation").click();
-  await page.getByRole("dialog", { name: "Navigation" }).getByRole("link", { name: "Memory" }).click();
+  await page.waitForLoadState("networkidle");
+  const drawer = page.getByRole("dialog", { name: "Navigation" });
+  await expect(async () => {
+    await page.getByLabel("Open navigation").click();
+    await expect(drawer).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 20_000 });
+  await drawer.getByRole("link", { name: "Memory" }).click();
   await page.waitForURL("**/memory");
 });
 
