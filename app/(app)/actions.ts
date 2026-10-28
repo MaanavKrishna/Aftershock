@@ -487,3 +487,23 @@ export async function shareReport(): Promise<void> {
 export async function unshareReport(): Promise<void> {
   await setReportToken(undefined);
 }
+
+/** Corrects an incident's title and description. The proof, if any, is unchanged. */
+export async function editIncident(_p: FormState, form: FormData): Promise<FormState> {
+  const { session, allowed } = await authorize("recordIncident");
+  if (!allowed) return { error: "You can’t edit incidents in this workspace." };
+  const text = (k: string, max: number) => String(form.get(k) ?? "").trim().slice(0, max);
+  const title = text("title", 200);
+  if (title.length < 3) return { error: "Give the incident a title." };
+  const db = await getDb();
+  const [inc] = await db
+    .update(s.incidents)
+    .set({ title, trigger: text("trigger", 4000), observed: text("observed", 4000), expected: text("expected", 4000), updatedAt: new Date() })
+    .where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)))
+    .returning();
+  if (!inc) return { error: "Incident not found." };
+  const { audit } = await import("@/lib/data/lifecycle");
+  await audit(session.workspaceId, session.userId, "incident.edited", `#${inc.number}`, title);
+  revalidatePath(`/incidents/${inc.number}`);
+  return { ok: "Details saved." };
+}

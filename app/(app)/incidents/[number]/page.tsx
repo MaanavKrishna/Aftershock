@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { EditIncident } from "@/components/app/EditIncident";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentScope } from "@/lib/auth/scope";
@@ -90,6 +91,7 @@ export default async function IncidentPage({ params, searchParams }: { params: P
                   </div>
                 ))}
               </div>
+              <EditIncident id={inc.id} title={inc.title} trigger={inc.trigger} observed={inc.observed} expected={inc.expected} />
             </Card>
 
             <Card>
