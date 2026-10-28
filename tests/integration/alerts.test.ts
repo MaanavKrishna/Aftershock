@@ -145,3 +145,18 @@ describe("recurrence detection", () => {
     expect(acts.map((a) => a.title)).toContain(`INC-${fresh.number} looks like INC-1 again`);
   });
 });
+
+describe("intake rate limits", () => {
+  test("a flood of bad signatures from one address is cut off without blocking other workspaces' valid alerts", async () => {
+    const a = await world();
+    const b = await world();
+    const statuses: number[] = [];
+    for (let i = 0; i < 40; i++) {
+      const r = new NextRequest(`http://localhost/api/webhooks/sentry?workspace=${a.ws.login}`, { method: "POST", body: sentryBody(String(i)), headers: { "sentry-hook-signature": "bad", "x-forwarded-for": "198.51.100.7" } });
+      statuses.push((await sentry(r)).status);
+    }
+    expect(statuses).toContain(429);
+    const ok = new NextRequest(`http://localhost/api/webhooks/sentry?workspace=${b.ws.login}`, { method: "POST", body: sentryBody("77"), headers: { "sentry-hook-signature": hmac("sentry-secret", sentryBody("77")), "x-forwarded-for": "35.188.42.15" } });
+    expect((await sentry(ok)).status).toBe(200);
+  });
+});

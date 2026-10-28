@@ -147,3 +147,25 @@ describe("GitHub webhooks", () => {
   });
 });
 
+
+test("oversized GitHub deliveries are refused before the signature is checked", async () => {
+  const { POST } = await import("@/app/api/webhooks/github/route");
+  const { NextRequest } = await import("next/server");
+  const res = await POST(new NextRequest("http://x/api/webhooks/github", { method: "POST", body: "x".repeat(26 * 1024 * 1024) }));
+  expect(res.status).toBe(413);
+});
+
+test("valid GitHub deliveries are never rate limited by sender address; repeated bad signatures are", async () => {
+  const { POST } = await import("@/app/api/webhooks/github/route");
+  const { NextRequest } = await import("next/server");
+  const { createHmac } = await import("node:crypto");
+  process.env.GITHUB_WEBHOOK_SECRET = "gh-secret-for-tests";
+  const body = JSON.stringify({ zen: "ping" });
+  const sig = `sha256=${createHmac("sha256", "gh-secret-for-tests").update(body).digest("hex")}`;
+  const req = (s: string) => new NextRequest("http://x/api/webhooks/github", { method: "POST", body, headers: { "x-hub-signature-256": s, "x-github-event": "ping", "x-forwarded-for": "140.82.115.9" } });
+  for (let i = 0; i < 350; i++) expect((await POST(req(sig))).status).not.toBe(429);
+  const statuses: number[] = [];
+  for (let i = 0; i < 40; i++) statuses.push((await POST(new NextRequest("http://x/api/webhooks/github", { method: "POST", body, headers: { "x-hub-signature-256": "sha256=00", "x-forwarded-for": "203.0.113.50" } }))).status);
+  expect(statuses).toContain(429);
+  expect((await POST(req(sig))).status).not.toBe(429);
+});

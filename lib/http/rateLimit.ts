@@ -10,7 +10,7 @@ export type Limit = { ok: true } | { ok: false; retryAfterSeconds: number };
 export function createLimiter(opts: { limit: number; windowMs: number; now?: () => number }) {
   const buckets = new Map<string, Bucket>();
   const now = opts.now ?? Date.now;
-  return (key: string): Limit => {
+  const hit = (key: string): Limit => {
     const t = now();
     let b = buckets.get(key);
     if (!b || t >= b.resetAt) {
@@ -21,6 +21,13 @@ export function createLimiter(opts: { limit: number; windowMs: number; now?: () 
     b.count++;
     return b.count <= opts.limit ? { ok: true } : { ok: false, retryAfterSeconds: Math.ceil((b.resetAt - t) / 1000) };
   };
+  /** Like hit, without counting: is this key already over the limit? */
+  const peek = (key: string): Limit => {
+    const t = now();
+    const b = buckets.get(key);
+    return !b || t >= b.resetAt || b.count < opts.limit ? { ok: true } : { ok: false, retryAfterSeconds: Math.ceil((b.resetAt - t) / 1000) };
+  };
+  return Object.assign(hit, { peek });
 }
 
 const webhooks = createLimiter({ limit: 300, windowMs: 60_000 });
@@ -33,6 +40,25 @@ function clientKey(req: NextRequest, kind: "webhook" | "api"): string {
   const auth = req.headers.get("authorization");
   if (auth && kind === "api") return `t:${auth.slice(-16)}`;
   return `ip:${ipOf(req)}`;
+}
+
+const tooMany = (r: Limit) => (r.ok ? null : NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "retry-after": String(r.retryAfterSeconds) } }));
+
+/**
+ * Webhook senders (GitHub, Sentry, PagerDuty...) deliver for every customer from shared addresses, so
+ * valid deliveries are never limited by address. Only failed attempts (bad signature, unknown workspace)
+ * count against the sender's address; valid alerts are limited per workspace instead.
+ */
+const rejections = createLimiter({ limit: 20, windowMs: 60_000 });
+const perWorkspace = createLimiter({ limit: 300, windowMs: 60_000 });
+export function blockedForRejections(req: NextRequest): NextResponse | null {
+  return tooMany(rejections.peek(`rej:${ipOf(req)}`));
+}
+export function recordRejection(req: NextRequest): void {
+  rejections(`rej:${ipOf(req)}`);
+}
+export function limitedWorkspace(key: string): NextResponse | null {
+  return tooMany(perWorkspace(key));
 }
 
 /** Returns a 429 response when the caller is over its limit, otherwise null. */
