@@ -169,3 +169,15 @@ test("every check records its recurrence risk from the files it touches", async 
   const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
   expect(after.risk).toMatchObject({ level: "medium", incidents: ["INC-1"], reasons: ["Touches ledger.py, the code behind INC-1"] });
 });
+
+test("a check superseded by a newer push to the same pull request stops before running tests", async () => {
+  const { db, check, w } = await world();
+  await db.insert(s.prChecks).values({ workspaceId: w.ws.id, repoId: w.repo.id, prNumber: 214, title: "refactor ledger v2", headSha: w.git.fix, baseSha: w.git.fix, changedFiles: ["ledger.py"], status: "queued", checkRunId: 10, createdAt: new Date(Date.now() + 1000) });
+  let runs = 0;
+  setDeps({ runner: () => ({ kind: "docker", run: async (spec) => (runs++, { installOk: true, results: Array.from({ length: spec.runs }, () => ({ outcome: "passed" as const, durationMs: 1 })), log: "", cpuMs: 1, wallMs: 1 }) }), drafter: () => ({ draft: async () => { throw new Error("unused"); } }), openBotPr: async () => null });
+  await prCheck(check.id);
+  expect(runs).toBe(0);
+  const [after] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, check.id));
+  expect(after).toMatchObject({ status: "done", verdict: "skipped" });
+  expect(completed).toEqual([{ conclusion: "neutral" }]);
+});

@@ -5,8 +5,16 @@ async function memoryTestIds(): Promise<string[]> {
   "use step";
   const { getDb } = await import("@/lib/db/client");
   const s = await import("@/lib/db/schema");
+  const { and, eq, isNull } = await import("drizzle-orm");
   const db = await getDb();
-  return (await db.select({ id: s.memoryTests.id }).from(s.memoryTests)).map((r) => r.id);
+  // Repositories the app lost access to and uninstalled workspaces are waiting to be purged, not checked.
+  const rows = await db
+    .select({ id: s.memoryTests.id })
+    .from(s.memoryTests)
+    .innerJoin(s.repositories, eq(s.repositories.id, s.memoryTests.repoId))
+    .innerJoin(s.workspaces, eq(s.workspaces.id, s.memoryTests.workspaceId))
+    .where(and(isNull(s.repositories.archivedAt), isNull(s.workspaces.uninstalledAt)));
+  return rows.map((r) => r.id);
 }
 
 async function retention(day: string): Promise<{ logs: number; deliveries: number; notifications: number }> {

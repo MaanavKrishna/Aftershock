@@ -188,6 +188,33 @@ export async function prCheck(checkId: string): Promise<void> {
   }
 }
 
+/** True when a newer push to the same pull request has its own check, so this one's results would be stale. */
+async function superseded(checkId: string): Promise<boolean> {
+  "use step";
+  const { and, eq, gt, isNull } = await import("drizzle-orm");
+  const { getDb } = await import("@/lib/db/client");
+  const s = await import("@/lib/db/schema");
+  const db = await getDb();
+  const [c] = await db.select().from(s.prChecks).where(eq(s.prChecks.id, checkId));
+  if (!c || c.mergeGroupRef) return false;
+  const [newer] = await db.select({ id: s.prChecks.id }).from(s.prChecks).where(and(eq(s.prChecks.repoId, c.repoId), eq(s.prChecks.prNumber, c.prNumber), isNull(s.prChecks.mergeGroupRef), gt(s.prChecks.createdAt, c.createdAt))).limit(1);
+  return Boolean(newer);
+}
+
+/** Ends a superseded check without running anything; the newer check reports the verdict. */
+async function retireCheck(checkId: string): Promise<void> {
+  "use step";
+  const { eq } = await import("drizzle-orm");
+  const { getDb } = await import("@/lib/db/client");
+  const s = await import("@/lib/db/schema");
+  const { github } = await import("@/lib/github/api");
+  const db = await getDb();
+  const [check] = await db.update(s.prChecks).set({ status: "done", verdict: "skipped" }).where(eq(s.prChecks.id, checkId)).returning();
+  if (!check) return;
+  const [repo] = await db.select().from(s.repositories).where(eq(s.repositories.id, check.repoId));
+  await github.completeCheckRun(check.workspaceId, repo.fullName, check.checkRunId, "neutral", "### Aftershock · Superseded\n\nA newer push to this pull request is being checked instead.", `${process.env.APP_URL ?? ""}/pulls/${check.prNumber}?repo=${repo.name}`).catch(() => undefined);
+}
+
 async function runCheck(checkId: string): Promise<void> {
   const p = await plan(checkId);
   if (!p.ok) return;
@@ -196,6 +223,7 @@ async function runCheck(checkId: string): Promise<void> {
   let cpuMs = 0;
   let kind = "sandbox";
   for (const t of p.selected) {
+    if (await superseded(checkId)) return retireCheck(checkId);
     if (p.mode === "unavailable") {
       results.push({ selected: t, runs: [{ outcome: "error", durationMs: 0, message: "Sandbox hours are used up and this repository has no Actions workflow" }] });
       continue;

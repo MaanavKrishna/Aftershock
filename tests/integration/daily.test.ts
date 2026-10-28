@@ -58,3 +58,24 @@ test("a nightly re-check that makes a test flaky quarantines it, and green night
   const trail = await db.select().from(s.activity).where(eq(s.activity.incidentId, w.incident.id));
   expect(trail.map((a) => a.title)).toEqual(expect.arrayContaining([expect.stringMatching(/quarantined/i), expect.stringMatching(/released/i)]));
 });
+
+test("the daily job skips repositories the app lost access to and uninstalled workspaces", async () => {
+  const live = await ledgerWorld();
+  const archived = await ledgerWorld();
+  const gone = await ledgerWorld();
+  const db = await getDb();
+  await db.update(s.repositories).set({ archivedAt: new Date() }).where(eq(s.repositories.id, archived.repo.id));
+  await db.update(s.workspaces).set({ uninstalledAt: new Date() }).where(eq(s.workspaces.id, gone.ws.id));
+  const ids: string[] = [];
+  for (const w of [live, archived, gone]) {
+    const [m] = await db.insert(s.memoryTests).values({ workspaceId: w.ws.id, incidentId: w.incident.id, repoId: w.repo.id, path: "tests/aftershock/test_inc_1.py", fn: "t", code: LEDGER_TEST }).returning();
+    ids.push(m.id);
+  }
+  const ran: string[] = [];
+  setDeps({ runner: () => ({ kind: "docker", run: async (spec) => (ran.push(spec.repoUrl), { installOk: true, results: [{ outcome: "passed", durationMs: 1 }], log: "", cpuMs: 1, wallMs: 1 }) }) });
+  const { daily } = await import("@/lib/workflows/daily");
+  await daily("2026-10-24");
+  expect(ran).toContain(live.repo.cloneUrl);
+  expect(ran).not.toContain(archived.repo.cloneUrl);
+  expect(ran).not.toContain(gone.repo.cloneUrl);
+});
