@@ -74,5 +74,6 @@ export async function workspaceModel(workspaceId: string): Promise<ModelConfig |
 export async function complete(workspaceId: string, messages: Message[]): Promise<Completion> {
   const cfg = await workspaceModel(workspaceId);
   if (!cfg) throw new Error("No model is configured. Connect one in Integrations, or set MODEL_API_KEY on the server.");
+  if (cfg.provider === "custom" && !override) await (await import("@/lib/net/safeFetch")).assertPublicHost(cfg.baseURL);
   return (override ?? openaiClient)(cfg, messages);
 }

@@ -1,5 +1,5 @@
 import { request } from "node:https";
-import { lookup as dnsLookup, type LookupAddress } from "node:dns";
+import { lookup as dnsLookup, promises as dnsPromises, type LookupAddress } from "node:dns";
 import { isIP } from "node:net";
 
 const v4 = (ip: string) => ip.split(".").map(Number);
@@ -87,4 +87,17 @@ export function postJson(url: string, body: string, headers: Record<string, stri
     req.on("error", reject);
     req.end(body);
   });
+}
+
+type Resolve = (host: string) => Promise<{ address: string; family: number }[]>;
+const resolveAll: Resolve = (host) => dnsPromises.lookup(host, { all: true });
+
+/**
+ * For clients we can't hand a custom DNS lookup to (the model SDK): resolve the host right before the
+ * call and refuse if any answer is private. Narrows DNS-rebinding to the moment between check and call.
+ */
+export async function assertPublicHost(url: string, resolve: Resolve = resolveAll): Promise<void> {
+  const host = new URL(url).hostname.replace(/^\[|\]$/g, "");
+  const addrs = isIP(host) ? [{ address: host, family: isIP(host) }] : await resolve(host);
+  if (!addrs.length || addrs.some((a) => isPrivateAddress(a.address))) throw new Error(`Refused: ${host} resolves to a private address`);
 }

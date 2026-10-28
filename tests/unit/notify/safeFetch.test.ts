@@ -36,3 +36,12 @@ describe("postJson", () => {
     await expect(postJson("https://127.0.0.1:9/x", "{}", {}, 2000)).rejects.toThrow(/private/);
   });
 });
+
+describe("assertPublicHost", () => {
+  test("refuses a public-looking name that resolves to a private address", async () => {
+    const { assertPublicHost } = await import("@/lib/net/safeFetch");
+    await expect(assertPublicHost("https://127.0.0.1.nip.io/v1", async () => [{ address: "127.0.0.1", family: 4 }])).rejects.toThrow(/private/);
+    await expect(assertPublicHost("https://models.example.com/v1", async () => [{ address: "52.1.2.3", family: 4 }, { address: "10.0.0.5", family: 4 }])).rejects.toThrow(/private/);
+    await expect(assertPublicHost("https://models.example.com/v1", async () => [{ address: "52.1.2.3", family: 4 }])).resolves.toBeUndefined();
+  });
+});
