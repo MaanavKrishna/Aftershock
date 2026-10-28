@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Instrument_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 const display = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument", display: "swap" });
 const ui = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -28,8 +29,6 @@ export const viewport: Viewport = {
   ],
 };
 
-/** Applies a saved theme before first paint; without one, CSS follows the system setting. */
-const THEME_SCRIPT = `try{var t=localStorage.getItem("as-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

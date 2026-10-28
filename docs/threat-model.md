@@ -31,7 +31,9 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
    - A payload size cap and a ±5 minute replay window wherever the source sends a timestamp.
    - Incidents are deduplicated by source fingerprint.
 2. **Internet → API, MCP and badge**
-   - API tokens are compared by hash; sessions are HS256 JWTs, and workspace membership is re-checked on every request, so removing a member or deleting an account takes effect immediately.
+   - API tokens are compared by hash. Sessions are HS256 JWTs that name a server-side session row: every request checks the row is not revoked, was used in the last 14 days and is under 30 days old, and that the user is still a member. Sign-out and "Sign out everywhere else" end sessions on the server.
+   - Signed-in pages run under a per-request nonce Content Security Policy (`'strict-dynamic'`, no `'unsafe-inline'` scripts); public pages are static and keep a looser policy because they hold no user data.
+   - GitHub deliveries are handled once per delivery id.
    - Per-caller rate limits.
    - Tokens carry scopes (`read`, `write`).
    - The badge answers 404 for private or unknown repositories, so it can't be used to find out whether a repository exists.
@@ -73,6 +75,8 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 | Draft test reads environment secrets | No secrets in the sandbox; network denied | Shipped |
 | Malicious repository code escapes its run | Firecracker microVM isolation; network denied during tests; no shared state between runs | Shipped; shared dependency caches are per-repository and read-only during tests (milestone 4) |
 | Install cache poisoning: a pull request's install scripts tamper with a cached environment that later runs reuse | Snapshots are only saved from trusted default-branch commits; pull requests may restore only an identical-lockfile snapshot and never save; keys are per repository; network denied after every restore | Milestone 4 |
+| Stolen session cookie used after sign-out | Server-side session rows; sign-out revokes; idle (14 days) and absolute (30 days) expiry; Settings → Sessions to review and revoke | Fixed (hardening, 2026-10-28) |
+| Script injection in the app | Nonce-based CSP with `'strict-dynamic'` on every signed-in page | Fixed (hardening, 2026-10-28) |
 | Removed member or deleted account keeps a valid session | Membership checked on every page, action and API request | Fixed (audit, 2026-10-28) |
 | Cross-tenant data access | `scoped()` everywhere; integration tests for isolation | Shipped |
 | Stolen API token | Hash-only storage, revocation, last-used time, read and write scopes (read-only by default in the form) | Shipped |

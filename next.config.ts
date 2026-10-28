@@ -28,7 +28,14 @@ const SECURITY_HEADERS = [
 const config: NextConfig = {
   agentRules: false,
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    // Signed-in pages get a stricter, nonce-based policy from proxy.ts instead of the static one.
+    const APP = "overview|incidents|memory|pulls|insights|repositories|integrations|settings|onboarding";
+    const csp = SECURITY_HEADERS.filter((h) => h.key === "Content-Security-Policy");
+    const rest = SECURITY_HEADERS.filter((h) => h.key !== "Content-Security-Policy");
+    return [
+      { source: "/:path*", headers: rest },
+      { source: `/((?!${APP}).*)`, headers: csp },
+    ];
   },
   serverExternalPackages: ["@electric-sql/pglite"],
   outputFileTracingIncludes: { "/**": ["./drizzle/**/*", "./docs/**/*.md", "./CHANGELOG.md"] },
