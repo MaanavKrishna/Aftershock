@@ -373,3 +373,27 @@ export const notifications = pgTable(
   },
   (t) => [index("notifications_due").on(t.status, t.nextAttemptAt)],
 );
+
+/** GitHub delivery ids already handled, so a redelivery (same X-GitHub-Delivery) is not processed twice. Kept 7 days. */
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: text("id").primaryKey(),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Server-side sessions: the cookie's signed token names one of these, so a session can be listed and
+ * revoked, ends after 14 days without use, and never outlives 30 days.
+ */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: id(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userAgent: text("user_agent").notNull().default(""),
+    createdAt: created(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [index("sessions_user").on(t.userId)],
+);

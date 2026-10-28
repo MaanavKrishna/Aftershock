@@ -507,3 +507,22 @@ export async function editIncident(_p: FormState, form: FormData): Promise<FormS
   revalidatePath(`/incidents/${inc.number}`);
   return { ok: "Details saved." };
 }
+
+/** Signs out one of your own sessions (another device). */
+export async function revokeSessionAction(form: FormData): Promise<void> {
+  const { session } = await currentScope();
+  const { revokeSession } = await import("@/lib/auth/sessions");
+  await revokeSession(session.userId, String(form.get("sid") ?? ""));
+  revalidatePath("/settings");
+}
+
+/** Signs out every session except this one. */
+export async function revokeOtherSessionsAction(): Promise<void> {
+  const { session } = await currentScope();
+  if (!session.sid) return;
+  const { revokeOtherSessions } = await import("@/lib/auth/sessions");
+  await revokeOtherSessions(session.userId, session.sid);
+  const { audit } = await import("@/lib/data/lifecycle");
+  await audit(session.workspaceId, session.userId, "sessions.revoked_others");
+  revalidatePath("/settings");
+}

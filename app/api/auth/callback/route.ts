@@ -14,8 +14,10 @@ export async function GET(req: NextRequest) {
   try {
     const token = await exchangeCode(code);
     const user = await fetchUser(token);
-    const session = await upsertGithubAccount(user);
-    await joinInstalledWorkspaces(session.userId, await fetchInstallationIds(token));
+    const account = await upsertGithubAccount(user);
+    await joinInstalledWorkspaces(account.userId, await fetchInstallationIds(token));
+    const { startSession } = await import("@/lib/auth/sessions");
+    const session = await startSession(account.userId, account.workspaceId, req.headers.get("user-agent") ?? "");
     const res = NextResponse.redirect(absolute(req, "/overview"));
     res.cookies.set(await sessionCookie(session));
     res.cookies.delete(STATE_COOKIE);

@@ -79,7 +79,8 @@ describe("sessions after access is removed", () => {
     const w = await tokenWorld();
     const [u] = await db.insert(s.users).values({ githubId: String(Math.floor(Math.random() * 1e9)), login: `m-${crypto.randomUUID().slice(0, 6)}` }).returning();
     await db.insert(s.memberships).values({ userId: u.id, workspaceId: w.ws.id, role: "member" });
-    const cookie = `as_session=${await signSession({ userId: u.id, workspaceId: w.ws.id })}`;
+    const { startSession } = await import("@/lib/auth/sessions");
+    const cookie = `as_session=${await signSession(await startSession(u.id, w.ws.id, "test"))}`;
     expect(await isMember({ userId: u.id, workspaceId: w.ws.id })).toBe(true);
     expect((await listIncidents(new NextRequest("http://x/api/v1/incidents", { headers: { cookie } }))).status).toBe(200);
     await db.delete(s.memberships).where(eq(s.memberships.userId, u.id));

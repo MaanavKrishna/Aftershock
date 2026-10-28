@@ -22,8 +22,8 @@ export async function apiAuth(req: NextRequest): Promise<{ workspaceId: string; 
   }
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  const { isMember } = await import("./membership");
-  return (await isMember(session)) ? { workspaceId: session.workspaceId, scope: "write" } : null;
+  const { sessionActive } = await import("./sessions");
+  return (await sessionActive(session)) ? { workspaceId: session.workspaceId, scope: "write" } : null;
 }
 
 /** For read endpoints: the caller's workspace, or null. */

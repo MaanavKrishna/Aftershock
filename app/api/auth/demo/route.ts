@@ -5,7 +5,9 @@ import { sessionCookie } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   if (process.env.AFTERSHOCK_DEMO !== "1") return NextResponse.json({ error: "Demo mode is off" }, { status: 404 });
-  const session = await seedDemo();
+  const demo = await seedDemo();
+  const { startSession } = await import("@/lib/auth/sessions");
+  const session = await startSession(demo.userId, demo.workspaceId, req.headers.get("user-agent") ?? "");
   const res = NextResponse.redirect(absolute(req, "/overview"), 303);
   res.cookies.set(await sessionCookie(session));
   return res;

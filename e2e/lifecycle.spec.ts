@@ -27,3 +27,16 @@ test("an incident is deleted only after typing its key", async ({ page }) => {
   await page.goto("/incidents/9");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Nothing here/i);
 });
+
+test("the Sessions tab lists this browser, and signing out ends the session on the server", async ({ page, context }) => {
+  await signInDemo(page);
+  await page.goto("/settings?tab=sessions");
+  await expect(page.getByText("This browser")).toBeVisible();
+  const cookie = (await context.cookies()).find((c) => c.name === "as_session")!;
+  await page.getByRole("button", { name: "Sign out", exact: true }).first().click();
+  await page.waitForURL(/\/$/);
+  // Reusing the old cookie no longer works, even though the browser still had it.
+  await context.addCookies([{ ...cookie }]);
+  const res = await page.request.get("/api/v1/incidents");
+  expect(res.status()).toBe(401);
+});

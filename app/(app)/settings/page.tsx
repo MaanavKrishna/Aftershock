@@ -3,7 +3,7 @@ import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar } from "@/components/app/TopBar";
 import { ButtonLink } from "@/components/ui/Button";
-import { changeMember, deleteAccountAction, deleteWorkspaceAction, revokeToken, setFlag } from "../actions";
+import { revokeOtherSessionsAction, revokeSessionAction, changeMember, deleteAccountAction, deleteWorkspaceAction, revokeToken, setFlag } from "../actions";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { FLAGS, flagEnabled, type Flag } from "@/lib/flags";
 import { planFor } from "@/lib/billing/plans";
@@ -16,7 +16,7 @@ import { hours, timeAgo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Settings" };
 
-const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["notifications", "Notifications"], ["labs", "Labs"], ["audit", "Audit log"], ["danger", "Danger zone"]] as const;
+const TABS = [["workspace", "Workspace"], ["admission", "Admission rules"], ["team", "Team"], ["tokens", "API tokens"], ["billing", "Plan and usage"], ["notifications", "Notifications"], ["labs", "Labs"], ["sessions", "Sessions"], ["audit", "Audit log"], ["danger", "Danger zone"]] as const;
 const sectionCls = "overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]";
 
 function Head({ title, sub, children }: { title: string; sub: string; children?: React.ReactNode }) {
@@ -36,6 +36,12 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const admin = can(me?.role, "manageWorkspace");
   const owner = me?.role === "owner";
   const audit = tab === "audit" && admin ? await scope.auditLog(100) : [];
+  const mySessions = tab === "sessions" ? await (await import("@/lib/auth/sessions")).listSessions(session.userId) : [];
+  const device = (ua: string) => {
+    const b = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : ua ? "Browser" : "Unknown device";
+    const os = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "";
+    return os ? `${b} on ${os}` : b;
+  };
   const [targets, sent] = tab === "notifications" ? await Promise.all([scope.notificationTargets(), scope.notificationLog(15)]) : [[], []];
   if (!ws) return null;
   const privateRepos = repos.length;
@@ -94,6 +100,19 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                   )}
                 </>
               )}
+            </section>
+          )}
+          {tab === "sessions" && (
+            <section className={sectionCls}>
+              <Head title="Sessions" sub="Where you are signed in. A session ends after 14 days without use, and after 30 days at most.">
+                {mySessions.length > 1 && <form action={revokeOtherSessionsAction}><button type="submit" className="min-h-10 cursor-pointer rounded-lg border border-line-strong bg-card px-3.5 font-semibold">Sign out everywhere else</button></form>}
+              </Head>
+              {mySessions.map((x) => (
+                <div key={x.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line-soft px-6 py-3.5">
+                  <span className="flex flex-[1_1_240px] flex-col"><span className="font-semibold">{device(x.userAgent)}{x.id === session.sid && <span className="ml-2 rounded-md bg-pass-tint px-1.5 py-0.5 text-[11.5px] font-semibold text-pass-deep">This browser</span>}</span><span className="text-[12.5px] text-muted">Signed in {timeAgo(x.createdAt).toLowerCase()} · last used {timeAgo(x.lastSeenAt).toLowerCase()}</span></span>
+                  {x.id !== session.sid && <form action={revokeSessionAction}><input type="hidden" name="sid" value={x.id} /><button type="submit" aria-label={`Sign out ${device(x.userAgent)}`} className="min-h-[38px] cursor-pointer rounded-lg border border-fail-line bg-card px-3 font-semibold text-fail-deep">Sign out</button></form>}
+                </div>
+              ))}
             </section>
           )}
           {tab === "labs" && (
