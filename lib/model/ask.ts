@@ -5,6 +5,7 @@ import { incidentKey } from "@/lib/domain/ids";
 import { complete } from "./provider";
 import { fence, FENCE_RULE } from "./fence";
 import { parseModelJson } from "./validate";
+import { createLimiter } from "@/lib/http/rateLimit";
 
 const STOP = new Set("a an the and or of in on at to for from with when what which who how why is are was were be been do does did we our us you your it its this that there they them about into than then any all can could should would will".split(" "));
 const stem = (w: string) => (w.length > 4 && w.endsWith("s") ? w.slice(0, -1) : w);
@@ -26,8 +27,12 @@ const SYSTEM = [
  * expectations and files); the model only sees the best matches, fenced, and must cite them. Answers
  * citing nothing real are discarded, and the relevant incidents are shown instead.
  */
+const perHour = createLimiter({ limit: 60, windowMs: 3_600_000 });
+
 export async function askAftershock(workspaceId: string, question: string): Promise<Answer> {
   const q = question.trim().slice(0, 500);
+  const limit = perHour(`ask:${workspaceId}`);
+  if (!limit.ok) return { answered: false, answer: `This workspace reached its limit of 60 questions an hour. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minutes.`, citations: [] };
   const db = await getDb();
   const [ws] = await db.select().from(s.workspaces).where(eq(s.workspaces.id, workspaceId));
   const rows = await db.select().from(s.incidents).where(eq(s.incidents.workspaceId, workspaceId)).limit(2000);

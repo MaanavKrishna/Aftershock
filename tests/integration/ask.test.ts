@@ -54,3 +54,14 @@ test("broken model output falls back to the relevant incidents", async () => {
   expect(r.answered).toBe(false);
   expect(r.citations[0].key).toBe("INC-3");
 });
+
+test("questions are capped per workspace per hour, so a token can't run up model costs", async () => {
+  const ws = await world();
+  let calls = 0;
+  setModelClient(async () => (calls++, { text: JSON.stringify({ answer: "INC-3.", cite: ["INC-3"] }), model: "m" }));
+  for (let i = 0; i < 60; i++) await askAftershock(ws.id, "checkout totals");
+  const capped = await askAftershock(ws.id, "checkout totals");
+  expect(calls).toBe(60);
+  expect(capped).toMatchObject({ answered: false });
+  expect(capped.answer).toMatch(/limit/i);
+});

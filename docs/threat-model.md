@@ -27,11 +27,11 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 
 1. **Internet → webhooks** (`/api/webhooks/*`)
    - HMAC signatures (or, for sources without a signing scheme, a per-workspace token) are verified in constant time before parsing.
-   - Per-source rate limits.
+   - Webhook senders share addresses across customers, so valid deliveries are never limited by address: only failed attempts count per address, and valid alerts are limited per workspace. GitHub bodies are capped at 25 MB.
    - A payload size cap and a ±5 minute replay window wherever the source sends a timestamp.
    - Incidents are deduplicated by source fingerprint.
 2. **Internet → API, MCP and badge**
-   - API tokens are compared by hash; sessions are HS256 JWTs.
+   - API tokens are compared by hash; sessions are HS256 JWTs, and workspace membership is re-checked on every request, so removing a member or deleting an account takes effect immediately.
    - Per-caller rate limits.
    - Tokens carry scopes (`read`, `write`).
    - The badge answers 404 for private or unknown repositories, so it can't be used to find out whether a repository exists.
@@ -42,7 +42,8 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
    - Untrusted text is wrapped in random-nonce fences (`lib/model/fence.ts`).
    - Model output is parsed as JSON and validated: one file, inside the allowed path, of the right framework, defining a test, with balanced brackets.
    - A model never decides anything is proven or safe; only test runs do.
-   - Custom model endpoints must be public `https://` hosts (no private, loopback or link-local addresses).
+   - Custom model endpoints must be public `https://` hosts, and the host is resolved before every call; any private, loopback or link-local answer is refused.
+   - Ask Aftershock is capped at 60 questions per workspace per hour.
 5. **App → runner (untrusted code)**
    - One fresh microVM (Vercel Sandbox) or container (Docker) per run.
    - The network is allowed only while dependencies install, then set to deny-all before any test runs. A test fails the build if the network is still open after a snapshot is restored.
@@ -72,6 +73,7 @@ What Aftershock protects, from whom, and how. Every release is reviewed against 
 | Draft test reads environment secrets | No secrets in the sandbox; network denied | Shipped |
 | Malicious repository code escapes its run | Firecracker microVM isolation; network denied during tests; no shared state between runs | Shipped; shared dependency caches are per-repository and read-only during tests (milestone 4) |
 | Install cache poisoning: a pull request's install scripts tamper with a cached environment that later runs reuse | Snapshots are only saved from trusted default-branch commits; pull requests may restore only an identical-lockfile snapshot and never save; keys are per repository; network denied after every restore | Milestone 4 |
+| Removed member or deleted account keeps a valid session | Membership checked on every page, action and API request | Fixed (audit, 2026-10-28) |
 | Cross-tenant data access | `scoped()` everywhere; integration tests for isolation | Shipped |
 | Stolen API token | Hash-only storage, revocation, last-used time, read and write scopes (read-only by default in the form) | Shipped |
 | SSRF via custom model URL or outbound webhook | Public-https check; connect-time DNS check that refuses private, loopback, link-local and metadata answers; no redirects; Slack targets pinned to hooks.slack.com | Shipped (webhooks in milestone 9) |

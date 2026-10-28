@@ -17,8 +17,14 @@ test("Monday's digest summarises the last 7 days for workspaces that subscribed"
   const [repo] = await db.insert(s.repositories).values({ workspaceId: ws.id, fullName: `${login}/r`, name: "r", cloneUrl: "x", framework: "pytest", installCmd: "x" }).returning();
   await db.insert(s.incidents).values({ workspaceId: ws.id, repoId: repo.id, number: 1, title: "t", source: "form", status: "proven" });
   await db.insert(s.prChecks).values({ workspaceId: ws.id, repoId: repo.id, prNumber: 3, title: "t", headSha: "a", baseSha: "b", status: "done", verdict: "recur" });
-  expect(await weeklyDigests("2026-10-25")).toBe(0); // a Sunday
-  expect(await weeklyDigests("2026-10-26")).toBeGreaterThanOrEqual(1);
+  // The coming Monday (UTC): the rows created just now fall inside the week it summarises.
+  const next = new Date();
+  next.setUTCHours(0, 0, 0, 0);
+  do next.setUTCDate(next.getUTCDate() + 1);
+  while (next.getUTCDay() !== 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  expect(await weeklyDigests(iso(new Date(next.getTime() - 86_400_000)))).toBe(0); // the Sunday before
+  expect(await weeklyDigests(iso(next))).toBeGreaterThanOrEqual(1);
   const [n] = await db.select().from(s.notifications).where(eq(s.notifications.targetId, t.id));
   expect(n.event).toBe("digest.weekly");
   expect(String(n.payload.title)).toMatch(/^Week in review/);
