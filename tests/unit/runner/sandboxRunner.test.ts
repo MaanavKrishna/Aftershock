@@ -6,6 +6,7 @@ const written: string[] = [];
 const read: string[] = [];
 const timeouts: number[] = [];
 const events: string[] = [];
+const fail = { snapshot: false };
 vi.mock("@vercel/sandbox", () => ({
   Sandbox: {
     create: async (params: Record<string, unknown>) => {
@@ -21,7 +22,11 @@ vi.mock("@vercel/sandbox", () => ({
           return { exitCode: 0, output: async () => out, stdout: async () => out };
         },
         update: async (u: { networkPolicy?: string }) => void events.push(`network:${u.networkPolicy}`),
-        snapshot: async () => (events.push("snapshot"), { snapshotId: "snap_new", sizeBytes: 123 }),
+        snapshot: async () => {
+          events.push("snapshot");
+          if (fail.snapshot) throw Object.assign(new Error("Status code 402 is not ok: Hobby plan usage limit exceeded for Snapshots Storage"), { status: 402 });
+          return { snapshotId: "snap_new", sizeBytes: 123 };
+        },
         writeFiles: async (files: { path: string }[]) => void written.push(...files.map((f) => f.path)),
         readFileToBuffer: async ({ path }: { path: string }) => (read.push(path), Buffer.from(`<testsuite><testcase name="t"/></testsuite>`)),
         stop: async () => undefined,
@@ -32,6 +37,7 @@ vi.mock("@vercel/sandbox", () => ({
 }));
 
 beforeEach(() => {
+  fail.snapshot = false;
   created.length = commands.length = written.length = read.length = timeouts.length = events.length = 0;
 });
 
@@ -102,4 +108,14 @@ test("in a monorepo package, commands run in the package and the test path is re
   const testCmd = commands.find((c) => c.script.includes("python -m pytest"))!.script;
   expect(testCmd).toContain("'tests/aftershock/test_x.py'");
   expect(read[0]).toBe("/vercel/aftershock-playground/services/api/.aftershock-out/junit-0.xml");
+});
+
+test("when saving the install snapshot fails (for example a storage quota), the run still happens, uncached", async () => {
+  fail.snapshot = true;
+  const { SandboxRunner } = await import("@/lib/runner/sandbox");
+  const r = await new SandboxRunner().run({ ...spec, saveSnapshot: true });
+  expect(r.results[0].outcome).toBe("passed");
+  expect(r.snapshot).toBeUndefined();
+  expect(events).toContain("network:deny-all");
+  expect(created.every((c) => (c.source as { type: string }).type !== "snapshot")).toBe(true);
 });

@@ -82,8 +82,16 @@ export class SandboxRunner implements Runner {
           return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message: `Dependency install failed (exit ${install.exitCode})` })), log: redactToken(logs.join("\n\n"), spec.token), cpuMs: sandbox.activeCpuUsageMs ?? 0, wallMs: Date.now() - started };
         }
         if (spec.saveSnapshot) {
-          // snapshot() stops this sandbox; tests continue in a fresh one restored from it.
-          const snap = await sandbox.snapshot({ expiration: 7 * 24 * 60 * 60_000 });
+          // snapshot() stops this sandbox; tests continue in a fresh one restored from it. Caching is an
+          // optimisation: if it fails (a storage quota, say), run the same commit again without it.
+          let snap: { snapshotId: string; sizeBytes?: number } | null = null;
+          try {
+            snap = await sandbox.snapshot({ expiration: 7 * 24 * 60 * 60_000 });
+          } catch (err) {
+            (await import("@/lib/obs/log")).log.warn("install snapshot failed; running uncached", { sha: spec.sha.slice(0, 12), err });
+            await sandbox.stop().catch(() => undefined);
+            return this.run({ ...spec, saveSnapshot: false });
+          }
           snapshot = { id: snap.snapshotId, sizeBytes: snap.sizeBytes ?? 0 };
           sandbox = await fromSnapshot(snap.snapshotId);
           root = await locate();
