@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: "Sign in", alternates: { canonical: "
 const ERRORS: Record<string, string> = {
   github_not_configured: "GitHub sign-in is not configured on this server yet. An administrator needs to add the GitHub App settings.",
   github_failed: "GitHub sign-in did not complete. Try again.",
+  no_access: "You are no longer a member of that workspace. Sign in again to see the workspaces you belong to.",
 };
 
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ error?: string }> }) {

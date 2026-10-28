@@ -21,7 +21,9 @@ export async function apiAuth(req: NextRequest): Promise<{ workspaceId: string; 
     return { workspaceId: row.workspaceId, scope: row.scope, tokenId: row.id };
   }
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
-  return session ? { workspaceId: session.workspaceId, scope: "write" } : null;
+  if (!session) return null;
+  const { isMember } = await import("./membership");
+  return (await isMember(session)) ? { workspaceId: session.workspaceId, scope: "write" } : null;
 }
 
 /** For read endpoints: the caller's workspace, or null. */

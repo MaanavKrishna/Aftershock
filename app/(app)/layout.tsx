@@ -1,11 +1,9 @@
-import { requireSession } from "@/lib/auth/session";
-import { scoped } from "@/lib/db/queries/scope";
+import { currentScope } from "@/lib/auth/scope";
 import { Sidebar } from "@/components/app/Sidebar";
 import { MotionRoot } from "@/components/motion/MotionRoot";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await requireSession();
-  const scope = scoped(session.workspaceId);
+  const { session, scope } = await currentScope();
   return (
     <div className="app flex min-h-screen items-stretch bg-paper text-sm leading-[1.55] text-ink">
       <a href="#main" className="sr-only z-50 rounded-lg bg-ink px-4 py-3 text-paper focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>

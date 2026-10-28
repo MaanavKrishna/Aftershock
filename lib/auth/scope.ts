@@ -1,9 +1,13 @@
 import "server-only";
+import { redirect } from "next/navigation";
 import { requireSession } from "./session";
+import { isMember } from "./membership";
 import { scoped } from "@/lib/db/queries/scope";
 
+/** The signed-in member and their workspace. Sends anyone who is no longer a member back to sign in. */
 export async function currentScope() {
   const session = await requireSession();
+  if (!(await isMember(session))) redirect("/signin?error=no_access");
   return { session, scope: scoped(session.workspaceId) };
 }
 
