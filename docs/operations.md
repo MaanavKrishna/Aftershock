@@ -17,9 +17,13 @@ Set `AFTERSHOCK_RUNS_DISABLED=1` in Vercel and redeploy (or use an environment v
 - Every hosted sandbox run must finish inside one function invocation. `AFTERSHOCK_STEP_BUDGET_MS` (default 270000) caps install and test timeouts for a run, and the sandbox stops itself one minute after the budget if the function is cut off. Each run is its own workflow step, so long jobs (Epicenter, verifying a suggested fix) are many short steps.
 - Vercel Cron calls `/api/cron/nightly` once a day. It only starts the durable `daily` workflow, which re-checks every memory test as separate steps. Retention, the notification sweep and weekly re-proofs run from the same job.
 
+## Health
+
+`GET /api/health` answers `{ ok, version, db: { ok, ms } }` with status 200, or 503 when the database can't be reached. Point an uptime monitor at it.
+
 ## Sandbox quota
 
-On Vercel's Hobby plan, snapshot storage and sandbox time are capped per month. When a cap is hit, runs end as *Inconclusive* with the reason ("Sandbox capacity is used up"); nothing crashes or hangs. A failed install-snapshot save falls back to an uncached run. To keep checks running at the cap, switch repositories to GitHub Actions, turn the install cache off in Labs, or move to Vercel Pro.
+On Vercel's Hobby plan, snapshot storage and sandbox time are capped per month. When a cap is hit, runs end as *Inconclusive* with the reason ("Sandbox capacity is used up"); nothing crashes or hangs. A failed install-snapshot save falls back to an uncached run. Each workspace also has its own monthly allowance, enforced for every kind of run (not only pull request checks), so one workspace can't use up everyone's capacity. To keep checks running at the cap, switch repositories to GitHub Actions, turn the install cache off in Labs, or move to Vercel Pro.
 
 ## Install cache
 
