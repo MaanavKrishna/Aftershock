@@ -7,7 +7,7 @@ export default function Terms() {
   return (
     <LegalPage
       title="Terms"
-      updated="24 October 2026"
+      updated="28 October 2026"
       sections={[
         ["The service", ["Aftershock turns incidents into regression tests proven against your git history and runs them on pull requests. The hosted service is in beta; features and limits may change, and we will say so in the changelog."]],
         ["Your code and data", ["You keep all rights to your code, incidents and tests. You let us process them only to provide the service: cloning repositories into sandboxes, running tests, calling the model you chose and storing results."]],

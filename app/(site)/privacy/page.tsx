@@ -7,7 +7,7 @@ export default function Privacy() {
   return (
     <LegalPage
       title="Privacy"
-      updated="24 October 2026"
+      updated="28 October 2026"
       sections={[
         ["Who we are", ["Aftershock is an open-source project run by Maanav Krishna and hosted at aftershock-mk.vercel.app. Questions about this policy go to maanavkrishna@gmail.com."]],
         ["What we collect", ["From GitHub when you sign in: your login, name, avatar and the organisations you belong to. We never see your GitHub password.", "From the repositories you install the app on: issues labelled as incidents, pull request metadata and diffs, and the commits needed to run tests. Source code is cloned into a temporary sandbox for a run and deleted with it; we keep test results, trimmed logs and the proven test files.", "What you and your integrations send: incidents, notes, alerts, and settings such as model keys, which are stored encrypted."]],

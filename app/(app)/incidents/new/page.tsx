@@ -17,8 +17,18 @@ const TABS = [
   ["alert", "Alerts", "Sentry and PagerDuty", "M3 18 12 4l9 14H3z M12 10v3 M12 15.5h.01"],
 ] as const;
 
-export default async function NewIncident({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab: raw } = await searchParams;
+/** The incident from github.com/MaanavKrishna/aftershock-sample; forks keep the same fix commit. */
+const SAMPLE = {
+  title: "Discount applied twice when the cart is refreshed",
+  trigger: "A shopper refreshed the cart page while applying a discount code.",
+  observed: "The same code (WELCOME10) was applied twice: a 100.00 cart came to 81.00 instead of 90.00.",
+  expected: "A discount code applies at most once per cart.",
+  fix: "3d8fb011453a9595175eab8500f741948225e4b9",
+  severity: "SEV-2",
+};
+
+export default async function NewIncident({ searchParams }: { searchParams: Promise<{ tab?: string; sample?: string }> }) {
+  const { tab: raw, sample } = await searchParams;
   const tab = TABS.some((t) => t[0] === raw) ? raw! : "issue";
   const { scope } = await currentScope();
   const [repos, issues, integrations] = await Promise.all([scope.repos(), tab === "issue" ? listImportableIssues(scope) : Promise.resolve([]), scope.integrations()]);
@@ -70,7 +80,12 @@ export default async function NewIncident({ searchParams }: { searchParams: Prom
               </form>
             )}
             {tab === "postmortem" && <PostmortemForm repos={repoOpts} />}
-            {tab === "form" && <IncidentForm repos={repoOpts} />}
+            {tab === "form" && <IncidentForm key={sample ?? "blank"} repos={repoOpts} initial={sample ? { ...SAMPLE, repoId: repos.find((r) => r.name === "aftershock-sample")?.id ?? "" } : undefined} />}
+            {tab === "form" && !sample && (
+              <p className="m-0 border-t border-line-soft px-6 py-4 text-[13px] text-muted">
+                No incident handy? Fork <a href="https://github.com/MaanavKrishna/aftershock-sample" className="text-pass underline">aftershock-sample</a>, install the app on your fork, then <Link href="/incidents/new?tab=form&sample=1" className="text-pass underline">fill in its incident</Link>.
+              </p>
+            )}
             {tab === "alert" && (
               <div className="flex flex-col gap-4 p-6">
                 <p className="m-0 text-body">Alerts open incidents on their own. They wait in <strong>Awaiting fix</strong> until a pull request that mentions the incident ID merges — then time travel starts automatically.</p>

@@ -16,6 +16,8 @@ Choose a closed issue labelled `incident`, paste a postmortem, fill in the form,
 
 Have a backlog? **Import all and time travel** brings in up to 25 closed incident issues at once.
 
+No incident handy? Fork [aftershock-sample](https://github.com/MaanavKrishna/aftershock-sample), a tiny Python shop with a real bug in its history, install the app on your fork, and use **New incident → Form → fill in its incident**.
+
 ## 3. Watch time travel
 
 Aftershock drafts one test and runs it in a fresh sandbox: three times on the commit before the fix, three times on the fix. If it fails every time before and passes every time after, it is **proven**. Otherwise the failure is fed back and the test is redrafted, up to three times.
