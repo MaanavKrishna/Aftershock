@@ -22,3 +22,20 @@ test("nightly re-checks on the hosted sandbox count toward the workspace's sandb
   await runNightly(mem.id);
   expect(await usage(w.ws.id)).toBe(4000);
 });
+
+test("no hosted run starts once a workspace has used its sandbox hours, whatever started it", async () => {
+  const w = await ledgerWorld();
+  const db = await getDb();
+  await db.insert(s.usage).values({ workspaceId: w.ws.id, month: new Date().toISOString().slice(0, 7), sandboxCpuMs: 6 * 3_600_000 });
+  let started = 0;
+  setDeps({ runner: () => ({ kind: "sandbox", run: async () => (started++, { installOk: true, results: [{ outcome: "passed", durationMs: 1 }], log: "", cpuMs: 1, wallMs: 1 }) }) });
+  const { deps } = await import("@/lib/timetravel/deps");
+  const r = await (await deps()).runner().run({ repoUrl: "x", sha: "abc", framework: "pytest", install: "true", testPath: "t.py", testCode: "", runs: 2, timeoutMs: 1000, cache: { workspaceId: w.ws.id, repoId: w.repo.id, trusted: true } });
+  expect(started).toBe(0);
+  expect(r.results).toHaveLength(2);
+  expect(r.results[0]).toMatchObject({ outcome: "error", message: expect.stringMatching(/sandbox hours/i) });
+  // Docker (self-hosted) runs are free and never blocked.
+  setDeps({ runner: () => ({ kind: "docker", run: async () => (started++, { installOk: true, results: [{ outcome: "passed", durationMs: 1 }], log: "", cpuMs: 1, wallMs: 1 }) }) });
+  await (await deps()).runner().run({ repoUrl: "x", sha: "abc", framework: "pytest", install: "true", testPath: "t.py", testCode: "", runs: 1, timeoutMs: 1000, cache: { workspaceId: w.ws.id, repoId: w.repo.id, trusted: true } });
+  expect(started).toBe(1);
+});

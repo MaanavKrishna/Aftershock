@@ -58,6 +58,17 @@ const pausedRunner: Runner = {
   }),
 };
 
+async function overQuota(workspaceId: string): Promise<boolean> {
+  const { scoped } = await import("@/lib/db/queries/scope");
+  const u = await scoped(workspaceId).usage();
+  return u.sandboxCpuMs >= u.allowanceMs;
+}
+
+const quotaReport = (spec: { runs: number }) => {
+  const message = "This workspace has used its sandbox hours for the month. Runs resume on the 1st, or switch the repository to run on GitHub Actions.";
+  return { installOk: false, results: Array.from({ length: spec.runs }, () => ({ outcome: "error" as const, durationMs: 0, message })), log: message, cpuMs: 0, wallMs: 0 };
+};
+
 export async function deps(): Promise<Deps> {
   const { runsDisabled } = await import("@/lib/flags");
   const raw = runsDisabled() ? pausedRunner : override.runner ? override.runner() : await defaultRunner();
@@ -66,7 +77,15 @@ export async function deps(): Promise<Deps> {
   const { cachedRun } = await import("@/lib/runner/cache");
   const store = override.cacheStore ?? (await import("@/lib/runner/cacheStore")).dbCacheStore();
   const cached: Runner = { kind: raw.kind, run: (spec) => cachedRun(raw, spec, store) };
-  const runner: Runner = { kind: raw.kind, run: (spec) => runSafely(cached, spec) };
+  // The hosted sandbox is shared by every workspace: once one has used its monthly hours, its runs stop
+  // with a reason instead of eating into everyone else's capacity. Docker (self-hosted) runs are free.
+  const runner: Runner = {
+    kind: raw.kind,
+    run: async (spec) => {
+      if (raw.kind === "sandbox" && spec.cache?.workspaceId && (await overQuota(spec.cache.workspaceId))) return quotaReport(spec);
+      return runSafely(cached, spec);
+    },
+  };
   const drafter = override.drafter ? override.drafter() : (await import("@/lib/model/draft")).modelDrafter();
   return {
     runner: () => runner,
