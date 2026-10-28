@@ -51,6 +51,8 @@ describe("MCP server", () => {
   test("lessons, incidents and one incident are readable", async () => {
     const w = await mcpWorld();
     expect((await call(w.token, "list_lessons", { path: "ledger" })).content[0].text).toContain("INC-1");
+    // Clients that read only structuredContent (Claude Code does) must get the lessons too.
+    expect((await call(w.token, "list_lessons", { path: "ledger" })).structuredContent).toMatchObject({ count: 1, markdown: expect.stringContaining("INC-1") });
     expect((await call(w.token, "list_lessons", { path: "billing/" })).content[0].text).not.toContain("INC-1");
     expect((await call(w.token, "list_incidents", {})).structuredContent.incidents[0]).toMatchObject({ key: "INC-1", status: "proven" });
     expect((await call(w.token, "get_incident", { key: "INC-1" })).structuredContent).toMatchObject({ key: "INC-1", memoryTest: { path: "tests/aftershock/test_inc_1.py" } });

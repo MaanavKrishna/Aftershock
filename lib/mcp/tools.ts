@@ -48,7 +48,7 @@ export const TOOLS = [
     async run({ path }, ctx) {
       const mem = (await memoryOf(ctx.workspaceId)).filter((m) => !path || m.files.some((f) => f.startsWith(path)));
       const md = renderLessons(mem.map((m) => ({ key: m.key, title: m.title, files: m.files, expected: m.expected, testPath: m.test })));
-      return { text: md, data: { count: mem.length } };
+      return { text: md, data: { count: mem.length, markdown: md } };
     },
   }),
   tool({
