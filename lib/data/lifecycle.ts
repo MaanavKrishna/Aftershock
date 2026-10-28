@@ -88,6 +88,8 @@ export async function trimRetention(now: Date): Promise<{ logs: number; deliveri
   const cutoff = new Date(now.getTime() - RETENTION_DAYS * DAY);
   const logs = await db.update(s.timeTravelRuns).set({ log: "" }).where(and(lt(s.timeTravelRuns.createdAt, cutoff), isNotNull(s.timeTravelRuns.finishedAt))).returning({ id: s.timeTravelRuns.id });
   const deliveries = await db.delete(s.deliveries).where(lt(s.deliveries.createdAt, cutoff)).returning({ id: s.deliveries.id });
+  await db.delete(s.webhookDeliveries).where(lt(s.webhookDeliveries.receivedAt, new Date(now.getTime() - 7 * DAY)));
+  await db.delete(s.sessions).where(lt(s.sessions.expiresAt, now));
   const notifications = await db.delete(s.notifications).where(and(lt(s.notifications.createdAt, cutoff), inArray(s.notifications.status, ["sent", "failed"]))).returning({ id: s.notifications.id });
   return { logs: logs.length, deliveries: deliveries.length, notifications: notifications.length };
 }

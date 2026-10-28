@@ -169,3 +169,18 @@ test("valid GitHub deliveries are never rate limited by sender address; repeated
   expect(statuses).toContain(429);
   expect((await POST(req(sig))).status).not.toBe(429);
 });
+
+test("a GitHub delivery that arrives twice (same delivery id) is handled once", async () => {
+  const { POST } = await import("@/app/api/webhooks/github/route");
+  const { NextRequest } = await import("next/server");
+  const { createHmac } = await import("node:crypto");
+  process.env.GITHUB_WEBHOOK_SECRET = "gh-secret-for-tests";
+  const body = JSON.stringify({ zen: "ping" });
+  const sig = `sha256=${createHmac("sha256", "gh-secret-for-tests").update(body).digest("hex")}`;
+  const id = crypto.randomUUID();
+  const req = () => new NextRequest("http://x/api/webhooks/github", { method: "POST", body, headers: { "x-hub-signature-256": sig, "x-github-event": "ping", "x-github-delivery": id } });
+  const first = await (await POST(req())).json();
+  const again = await (await POST(req())).json();
+  expect(first.note).not.toBe("duplicate delivery");
+  expect(again).toMatchObject({ ok: true, note: "duplicate delivery" });
+});
