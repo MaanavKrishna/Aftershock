@@ -39,12 +39,8 @@ export async function POST(req: NextRequest) {
   const sc = scoped(ws);
   const repo = (await sc.repos()).find((r) => r.name === parsed.data.repository || r.fullName === parsed.data.repository);
   if (!repo) return NextResponse.json({ error: "Unknown repository" }, { status: 404 });
-  const db = await getDb();
-  const [inc] = await db
-    .insert(s.incidents)
-    .values({ workspaceId: ws, repoId: repo.id, number: await sc.nextIncidentNumber(), title: parsed.data.title, trigger: parsed.data.trigger, observed: parsed.data.observed, expected: parsed.data.expected, fixSha: parsed.data.fix ?? null, source: "form", status: "awaiting_fix" })
-    .returning();
-  await (await import("@/lib/incidents/related")).linkRelated(inc.id);
+  const { insertIncident } = await import("@/lib/incidents/create");
+  const inc = await insertIncident(ws, { repoId: repo.id, title: parsed.data.title, trigger: parsed.data.trigger, observed: parsed.data.observed, expected: parsed.data.expected, fixSha: parsed.data.fix ?? null, source: "form", status: "awaiting_fix" });
   const w = await sc.workspace();
   return NextResponse.json({ key: incidentKey(w!.incidentPrefix, inc.number), number: inc.number, status: inc.status }, { status: 201 });
 }

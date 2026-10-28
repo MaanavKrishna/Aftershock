@@ -40,14 +40,17 @@ export async function intakeAlert(ws: typeof s.workspaces.$inferSelect, source: 
   const repos = await db.select().from(s.repositories).where(eq(s.repositories.workspaceId, ws.id));
   const repoName = mapping[a.target] ?? a.target;
   const repo = repos.find((r) => r.name === repoName) ?? (repos.length === 1 ? repos[0] : undefined);
-  const { scoped } = await import("@/lib/db/queries/scope");
-  const number = await scoped(ws.id).nextIncidentNumber();
-  const [inc] = await db
-    .insert(s.incidents)
-    .values({ workspaceId: ws.id, repoId: repo?.id ?? null, number, title: a.title.slice(0, 200), observed: a.observed.slice(0, 4000), source, sourceRef: a.link ?? null, fingerprint: a.fingerprint, status: "awaiting_fix", statusReason: `Opened from ${label}. Time travel starts when a pull request mentioning ${incidentKey(ws.incidentPrefix, number)} merges.` })
-    .returning();
-  await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, number)} opened from ${label}`, detail: "Awaiting fix", tone: "neutral", event: "incident.opened" });
-  const { linkRelated } = await import("@/lib/incidents/related");
-  await linkRelated(inc.id);
-  return { created: true, key: incidentKey(ws.incidentPrefix, number) };
+  const { insertIncident, DuplicateIncident } = await import("@/lib/incidents/create");
+  let inc: typeof s.incidents.$inferSelect;
+  try {
+    inc = await insertIncident(ws.id, (number) => ({
+      repoId: repo?.id ?? null, title: a.title.slice(0, 200), observed: a.observed.slice(0, 4000), source, sourceRef: a.link ?? null, fingerprint: a.fingerprint, status: "awaiting_fix",
+      statusReason: `Opened from ${label}. Time travel starts when a pull request mentioning ${incidentKey(ws.incidentPrefix, number)} merges.`,
+    }));
+  } catch (err) {
+    if (err instanceof DuplicateIncident) return { created: false, key: incidentKey(ws.incidentPrefix, err.existing.number) };
+    throw err;
+  }
+  await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `${incidentKey(ws.incidentPrefix, inc.number)} opened from ${label}`, detail: "Awaiting fix", tone: "neutral", event: "incident.opened" });
+  return { created: true, key: incidentKey(ws.incidentPrefix, inc.number) };
 }

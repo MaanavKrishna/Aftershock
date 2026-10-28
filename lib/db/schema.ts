@@ -1,4 +1,5 @@
 import type { Framework } from "@/lib/runner/frameworks";
+import { sql } from "drizzle-orm";
 import { pgTable, text, integer, boolean, jsonb, timestamp, uniqueIndex, primaryKey, bigint, index } from "drizzle-orm/pg-core";
 import type { RunResult } from "@/lib/domain/verdict";
 
@@ -34,7 +35,7 @@ export const memberships = pgTable(
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     role: text("role").$type<"owner" | "admin" | "member">().notNull().default("member"),
   },
-  (t) => [primaryKey({ columns: [t.workspaceId, t.userId] })],
+  (t) => [primaryKey({ columns: [t.workspaceId, t.userId] }), index("memberships_user").on(t.userId)],
 );
 
 export const repositories = pgTable("repositories", {
@@ -57,7 +58,7 @@ export const repositories = pgTable("repositories", {
   /** Set when the GitHub App loses access; the repository is purged 30 days later unless access returns. */
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: created(),
-});
+}, (t) => [index("repositories_workspace").on(t.workspaceId)]);
 
 export type IncidentStatus = "awaiting_fix" | "traveling" | "proven" | "rejected" | "unproven";
 /** Alert and ticket sources that deliver over webhooks (lib/integrations/sources.ts). */
@@ -95,7 +96,12 @@ export const incidents = pgTable(
     createdAt: created(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("incidents_workspace_number").on(t.workspaceId, t.number)],
+  (t) => [
+    uniqueIndex("incidents_workspace_number").on(t.workspaceId, t.number),
+    // One incident per alert, even when the same alert is delivered twice at the same moment.
+    uniqueIndex("incidents_workspace_fingerprint").on(t.workspaceId, t.fingerprint).where(sql`${t.fingerprint} is not null`),
+    index("incidents_repo").on(t.repoId),
+  ],
 );
 
 export type RunStep = { key: string; label: string; detail: string; state: "ok" | "bad" | "skip" | "running" | "pending"; ms?: number };
@@ -121,7 +127,7 @@ export const timeTravelRuns = pgTable("time_travel_runs", {
   wallMs: integer("wall_ms").notNull().default(0),
   createdAt: created(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
-});
+}, (t) => [index("time_travel_runs_incident").on(t.incidentId)]);
 
 export const memoryTests = pgTable("memory_tests", {
   id: id(),
@@ -152,7 +158,7 @@ export const memoryTests = pgTable("memory_tests", {
   guardDetail: text("guard_detail").notNull().default(""),
   /** Mutation testing: share of small changes to the fixed lines that this test catches (lib/domain/mutation.ts). */
   strength: jsonb("strength").$type<import("@/lib/domain/mutation").Strength>(),
-});
+}, (t) => [index("memory_tests_workspace").on(t.workspaceId), index("memory_tests_repo").on(t.repoId), index("memory_tests_incident").on(t.incidentId)]);
 
 /** guarding: fails with the fix undone. weak: passes anyway. drifted: the fix can no longer be undone on the current code. */
 export type GuardStatus = "guarding" | "weak" | "drifted";
@@ -187,7 +193,7 @@ export const prChecks = pgTable("pr_checks", {
   commentId: bigint("comment_id", { mode: "number" }),
   overridden: boolean("overridden").notNull().default(false),
   createdAt: created(),
-});
+}, (t) => [index("pr_checks_workspace_created").on(t.workspaceId, t.createdAt), index("pr_checks_repo_pr").on(t.repoId, t.prNumber)]);
 
 export type TraceStep = { head: string; sub: string; bad?: boolean };
 
@@ -201,14 +207,14 @@ export const prCheckResults = pgTable("pr_check_results", {
   verdict: text("verdict").$type<CheckVerdict>().notNull(),
   failureExcerpt: text("failure_excerpt"),
   trace: jsonb("trace").$type<TraceStep[]>().notNull().default([]),
-});
+}, (t) => [index("pr_check_results_check").on(t.checkId), index("pr_check_results_memory_test").on(t.memoryTestId)]);
 
 export const prCheckSkips = pgTable("pr_check_skips", {
   id: id(),
   checkId: text("check_id").notNull().references(() => prChecks.id, { onDelete: "cascade" }),
   incidentId: text("incident_id").notNull().references(() => incidents.id, { onDelete: "cascade" }),
   reason: text("reason").notNull(),
-});
+}, (t) => [index("pr_check_skips_check").on(t.checkId)]);
 
 export const suggestedFixes = pgTable("suggested_fixes", {
   id: id(),
@@ -218,7 +224,7 @@ export const suggestedFixes = pgTable("suggested_fixes", {
   results: jsonb("results").$type<{ memoryTestId: string; verdict: CheckVerdict }[]>().notNull().default([]),
   status: text("status").$type<"running" | "passed" | "failed">().notNull(),
   createdAt: created(),
-});
+}, (t) => [index("suggested_fixes_check").on(t.checkId)]);
 
 export const overrides = pgTable("overrides", {
   id: id(),
@@ -227,7 +233,7 @@ export const overrides = pgTable("overrides", {
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   reason: text("reason").notNull(),
   createdAt: created(),
-});
+}, (t) => [index("overrides_check").on(t.checkId)]);
 
 export const notes = pgTable("notes", {
   id: id(),
@@ -236,7 +242,7 @@ export const notes = pgTable("notes", {
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   text: text("text").notNull(),
   createdAt: created(),
-});
+}, (t) => [index("notes_incident").on(t.incidentId)]);
 
 export const integrations = pgTable(
   "integrations",
@@ -259,7 +265,7 @@ export const deliveries = pgTable("deliveries", {
   detail: text("detail").notNull().default(""),
   ok: boolean("ok").notNull(),
   createdAt: created(),
-});
+}, (t) => [index("deliveries_workspace_kind_created").on(t.workspaceId, t.kind, t.createdAt)]);
 
 export const apiTokens = pgTable("api_tokens", {
   id: id(),
@@ -281,7 +287,7 @@ export const activity = pgTable("activity", {
   detail: text("detail").notNull().default(""),
   tone: text("tone").$type<"pass" | "fail" | "neutral" | "pending">().notNull().default("neutral"),
   createdAt: created(),
-});
+}, (t) => [index("activity_workspace_created").on(t.workspaceId, t.createdAt), index("activity_incident").on(t.incidentId)]);
 
 export const usage = pgTable(
   "usage",
@@ -325,7 +331,7 @@ export const auditLog = pgTable("audit_log", {
   target: text("target").notNull().default(""),
   detail: text("detail").notNull().default(""),
   createdAt: created(),
-});
+}, (t) => [index("audit_log_workspace_created").on(t.workspaceId, t.createdAt)]);
 
 /** Events a notification target can subscribe to (lib/notify). */
 export type NotifyEvent = "incident.opened" | "incident.proven" | "incident.unproven" | "pr.blocked" | "epicenter.found" | "nightly.failing" | "test.quarantined" | "check.overridden" | "test.weakened" | "digest.weekly";

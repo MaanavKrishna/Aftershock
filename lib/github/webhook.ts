@@ -45,11 +45,6 @@ async function addRepos(workspaceId: string, repos: Repo[]) {
   }
 }
 
-async function nextNumber(workspaceId: string) {
-  const { scoped } = await import("@/lib/db/queries/scope");
-  return scoped(workspaceId).nextIncidentNumber();
-}
-
 /** Routes one verified GitHub delivery. Returns a short note for the delivery log. */
 export async function handleGithubEvent(name: string, p: Payload): Promise<{ note: string }> {
   const db = await getDb();
@@ -100,16 +95,13 @@ export async function handleGithubEvent(name: string, p: Payload): Promise<{ not
     const [dupe] = await db.select().from(s.incidents).where(and(eq(s.incidents.workspaceId, ws.id), eq(s.incidents.sourceRef, ref)));
     if (dupe) return { note: "already imported" };
     const fix = await github.closingCommit(ws.id, repo.fullName, p.issue.number);
-    const [inc] = await db
-      .insert(s.incidents)
-      .values({
-        workspaceId: ws.id, repoId: repo.id, number: await nextNumber(ws.id), title: String(p.issue.title).slice(0, 200), ...clip(fieldsFromIssue(String(p.issue.body ?? ""))),
-        source: "issue", sourceRef: ref, fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, status: "awaiting_fix",
-        statusReason: fix.sha || fix.pr ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
-      })
-      .returning();
+    const { insertIncident } = await import("@/lib/incidents/create");
+    const inc = await insertIncident(ws.id, {
+      repoId: repo.id, title: String(p.issue.title).slice(0, 200), ...clip(fieldsFromIssue(String(p.issue.body ?? ""))),
+      source: "issue", sourceRef: ref, fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, status: "awaiting_fix",
+      statusReason: fix.sha || fix.pr ? null : "The issue was closed without a linked fix. Link the fix commit or PR to start time travel.",
+    });
     await recordActivity({ workspaceId: ws.id, incidentId: inc.id, title: `Imported from issue #${p.issue.number}`, detail: `${incidentKey(ws.incidentPrefix, inc.number)} · ${repo.name}`, tone: "pass", event: "incident.opened" });
-    await (await import("@/lib/incidents/related")).linkRelated(inc.id);
     await logDelivery(ws.id, "issues.closed", `#${p.issue.number} labelled ${label}`);
     if (fix.sha || fix.pr) await startTimeTravel(inc.id);
     return { note: "incident imported" };

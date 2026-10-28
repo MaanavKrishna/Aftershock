@@ -85,6 +85,13 @@
       "when": 1792862609339,
       "tag": "0011_strength",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793206800620,
+      "tag": "0012_integrity_indexes",
+      "breakpoints": true
     }
   ]
 }

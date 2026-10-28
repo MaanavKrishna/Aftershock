@@ -160,3 +160,18 @@ describe("intake rate limits", () => {
     expect((await sentry(ok)).status).toBe(200);
   });
 });
+
+describe("alerts arriving at the same moment", () => {
+  test("different alerts all become incidents with distinct numbers; identical ones become one", async () => {
+    const w = await world();
+    const send = (id: string) => sentry(sentryReq(w.ws.login, sentryBody(id), hmac("sentry-secret", sentryBody(id))));
+    const statuses = (await Promise.all(["a1", "a2", "a3", "a4", "a5"].map(send))).map((r) => r.status);
+    expect(statuses).toEqual([200, 200, 200, 200, 200]);
+    const same = (await Promise.all([send("dup"), send("dup"), send("dup")])).map((r) => r.status);
+    expect(same).toEqual([200, 200, 200]);
+    const incs = await w.incidents();
+    expect(incs).toHaveLength(6);
+    expect(new Set(incs.map((i) => i.number)).size).toBe(6);
+    expect(incs.filter((i) => i.fingerprint === "sentry-dup")).toHaveLength(1);
+  });
+});
