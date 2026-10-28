@@ -12,4 +12,4 @@ Only the latest release and the hosted service at https://aftershock-mk.vercel.a
 
 ## How Aftershock is built to be safe
 
-See the [security model](docs/architecture.md#security-model): runs happen in isolated microVMs without secrets or network access, runners use read-only single-repository tokens, untrusted text is fenced before it reaches a model, and webhooks are verified before anything is parsed.
+See the [security model](docs/architecture.md#security-model): runs happen in isolated microVMs without secrets or network access, runners use read-only single-repository tokens, untrusted text is fenced before it reaches a model, webhooks are verified before anything is parsed, sign-in sessions are server-side and revocable, and signed-in pages run under a nonce-based Content Security Policy.

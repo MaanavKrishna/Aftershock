@@ -69,4 +69,7 @@ tests/unit, tests/integration, e2e/
 - **Untrusted input**: incident text, postmortems, code and diffs reach the model inside random-nonce fences; model output is validated and only ever written to the test path.
 - **Tenancy**: every query goes through `scoped(workspaceId)`; API tokens are stored as SHA-256 hashes; model keys and webhook secrets are encrypted with AES-256-GCM.
 - **Webhooks**: HMAC signatures are verified in constant time before anything is parsed or stored.
+- **Sessions**: sign-in cookies carry a server-side session id; sessions expire (14 days idle, 30 days total), can be revoked, and every request re-checks workspace membership.
+- **Browser**: signed-in pages send a nonce-based Content Security Policy with `strict-dynamic`; public pages a strict static one.
+- **Replays**: GitHub deliveries are recorded by id and handled once; other sources are replay-window checked.
 - **Abuse**: per-caller rate limits on webhook and API routes; custom model endpoints must be public `https://` hosts.

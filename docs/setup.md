@@ -104,3 +104,4 @@ Each queue entry runs the relevant memory tests on the queue's commit (the pull 
 | Override a failing check | ✓ | ✓ | |
 | Repository runner and check mode | ✓ | ✓ | |
 | Integrations, API tokens, workspace settings | ✓ | ✓ | |
+| See and end their own sessions (Settings → Sessions) | ✓ | ✓ | ✓ |

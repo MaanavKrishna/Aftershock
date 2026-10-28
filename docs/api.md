@@ -11,6 +11,7 @@ Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) 
 | POST | `/api/v1/incidents/:number/verify` | Start time travel (needs a linked fix) |
 | GET | `/api/v1/incidents/:number/evidence` | Signed evidence bundle for audits ([Audit evidence](evidence.md)) |
 | GET | `/api/v1/runs/:id/evidence` | One time-travel attempt with its full log (`evidence.json`) |
+| GET | `/api/health` | Service and database status for uptime monitors (no auth) |
 | GET | `/.well-known/aftershock-jwks.json` | Public keys for verifying evidence (no auth) |
 | GET | `/api/badge/:owner/:repo.svg` | README badge for a public repository (no auth; turn on **Public README badge** in Labs). Private and unknown repositories answer 404 |
 | POST | `/api/mcp` | MCP server for coding agents ([Coding agents](agents.md)) |
@@ -19,7 +20,7 @@ Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) 
 | POST | `/api/v1/checks/report` | Results from your own runner (below) |
 | GET | `/api/v1/export` | Everything in the workspace as JSON |
 
-Webhooks: `/api/webhooks/github`, and `/api/webhooks/<source>?workspace=<login>` for alert sources (see [Integrations](integrations.md)).
+Webhooks: `/api/webhooks/github` (each delivery id is handled once; repeats answer `duplicate delivery`), and `/api/webhooks/<source>?workspace=<login>` for alert sources (see [Integrations](integrations.md)).
 
 ## Command line
 
@@ -50,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: MaanavKrishna/Aftershock/action@v0.2.0
+      - uses: MaanavKrishna/Aftershock/action@v0.2.1
         with:
           token: ${{ secrets.AFTERSHOCK_TOKEN }}
           install: pip install -r requirements.txt pytest   # or: npm ci

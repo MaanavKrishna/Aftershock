@@ -21,6 +21,10 @@ Set `AFTERSHOCK_RUNS_DISABLED=1` in Vercel and redeploy (or use an environment v
 
 `GET /api/health` answers `{ ok, version, db: { ok, ms } }` with status 200, or 503 when the database can't be reached. Point an uptime monitor at it.
 
+## Sessions
+
+Each sign-in creates a row in `sessions`; the session cookie only carries its id. Sessions end after 14 days idle or 30 days in total, on sign-out, or when revoked in Settings → Sessions. Requests also re-check workspace membership. Expired sessions are cleared by the daily job. Upgrading from 0.2.0 signs everyone out once, since older cookies carry no session id.
+
 ## Sandbox quota
 
 On Vercel's Hobby plan, snapshot storage and sandbox time are capped per month. When a cap is hit, runs end as *Inconclusive* with the reason ("Sandbox capacity is used up"); nothing crashes or hangs. A failed install-snapshot save falls back to an uncached run. Each workspace also has its own monthly allowance, enforced for every kind of run (not only pull request checks), so one workspace can't use up everyone's capacity. To keep checks running at the cap, switch repositories to GitHub Actions, turn the install cache off in Labs, or move to Vercel Pro.
@@ -34,7 +38,7 @@ With the `installCache` flag on, the first trusted run for a repository (time tr
 - **Deleting**: admins delete incidents and repositories; owners delete the workspace; anyone can delete their own account (Settings → Danger zone). Each needs the name typed to confirm, and is written to the audit log (Settings → Audit log), which is kept even after a workspace is deleted.
 - **Repositories removed from the GitHub App** are archived (no longer checked or listed) and purged after 30 days unless access returns.
 - **Uninstalled workspaces** are kept for 30 days so a reinstall continues where it left off, then purged.
-- **Retention**: run logs, webhook delivery records and finished notifications older than 30 days are cleared by the daily job. Verdicts, proofs and evidence stay until deleted.
+- **Retention**: run logs, webhook delivery records and finished notifications older than 30 days are cleared by the daily job, GitHub delivery ids after 7 days and expired sessions at once. Verdicts, proofs and evidence stay until deleted.
 - Deleting a repository or workspace also deletes its cached environments at the sandbox provider.
 
 ## Notifications

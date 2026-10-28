@@ -2,6 +2,36 @@
 
 All notable changes to Aftershock are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] — 2026-10-28
+
+A hardening release: sign-in, webhooks and data integrity, after a full architecture and security review. Everyone is asked to sign in once more after upgrading.
+
+### Security
+- **Server-side sessions:** each sign-in is a session that can be listed and revoked (Settings → Sessions), with a 14-day idle and 30-day absolute expiry. Signing out ends the session, and "Sign out everywhere else" ends the others.
+- **Membership is re-checked** on every request, so someone removed from a workspace loses access at once.
+- **Content Security Policy** with a per-request nonce on signed-in pages, and a strict static policy on public pages.
+- **GitHub deliveries are handled once**, by delivery id, so a replayed or retried delivery can't start work twice. Deliveries over 25 MB are refused.
+- **Rate limits** count failed webhook attempts per address and valid alerts per workspace separately, so a noisy source can't lock out a real one.
+- **Custom model endpoints** are resolved and checked for private, loopback and metadata addresses before every call.
+- Ask Aftershock questions are capped in length.
+
+### Reliability
+- **Race-safe incident numbers:** alerts arriving at the same moment no longer collide or get lost, and a repeated alert is de-duplicated by its fingerprint.
+- **Sandbox quota** is enforced for every run type; when capacity is used up, runs end as *Inconclusive* with the reason, and a failed install-snapshot save falls back to an uncached run.
+- Archived repositories and superseded incidents are skipped by nightly checks.
+- **Health endpoint** `GET /api/health` for uptime monitoring.
+- Database indexes for every frequent lookup.
+
+### Product
+- **Edit details** on an incident: title, trigger, observed, expected and fix can be corrected after recording.
+- The MCP `list_lessons` tool returns the lessons themselves, not only a count.
+- "Try the sample" pre-fills the public sample repository, MaanavKrishna/aftershock-sample.
+- Final privacy policy and terms.
+
+### Maintenance
+- Dependabot for npm and GitHub Actions.
+- Migrations `0012_integrity_indexes` and `0013_sessions_deliveries` run automatically on deploy.
+
 ## [0.2.0] — 2026-10-25
 
 Incident memory goes beyond Python and TypeScript, reaches the tools teams already use, and proves it is still working. The website and app are redesigned.

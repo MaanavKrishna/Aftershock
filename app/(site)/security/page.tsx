@@ -17,6 +17,8 @@ const RULES: [string, string][] = [
   ["No secrets in runs", "Your environment variables, deploy keys and cloud credentials are never available to sandboxed code. Tests that need them belong on your own runners."],
   ["Untrusted text stays data", "Incidents, postmortems, alerts and code reach the model inside random-nonce fences, and its output is parsed and validated before anything uses it."],
   ["Every delivery is authenticated", "Webhooks are verified by signature or token in constant time, size-capped and replay-checked before anything is stored or run."],
+  ["Sessions you control", "Each sign-in is a server-side session that expires after 14 days idle or 30 days in total. You can see and end any of them in Settings, and removing someone from a workspace takes effect on their next request."],
+  ["Hardened pages", "Signed-in pages run under a per-request Content Security Policy, so injected scripts can’t execute."],
   ["Outbound calls can’t reach inside", "Notification and model endpoints must be public https addresses; private, loopback and metadata addresses are refused when connecting."],
 ];
 const DATA: [string, string, string][] = [

@@ -6,7 +6,7 @@ test("health reports the database round trip and version, without caching or sec
   expect(res.status).toBe(200);
   expect(res.headers.get("cache-control")).toBe("no-store");
   const body = await res.json();
-  expect(body).toMatchObject({ ok: true, version: "0.2.0", db: { ok: true } });
+  expect(body).toMatchObject({ ok: true, version: "0.2.1", db: { ok: true } });
   expect(typeof body.db.ms).toBe("number");
   expect(JSON.stringify(body)).not.toMatch(/postgres|secret|key/i);
 });

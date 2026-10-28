@@ -25,7 +25,7 @@ export async function handleMessage(raw: unknown, ctx: ToolCtx): Promise<Reply |
       return ok(id, {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "aftershock", title: "Aftershock", version: "0.2.0" },
+        serverInfo: { name: "aftershock", title: "Aftershock", version: "0.2.1" },
         instructions: "Aftershock remembers production incidents as proven regression tests. Call check_change with the files you edited before committing, and keep the behaviour it reports.",
       });
     }

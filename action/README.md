@@ -17,7 +17,7 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5   # or actions/setup-node, setup-go, setup-java, ruby/setup-ruby
         with: { python-version: "3.13" }
-      - uses: MaanavKrishna/Aftershock/action@v0.2.0
+      - uses: MaanavKrishna/Aftershock/action@v0.2.1
         with:
           token: ${{ secrets.AFTERSHOCK_TOKEN }}
           install: pip install -r requirements.txt pytest
