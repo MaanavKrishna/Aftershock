@@ -7,6 +7,7 @@ import { can } from "@/lib/auth/roles";
 import { AdmissionTab, BillingTab, LabsTab, WorkspaceTab } from "@/components/app/settings/GeneralTabs";
 import { MembersTab, SessionsTab, TokensTab } from "@/components/app/settings/PeopleTabs";
 import { AuditTab, DangerTab, NotificationsTab } from "@/components/app/settings/ActivityTabs";
+import { testLimit } from "@/components/app/Pager";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -24,14 +25,14 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
-export default async function Settings({ searchParams }: { searchParams: Promise<{ tab?: string; error?: string }> }) {
-  const { tab: t, error } = await searchParams;
+export default async function Settings({ searchParams }: { searchParams: Promise<{ tab?: string; error?: string; cursor?: string; limit?: string }> }) {
+  const { tab: t, error, cursor, limit } = await searchParams;
   const tab: Tab = TABS.find(([id]) => id === t)?.[0] ?? "workspace";
   const { scope, session } = await currentScope();
   const [ws, members, tokens, usage, repos, me] = await Promise.all([scope.workspace(), scope.members(), scope.tokens(), scope.usage(), scope.repos(), scope.me(session.userId)]);
   const admin = can(me?.role, "manageWorkspace");
   const owner = me?.role === "owner";
-  const audit = tab === "audit" && admin ? await scope.auditLog(100) : [];
+  const audit = tab === "audit" && admin ? await scope.auditPage({ cursor, limit: testLimit(limit) }) : { rows: [], nextCursor: null };
   const mySessions = tab === "sessions" ? await (await import("@/lib/auth/sessions")).listSessions(session.userId) : [];
   const [targets, sent] = tab === "notifications" ? await Promise.all([scope.notificationTargets(), scope.notificationLog(15)]) : [[], []];
   if (!ws) return null;
@@ -58,7 +59,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           {tab === "notifications" && <NotificationsTab enabled={flagEnabled("notifications", ws.settings)} admin={admin} targets={targets} sent={sent} />}
           {tab === "labs" && <LabsTab ws={ws} admin={admin} />}
           {tab === "sessions" && <SessionsTab sessions={mySessions} current={session.sid ?? ""} />}
-          {tab === "audit" && <AuditTab admin={admin} audit={audit} />}
+          {tab === "audit" && <AuditTab admin={admin} audit={audit.rows} cursor={cursor} nextCursor={audit.nextCursor} limit={limit} />}
           {tab === "danger" && <DangerTab login={ws.login} owner={owner} />}
         </div>
       </Main>

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/Feedback";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Memory } from "@/components/ui/icons";
 import { FilterChips } from "@/components/app/bits";
+import { Pager, testLimit } from "@/components/app/Pager";
 import { LessonsSync } from "@/components/app/LessonsSync";
 import { incidentKey } from "@/lib/domain/ids";
 import { renderLessons } from "@/lib/domain/lessons";
@@ -17,6 +18,7 @@ import { stamp, timeAgo, word } from "@/lib/format";
 import { measureStrength, releaseQuarantine, reproveNow } from "../actions";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { flagEnabled } from "@/lib/flags";
+import type { Scoped } from "@/lib/db/queries/scope";
 
 export const metadata: Metadata = { title: "Memory" };
 
@@ -47,28 +49,62 @@ function Action({ action, id, text, button, pending }: { action: (f: FormData) =
   );
 }
 
-export default async function MemoryPage({ searchParams }: { searchParams: Promise<{ repo?: string; test?: string }> }) {
+/**
+ * One page of memory tests, optionally for one repository (by name). `memoryPage` has no repository
+ * filter, so a filtered page reads whole pages until it has at least `limit` matches: a filtered page
+ * can run a little long, but it never skips or repeats a test, and the cursor stays the query's own.
+ */
+async function testsPage(scope: Scoped, repo: string | undefined, cursor: string | undefined, limit: number | undefined) {
+  if (!repo) return scope.memoryPage({ cursor, limit });
+  const rows: Awaited<ReturnType<Scoped["memoryPage"]>>["rows"] = [];
+  let next: string | null = cursor ?? null;
+  for (let i = 0; i < 20; i++) {
+    const page = await scope.memoryPage({ cursor: next, limit });
+    rows.push(...page.rows.filter((r) => r.repo.name === repo));
+    next = page.nextCursor;
+    if (!next || rows.length >= (limit ?? 50)) break;
+  }
+  return { rows, nextCursor: next };
+}
+
+export default async function MemoryPage({ searchParams }: { searchParams: Promise<{ repo?: string; test?: string; cursor?: string; limit?: string }> }) {
   const sp = await searchParams;
   const { scope } = await currentScope();
-  const [ws, all, repos] = await Promise.all([scope.workspace(), scope.memory(), scope.repos()]);
+  // The unwell lists are bounded (200 each): they give the "need a look" count and let ?test= open a flaky or failing test from any page.
+  const [ws, { rows, nextCursor }, repos, byRepo, flaky, failing] = await Promise.all([
+    scope.workspace(),
+    testsPage(scope, sp.repo, sp.cursor, testLimit(sp.limit)),
+    scope.repos(),
+    scope.memoryCountByRepo(),
+    scope.memoryPage({ health: "flaky", limit: 200 }),
+    scope.memoryPage({ health: "failing", limit: 200 }),
+  ]);
   const quarantineEnforced = flagEnabled("quarantineEnforce", ws?.settings);
   const reproofOn = flagEnabled("reproof", ws?.settings);
   const strengthOn = flagEnabled("testStrength", ws?.settings);
   const prefix = ws?.incidentPrefix ?? "INC";
-  const rows = all.filter((r) => !sp.repo || r.repo.name === sp.repo);
-  const sel = rows.find((r) => r.test.id === sp.test) ?? rows[0];
+  const sel = rows.find((r) => r.test.id === sp.test) ?? [...failing.rows, ...flaky.rows].find((r) => r.test.id === sp.test) ?? rows[0];
   const q = (p: Record<string, string | undefined>) => {
     const u = new URLSearchParams();
     const repo = "repo" in p ? p.repo : sp.repo;
     if (repo) u.set("repo", repo);
     if (p.test) u.set("test", p.test);
+    if ("test" in p) {
+      // Selecting a row stays on this page.
+      if (sp.cursor) u.set("cursor", sp.cursor);
+      if (sp.limit) u.set("limit", sp.limit);
+    }
     return `/memory${u.size ? `?${u}` : ""}`;
   };
-  const lessons = renderLessons(all.map((r) => ({ key: incidentKey(prefix, r.incident.number), title: r.incident.title, files: r.incident.watchedFiles, expected: r.incident.expected, testPath: r.test.path })));
-  const n = all.length;
+  // The preview covers this page; Export LESSONS.md has every test.
+  const lessons = renderLessons(rows.map((r) => ({ key: incidentKey(prefix, r.incident.number), title: r.incident.title, files: r.incident.watchedFiles, expected: r.incident.expected, testPath: r.test.path })));
+  const n = Object.values(byRepo).reduce((a, b) => a + b, 0);
+  const repoId = sp.repo ? repos.find((r) => r.name === sp.repo)?.id : undefined;
+  const shown = !sp.repo ? n : repoId ? (byRepo[repoId] ?? 0) : rows.length;
+  const paged = Boolean(sp.cursor || nextCursor);
   const nights = sel ? (sel.test.nights.length ? sel.test.nights : (Array(14).fill(null) as (boolean | null)[])) : [];
   const failedNights = sel ? sel.test.nights.filter((x) => !x).length : 0;
-  const unwell = all.filter((r) => r.test.health !== "healthy").length;
+  const unwell = `${failing.rows.length + flaky.rows.length}${failing.nextCursor || flaky.nextCursor ? "+" : ""}`;
   return (
     <>
       <TopBar title="Memory">
@@ -90,8 +126,8 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
           <div className="flex flex-wrap items-center justify-between gap-3">
             <FilterChips label="Repository" items={[["", "All repositories"], ...repos.map((r) => [r.name, r.name])].map(([id, label]) => ({ href: q({ repo: id || undefined }), label, active: (sp.repo ?? "") === id }))} />
             <span className="text-callout text-fg-3">
-              {rows.length} {rows.length === 1 ? "test" : "tests"}
-              {unwell ? ` · ${unwell} need a look` : " · all healthy"}
+              {shown} {shown === 1 ? "test" : "tests"}
+              {unwell !== "0" ? ` · ${unwell} need a look` : " · all healthy"}
             </span>
           </div>
         )}
@@ -141,6 +177,9 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
                   })}
                 </tbody>
               </Table>
+              <div className="mt-3">
+                <Pager path="/memory" params={{ repo: sp.repo, limit: sp.limit }} cursor={sp.cursor} nextCursor={nextCursor} label="Memory test pages" />
+              </div>
             </div>
             {sel && (
               <aside className="flex min-w-0 flex-col gap-4 xl:col-span-2" aria-label="Selected test">
@@ -237,11 +276,11 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
                   </div>
                 </Card>
                 <Card>
-                  <CardHead sub="Commit it, and coding agents read your incident history before they change risky code.">LESSONS.md for coding agents</CardHead>
+                  <CardHead sub={paged ? "The tests on this page. Export LESSONS.md for all of them, commit it, and coding agents read your incident history before they change risky code." : "Commit it, and coding agents read your incident history before they change risky code."}>LESSONS.md for coding agents</CardHead>
                   <div className="p-3 [&_pre]:max-h-72 [&_pre]:overflow-y-auto">
                     <CodeBlock code={lessons} file="LESSONS.md" />
                   </div>
-                  <LessonsSync repos={repos.filter((r) => all.some((m) => m.repo.id === r.id)).map((r) => ({ id: r.id, name: r.name }))} />
+                  <LessonsSync repos={repos.filter((r) => (byRepo[r.id] ?? 0) > 0).map((r) => ({ id: r.id, name: r.name }))} />
                 </Card>
               </aside>
             )}
