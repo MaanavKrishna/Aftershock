@@ -19,7 +19,7 @@ export function EmptyState({ title, children, action, icon }: { title: string; c
 
 /** Keyboard key. */
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-[5px] border border-border-strong bg-s1 px-1 font-mono text-caption text-fg-2 shadow-e1">{children}</kbd>;
+  return <kbd className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-chip border border-border-strong bg-s1 px-1 font-mono text-caption text-fg-2 shadow-e1">{children}</kbd>;
 }
 
 /** Small neutral or accent label (version, plan, "Labs"). */
@@ -45,12 +45,13 @@ export function Tooltip({ id, tip, children }: { id: string; tip: string; childr
 }
 
 /** Page heading block used at the top of every app view. */
-export function PageHeader({ title, sub, actions, eyebrow }: { title: string; sub?: ReactNode; actions?: ReactNode; eyebrow?: ReactNode }) {
+export function PageHeader({ title, sub, actions, eyebrow, level = 1 }: { title: string; sub?: ReactNode; actions?: ReactNode; eyebrow?: ReactNode; level?: 1 | 2 }) {
+  const H = level === 1 ? "h1" : "h2";
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex min-w-0 flex-col gap-1">
         {eyebrow && <span className="text-callout font-medium text-fg-3">{eyebrow}</span>}
-        <h1 className="m-0 text-title-1 font-semibold text-fg">{title}</h1>
+        <H className="m-0 text-title-1 font-semibold text-fg">{title}</H>
         {sub && <p className="m-0 max-w-[70ch] text-ui text-fg-3">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

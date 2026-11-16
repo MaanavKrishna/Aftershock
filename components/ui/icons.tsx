@@ -21,6 +21,9 @@ export const Pencil = (p: P) => <Svg {...p}><path d="M4 20h4L19 9l-4-4L4 16z" />
 export const Wave = (p: P) => <Svg {...p}><path d="M2 12h3l2-6 3 12 3-9 2 3h7" /></Svg>;
 export const Clock = (p: P) => <Svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Svg>;
 export const Spinner = (p: P) => <Svg {...p} className={`animate-spin motion-reduce:animate-none ${p.className ?? ""}`}><path d="M12 3a9 9 0 1 0 9 9" /></Svg>;
+export const Progress = (p: P) => <Svg {...p}><circle cx="12" cy="12" r="7.5" strokeOpacity={0.35} /><path d="M12 4.5a7.5 7.5 0 0 1 7.5 7.5" /></Svg>;
+export const Bell = (p: P) => <Svg {...p}><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20a2 2 0 0 0 4 0" /></Svg>;
+export const Download = (p: P) => <Svg {...p}><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></Svg>;
 export const ArrowRight = (p: P) => <Svg {...p}><path d="M5 12h14M13 6l6 6-6 6" /></Svg>;
 export const ChevronRight = (p: P) => <Svg {...p}><path d="m9 6 6 6-6 6" /></Svg>;
 export const ChevronDown = (p: P) => <Svg {...p}><path d="m6 9 6 6 6-6" /></Svg>;

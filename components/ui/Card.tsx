@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /** A content surface: s1 with a hairline border. `dark` is an older prop, now the same raised surface one level up. */
-export function Card({ children, className = "", dark = false, as: Tag = "section" }: { children: ReactNode; className?: string; dark?: boolean; as?: "section" | "div" | "article" }) {
+export function Card({ children, className = "", dark = false, as: Tag = "section" }: { children: ReactNode; className?: string; dark?: boolean; as?: "section" | "div" | "article" | "aside" }) {
   return <Tag className={`overflow-hidden rounded-card border border-border ${dark ? "bg-s2" : "bg-s1"} shadow-e1 ${className}`}>{children}</Tag>;
 }
 

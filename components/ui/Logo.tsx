@@ -18,7 +18,7 @@ export function Wordmark({ size = 28 }: { size?: number }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <LogoMark size={size} accent />
-      <span className="text-[17px] font-semibold tracking-[-0.02em] text-fg">Aftershock</span>
+      <span className="text-title-3 font-semibold text-fg">Aftershock</span>
     </span>
   );
 }

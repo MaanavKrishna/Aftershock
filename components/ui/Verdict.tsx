@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, Clock, Cross, Dashed, Half, Pencil, Ring, Spinner, Wave } from "./icons";
+import { Check, Clock, Cross, Dashed, Half, Pencil, Progress, Ring, Wave } from "./icons";
 
 /**
  * Status is never colour alone: every verdict has its own icon, its own word and a tint.
@@ -36,7 +36,7 @@ export const VERDICTS: Record<VerdictKind, Spec> = {
   flaky: { Icon: Wave, label: "Flaky", cls: "text-flaky bg-flaky-soft" },
   drifted: { Icon: Wave, label: "Drifted", cls: "text-flaky bg-flaky-soft" },
   drafted: { Icon: Pencil, label: "AI draft", cls: "text-flaky bg-flaky-soft" },
-  running: { Icon: Spinner, label: "Running", cls: neutral },
+  running: { Icon: Progress, label: "Running", cls: neutral },
   skipped: { Icon: Ring, label: "Skipped", cls: neutral },
   unproven: { Icon: Dashed, label: "Unproven", cls: neutral },
   rejected: { Icon: Ring, label: "Rejected", cls: neutral },

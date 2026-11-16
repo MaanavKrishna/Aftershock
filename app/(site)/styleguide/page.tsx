@@ -194,7 +194,7 @@ export default function Styleguide() {
           </CardBody>
         </Card>
         <div className="glass rounded-card border border-border p-5">
-          <PageHeader eyebrow="Material" title="Glass header" sub="Canvas at 72% with a 20px blur. Solid when transparency is reduced." />
+          <PageHeader level={2} eyebrow="Material" title="Glass header" sub="Canvas at 72% with a 20px blur. Solid when transparency is reduced." />
         </div>
       </Group>
 

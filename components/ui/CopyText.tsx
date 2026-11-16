@@ -15,7 +15,7 @@ export function CopyText({ text, label = "Copy" }: { text: string; label?: strin
           setDone(false);
         }
       }}
-      className="min-h-8 cursor-pointer rounded-chip border border-rule bg-transparent px-2.5 font-ui text-xs text-fg-2 hover:text-fg"
+      className="min-h-8 cursor-pointer rounded-chip border border-border bg-transparent px-2.5 text-caption text-fg-2 hover:text-fg"
     >
       <span aria-live="polite">{done ? "Copied" : label}</span>
     </button>
