@@ -12,9 +12,9 @@ export default async function Onboarding() {
   return (
     <>
       <TopBar title="Set up Aftershock" />
-      <div className="mx-auto box-border w-full max-w-[1180px] px-6 pb-16 pt-12 max-sm:px-4">
+      <main id="main" className="mx-auto box-border w-full max-w-[1120px] px-6 pb-16 pt-10 max-sm:px-4 max-sm:pt-6">
         <Wizard installUrl={installUrl} repos={repos.map((r) => ({ id: r.id, name: r.name, meta: `${r.language} · ${r.framework}`, framework: r.framework, supported: true, install: r.installCmd }))} />
-      </div>
+      </main>
     </>
   );
 }
