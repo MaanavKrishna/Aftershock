@@ -17,6 +17,7 @@ export type CheckListRow = { check: s.PrCheckRow; repo: s.RepositoryRow; results
 export type MemoryListRow = { test: s.MemoryTestRow; incident: s.IncidentRow; repo: s.RepositoryRow; guarded: number; blocked: number };
 export type AuditListRow = { id: string; action: string; target: string; detail: string; createdAt: Date; actor: string | null };
 export type ActivityRow = typeof s.activity.$inferSelect;
+export type WorkspaceSettings = (typeof s.workspaces.$inferSelect)["settings"];
 
 /** Something on the Overview waiting on a person, in the order the page shows them. */
 export type OverviewDecision =
@@ -552,6 +553,103 @@ export function scoped(workspaceId: string) {
     async faultLines() {
       const incidents = await api.listIncidents({});
       return faultLines(incidents);
+    },
+
+    // ---------------------------------------------------------------------------------------------
+    // Writes. Each one is limited to this workspace's rows, so a forged id from another workspace
+    // changes nothing.
+    // ---------------------------------------------------------------------------------------------
+
+    async checkById(id: string): Promise<s.PrCheckRow | null> {
+      const db = await getDb();
+      const [c] = await db.select().from(s.prChecks).where(and(mineCheck, eq(s.prChecks.id, id)));
+      return c ?? null;
+    },
+
+    /** Records an override and marks the check overridden, together or not at all. Null when the check is not in this workspace. */
+    async overrideCheck(checkId: string, userId: string, reason: string): Promise<s.PrCheckRow | null> {
+      const db = await getDb();
+      return db.transaction(async (tx) => {
+        const [check] = await tx.update(s.prChecks).set({ overridden: true }).where(and(mineCheck, eq(s.prChecks.id, checkId))).returning();
+        if (!check) return null;
+        await tx.insert(s.overrides).values({ checkId: check.id, userId, reason: reason.slice(0, 2000) });
+        return check;
+      });
+    },
+
+    async updateIncident(id: string, patch: Partial<Omit<typeof s.incidents.$inferInsert, "id" | "workspaceId" | "number">>): Promise<s.IncidentRow | null> {
+      const db = await getDb();
+      const [row] = await db.update(s.incidents).set(patch).where(and(mineInc, eq(s.incidents.id, id))).returning();
+      return row ?? null;
+    },
+
+    /** Adds a note to one of this workspace's incidents. False when the incident is not here. */
+    async addNote(incidentId: string, userId: string, text: string): Promise<boolean> {
+      if (!(await api.getIncidentById(incidentId))) return false;
+      const db = await getDb();
+      await db.insert(s.notes).values({ incidentId, userId, text: text.slice(0, 4000) });
+      return true;
+    },
+
+    async updateRepo(id: string, patch: Partial<Pick<s.RepositoryRow, "runner" | "checkMode" | "installCmd">>): Promise<void> {
+      const db = await getDb();
+      await db.update(s.repositories).set(patch).where(and(eq(s.repositories.workspaceId, workspaceId), eq(s.repositories.id, id)));
+    },
+
+    /** Updates the workspace; `settings` gets the current settings and returns the new ones (read and write in one transaction, so concurrent saves never drop a key). */
+    async updateWorkspace(patch: { name?: string; incidentPrefix?: string }, settings?: (current: WorkspaceSettings) => WorkspaceSettings): Promise<void> {
+      const db = await getDb();
+      await db.transaction(async (tx) => {
+        let next: WorkspaceSettings | undefined;
+        if (settings) {
+          const [cur] = await tx.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, workspaceId)).for("update");
+          next = settings(cur?.settings ?? {});
+        }
+        if (!next && !Object.keys(patch).length) return;
+        await tx.update(s.workspaces).set({ ...patch, ...(next ? { settings: next } : {}) }).where(eq(s.workspaces.id, workspaceId));
+      });
+    },
+
+    async createToken(t: { name: string; prefix: string; hash: string; scope: "read" | "write" }): Promise<void> {
+      const db = await getDb();
+      await db.insert(s.apiTokens).values({ workspaceId, ...t });
+    },
+
+    async revokeToken(id: string): Promise<void> {
+      const db = await getDb();
+      await db.delete(s.apiTokens).where(and(eq(s.apiTokens.workspaceId, workspaceId), eq(s.apiTokens.id, id)));
+    },
+
+    /** Creates or replaces an integration's config; the secret is kept unless a new one is given. */
+    async upsertIntegration(kind: s.IntakeKind | "model", config: Record<string, string>, secretCiphertext?: string): Promise<void> {
+      const db = await getDb();
+      await db
+        .insert(s.integrations)
+        .values({ workspaceId, kind, config, secretCiphertext: secretCiphertext ?? null })
+        .onConflictDoUpdate({ target: [s.integrations.workspaceId, s.integrations.kind], set: { config, ...(secretCiphertext ? { secretCiphertext } : {}) } });
+    },
+
+    async setMemberRole(userId: string, role: "owner" | "admin" | "member" | "remove"): Promise<void> {
+      const db = await getDb();
+      const where = and(eq(s.memberships.workspaceId, workspaceId), eq(s.memberships.userId, userId));
+      if (role === "remove") await db.delete(s.memberships).where(where);
+      else await db.update(s.memberships).set({ role }).where(where);
+    },
+
+    async memoryTest(id: string): Promise<s.MemoryTestRow | null> {
+      const db = await getDb();
+      const [t] = await db.select().from(s.memoryTests).where(and(eq(s.memoryTests.workspaceId, workspaceId), eq(s.memoryTests.id, id)));
+      return t ?? null;
+    },
+
+    async releaseQuarantine(id: string): Promise<s.MemoryTestRow | null> {
+      const db = await getDb();
+      const [t] = await db
+        .update(s.memoryTests)
+        .set({ quarantined: false, quarantineReason: null, quarantinedAt: null })
+        .where(and(eq(s.memoryTests.workspaceId, workspaceId), eq(s.memoryTests.id, id)))
+        .returning();
+      return t ?? null;
     },
 
     async navCounts() {
