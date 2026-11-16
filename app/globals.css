@@ -321,35 +321,49 @@ code,
   }
 }
 
-/* Rendered markdown (docs). */
+/* Rendered markdown (docs and changelog). */
 .prose {
   max-width: 72ch;
   color: var(--fl-fg-2);
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.75;
 }
-.prose :where(p, li, h2, h3, td) {
+.prose :where(p, li, h2, h3, h4, td) {
   overflow-wrap: anywhere;
 }
 .prose > * + * {
-  margin-top: 1.05em;
+  margin-top: 1.1em;
+}
+.prose > :first-child {
+  margin-top: 0;
 }
 .prose h2,
-.prose h3 {
+.prose h3,
+.prose h4 {
   position: relative;
   color: var(--fl-fg);
-  font-family: var(--font-display);
-  letter-spacing: -0.015em;
+  font-family: var(--font-sans);
+  font-weight: 600;
   scroll-margin-top: 6rem;
 }
 .prose h2 {
-  margin-top: 2.2em;
-  font-size: 1.55rem;
-  line-height: 1.25;
+  margin-top: 2.4em;
+  padding-top: 1.2em;
+  border-top: 1px solid var(--fl-border-soft);
+  font-size: var(--text-title-2);
+  line-height: var(--text-title-2--line-height);
+  letter-spacing: var(--text-title-2--letter-spacing);
 }
 .prose h3 {
-  margin-top: 1.8em;
-  font-size: 1.2rem;
+  margin-top: 2em;
+  font-size: var(--text-title-3);
+  line-height: var(--text-title-3--line-height);
+  letter-spacing: var(--text-title-3--letter-spacing);
+}
+.prose h4 {
+  margin-top: 1.6em;
+  font-size: var(--text-ui);
+  line-height: var(--text-ui--line-height);
 }
 .prose .anchor {
   position: absolute;
@@ -357,31 +371,42 @@ code,
   color: var(--fl-fg-3);
   text-decoration: none;
   opacity: 0;
+  transition: opacity 120ms var(--ease-fl);
 }
 .prose h2:hover .anchor,
-.prose h3:hover .anchor {
+.prose h3:hover .anchor,
+.prose .anchor:focus-visible {
   opacity: 1;
 }
 .prose a {
   color: var(--fl-signal);
   text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--fl-signal) 40%, transparent);
   text-underline-offset: 3px;
+  transition: text-decoration-color 120ms var(--ease-fl);
+}
+.prose a:hover {
+  text-decoration-color: var(--fl-signal);
 }
 .prose strong {
   color: var(--fl-fg);
+  font-weight: 600;
 }
 .prose ul,
 .prose ol {
   padding-left: 1.3em;
 }
+.prose li::marker {
+  color: var(--fl-fg-3);
+}
 .prose li + li {
-  margin-top: 0.35em;
+  margin-top: 0.4em;
 }
 .prose code {
-  font-family: var(--font-code);
-  font-size: 0.88em;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
   padding: 0.12em 0.36em;
-  border-radius: 5px;
+  border-radius: var(--radius-chip);
   background: var(--fl-s2);
   color: var(--fl-fg);
 }
@@ -389,10 +414,10 @@ code,
   overflow-x: auto;
   padding: 14px 16px;
   border: 1px solid var(--fl-border);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--fl-sunken);
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: var(--text-callout);
+  line-height: 1.7;
 }
 .prose pre code {
   padding: 0;
@@ -402,12 +427,14 @@ code,
 .prose .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--fl-border);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
 }
 .prose table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14.5px;
+  font-size: var(--text-ui);
+  line-height: var(--text-ui--line-height);
+  font-variant-numeric: tabular-nums;
 }
 .prose th,
 .prose td {
@@ -418,12 +445,161 @@ code,
 }
 .prose thead th {
   border-top: 0;
-  color: var(--fl-fg-3);
+  background: var(--fl-s2);
+  color: var(--fl-fg-2);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--text-callout);
 }
 .prose blockquote {
   margin-left: 0;
   padding-left: 1em;
-  border-left: 3px solid var(--fl-border-strong);
+  border-left: 2px solid var(--fl-border-strong);
+  color: var(--fl-fg-2);
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--fl-border);
+}
+
+/* ---- Marketing effects (site pages only). Each shows its final frame under reduced motion. ---- */
+
+/* Hero spotlight: a soft radial light from above. Static. */
+@utility hero-spotlight {
+  background: radial-gradient(60% 55% at 50% 0%, color-mix(in oklab, var(--fl-signal) 16%, transparent), transparent 70%);
+}
+
+/* Seismic trace: each segment draws once along its own length (pathLength="1"). */
+@keyframes fl-trace {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@utility trace-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: fl-trace var(--trace-dur, 900ms) var(--trace-ease, linear) var(--trace-delay, 0ms) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+/* Fades a marker (never text) in once the trace reaches it. */
+@keyframes fl-fade {
+  from {
+    opacity: 0;
+  }
+}
+@utility trace-mark {
+  animation: fl-fade 320ms var(--ease-fl) var(--trace-delay, 0ms) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+/* Wipes a label in from the left; text keeps full contrast while it appears. */
+@keyframes fl-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@utility trace-label {
+  animation: fl-wipe 420ms var(--ease-fl) var(--trace-delay, 0ms) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* One-time headline reveal: each word rises out of a clip, no opacity change (keeps contrast checks honest). */
+@keyframes fl-word {
+  from {
+    transform: translateY(0.45em);
+    clip-path: inset(0 -0.1em 100% -0.1em);
+  }
+  to {
+    transform: none;
+    clip-path: inset(-0.2em -0.1em -0.3em -0.1em);
+  }
+}
+@utility word-reveal {
+  display: inline-block;
+  animation: fl-word 700ms var(--ease-fl) var(--word-delay, 0ms) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Bento card spotlight: one glow per card, following the pointer (set by components/site/Spotlight.tsx). */
+@utility spotlight-card {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: radial-gradient(380px circle at var(--spot-x, 50%) var(--spot-y, 0%), color-mix(in oklab, var(--fl-signal) 11%, transparent), transparent 65%);
+    opacity: 0;
+    transition: opacity 320ms var(--ease-fl);
+    pointer-events: none;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 0%), color-mix(in oklab, var(--fl-signal) 55%, transparent), transparent 70%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: 0;
+    transition: opacity 320ms var(--ease-fl);
+    pointer-events: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover::before,
+    &:hover::after {
+      opacity: 1;
+    }
+  }
+  @media (forced-colors: active) {
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+}
+
+/* Moving border for the single primary call to action: a 1px conic highlight turning every 4s. */
+@property --fl-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes fl-turn {
+  to {
+    --fl-angle: 360deg;
+  }
+}
+@utility moving-border {
+  position: relative;
+  display: inline-flex;
+  padding: 1px;
+  border-radius: calc(var(--radius-control) + 1px);
+  background: conic-gradient(from var(--fl-angle), var(--fl-border-strong) 0deg, var(--fl-border-strong) 220deg, var(--fl-signal) 290deg, var(--fl-proven) 320deg, var(--fl-border-strong) 360deg);
+  animation: fl-turn 4s linear infinite;
+  animation-play-state: paused;
+  &[data-inview] {
+    animation-play-state: running;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+  @media (forced-colors: active) {
+    background: CanvasText;
+  }
 }
