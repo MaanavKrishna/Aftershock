@@ -3,10 +3,12 @@ import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 
 /**
- * Durable on Vercel (Workflow SDK `start`); in local development and tests the same
- * orchestration runs in-process in the background.
+ * Durable (Workflow SDK `start`) whenever next.config.ts compiled the workflows: production builds,
+ * Vercel, or AFTERSHOCK_WORKFLOWS=durable. A compiled workflow refuses to be called directly, so a
+ * self-hosted `next start` uses the SDK's local world, in the same process. In `next dev` and tests
+ * the same orchestration runs in-process in the background.
  */
-const durable = () => process.env.AFTERSHOCK_WORKFLOWS === "durable" || (Boolean(process.env.VERCEL) && process.env.AFTERSHOCK_WORKFLOWS !== "inline");
+export const durable = (env: Record<string, string | undefined> = process.env) => env.NODE_ENV === "production" || Boolean(env.VERCEL) || env.AFTERSHOCK_WORKFLOWS === "durable";
 
 type Override = (kind: string, id: string) => void;
 let override: Override | null = null;
