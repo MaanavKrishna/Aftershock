@@ -3,59 +3,99 @@ import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
 import { VerdictPill } from "@/components/ui/Pill";
+import { Tabs } from "@/components/ui/Tabs";
+import { Table, THead, Th, Tr, Td } from "@/components/ui/Table";
+import { EmptyState } from "@/components/ui/Feedback";
 import { Strip, toCells } from "@/components/ui/Strip";
+import { duration, timeAgo } from "@/lib/format";
 import type { CheckVerdict } from "@/lib/db/schema";
 
 export const metadata: Metadata = { title: "Pull requests" };
 
 const FILTERS: [string, string][] = [["all", "All"], ["recur", "Recur"], ["safe", "Safe"], ["inconclusive", "Inconclusive"], ["skipped", "Skipped"]];
 
+const HOW: [string, string, string][] = [
+  ["Files", "Touches a fault line", "Any test whose watched files the pull request changes always runs."],
+  ["Triage", "The model adds related incidents", "It can add tests to run, never remove one chosen by files."],
+  ["Run", "Three runs on the head commit", "All fail: Recur. All pass: Safe. Anything else: Inconclusive."],
+];
+
 export default async function Pulls({ searchParams }: { searchParams: Promise<{ verdict?: string }> }) {
   const { verdict: v } = await searchParams;
   const verdict = FILTERS.some(([id]) => id === v && id !== "all") ? (v as CheckVerdict) : undefined;
   const { scope } = await currentScope();
   const [rows, counts] = await Promise.all([scope.checks({ verdict }), scope.verdictCounts()]);
-  const cols = "grid-cols-[64px_minmax(0,2.4fr)_1.1fr_1fr_1fr_110px]";
   return (
     <>
-      <TopBar title="Pull requests"><span className="text-[12.5px] text-muted">Checks start when a PR opens or updates</span></TopBar>
+      <TopBar title="Pull requests" />
       <Main>
-        <PageTitle title="Every change, checked against what already broke." sub="Only the incidents a change could reopen are run. The rest are skipped with a reason you can read." />
-        <nav aria-label="Filter by verdict" className="flex flex-wrap items-center gap-2">
-          {FILTERS.map(([id, label]) => {
-            const on = (verdict ?? "all") === id;
-            return (
-              <Link key={id} href={id === "all" ? "/pulls" : `/pulls?verdict=${id}`} aria-current={on ? "page" : undefined} className={`inline-flex min-h-[38px] items-center gap-2 rounded-full px-3.5 text-[13px] no-underline ${on ? "border border-ink bg-ink text-paper" : "border border-line-strong bg-card text-body"}`}>
-                {label}<span className="font-mono text-xs opacity-75">{counts[id] ?? 0}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <section className="overflow-hidden rounded-[14px] border border-line bg-card shadow-[0_1px_2px_rgba(14,20,27,0.04)]">
-          <div className="overflow-x-auto">
-            <div className="min-w-[860px]">
-              <div className={`grid ${cols} gap-3.5 border-b border-line-soft bg-card-2 px-5 py-[11px] text-xs text-muted-2`}><span>PR</span><span>Change</span><span>Incidents run</span><span>Runner</span><span>Result</span><span>Verdict</span></div>
+        <PageTitle title="Every change, checked against what already broke." sub="Only the incidents a change could reopen are run. The rest are skipped with a reason you can read. Checks start when a pull request opens or updates." />
+        <Tabs label="Filter by verdict" items={FILTERS.map(([id, label]) => ({ href: id === "all" ? "/pulls" : `/pulls?verdict=${id}`, label, active: (verdict ?? "all") === id, count: counts[id] ?? 0 }))} />
+        {rows.length === 0 ? (
+          <EmptyState title="No checks with this verdict yet">Pull requests appear here as soon as the GitHub App sees them open or update.</EmptyState>
+        ) : (
+          <Table label="Pull request checks">
+            <THead>
+              <tr>
+                <Th className="w-20">PR</Th>
+                <Th>Change</Th>
+                <Th className="max-md:hidden">Tests run</Th>
+                <Th className="max-lg:hidden">Runner</Th>
+                <Th className="max-sm:hidden">Runs</Th>
+                <Th>Verdict</Th>
+              </tr>
+            </THead>
+            <tbody>
               {rows.map(({ check, repo, results, skipped }) => {
                 const runs = results.flatMap((r) => r.runs);
                 return (
-                  <Link key={check.id} href={`/pulls/${check.prNumber}?repo=${repo.name}`} className={`grid ${cols} items-center gap-3.5 border-b border-line-soft px-5 py-3.5 text-inherit no-underline hover:bg-card-2`}>
-                    <span className="font-mono text-[12.5px] text-muted">#{check.prNumber}</span>
-                    <span className="flex min-w-0 flex-col"><span className="truncate font-semibold">{check.title}</span><span className="font-mono text-xs text-muted-2">{repo.name} · {check.filesChanged} file{check.filesChanged === 1 ? "" : "s"}</span></span>
-                    <span className="text-[13px] text-body">{check.status === "done" || results.length ? `${results.length} run · ${skipped} skipped` : "selecting…"}</span>
-                    <span className="font-mono text-[12.5px] text-body">{check.runner ?? "—"}</span>
-                    <Strip cells={check.status === "running" && runs.length === 0 ? ["running", "running", "running", "none", "none", "none"] : toCells(runs, Math.max(6, Math.min(9, runs.length)))} width={90} />
-                    <span className="justify-self-start"><VerdictPill verdict={check.verdict} /></span>
-                  </Link>
+                  <Tr key={check.id} className="relative">
+                    <Td className="whitespace-nowrap font-mono text-callout text-fg-3">#{check.prNumber}</Td>
+                    <Td className="w-full min-w-48 max-w-0">
+                      <Link href={`/pulls/${check.prNumber}?repo=${repo.name}`} className="flex flex-col py-1 no-underline after:absolute after:inset-0 after:content-['']">
+                        <span className="truncate font-medium text-fg">{check.title}</span>
+                        <span className="truncate text-caption text-fg-3">
+                          {repo.name} · {check.filesChanged} file{check.filesChanged === 1 ? "" : "s"} · {timeAgo(check.createdAt)}
+                        </span>
+                      </Link>
+                    </Td>
+                    <Td className="whitespace-nowrap text-callout max-md:hidden">{check.status === "done" || results.length ? `${results.length} run · ${skipped} skipped` : "Selecting…"}</Td>
+                    <Td className="whitespace-nowrap text-callout max-lg:hidden">
+                      {check.runner ?? "—"}
+                      {check.durationMs ? <span className="text-fg-3"> · {duration(check.durationMs)}</span> : null}
+                    </Td>
+                    <Td className="max-sm:hidden">
+                      <Strip
+                        cells={check.status === "running" && runs.length === 0 ? ["running", "running", "running"] : toCells(runs, Math.max(3, Math.min(9, runs.length)))}
+                        width={72}
+                        height={8}
+                        label={runs.length ? `Runs: ${runs.map((r) => r.outcome).join(", ")}` : "No runs"}
+                      />
+                    </Td>
+                    <Td>
+                      <VerdictPill verdict={check.verdict} />
+                    </Td>
+                  </Tr>
                 );
               })}
-              {rows.length === 0 && <div className="px-5 py-12 text-center text-muted">No checks with this verdict yet.</div>}
-            </div>
-          </div>
-        </section>
-        <section className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-3">
-          <div className="flex flex-col gap-1.5 rounded-[14px] border border-line bg-card px-5 py-[18px]"><span className="font-mono text-xs text-muted">01 · Files</span><span className="font-semibold">Touches a fault line</span><span className="text-[13px] text-muted">Any test whose watched files the PR changes always runs.</span></div>
-          <div className="flex flex-col gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-muted-2 bg-card px-5 py-[18px]"><span className="font-mono text-xs text-muted">02 · Triage</span><span className="font-semibold">Model adds related incidents</span><span className="text-[13px] text-muted">It can add tests to run, never remove one chosen by files.</span></div>
-          <div className="flex flex-col gap-1.5 rounded-[14px] border border-line bg-card px-5 py-[18px]"><span className="font-mono text-xs text-muted">03 · Run</span><span className="font-semibold">Three runs on the head commit</span><span className="text-[13px] text-muted">All fail: Recur. All pass: Safe. Anything else: Inconclusive.</span></div>
+            </tbody>
+          </Table>
+        )}
+        <section aria-labelledby="how-h" className="flex flex-col gap-3">
+          <h2 id="how-h" className="m-0 text-title-3 font-semibold text-fg">
+            How a check chooses its tests
+          </h2>
+          <ol className="m-0 grid list-none gap-3 p-0 md:grid-cols-3">
+            {HOW.map(([k, t, d], i) => (
+              <li key={k} className="flex flex-col gap-1 rounded-card border border-border bg-s1 px-5 py-4">
+                <span className="text-caption text-fg-3">
+                  {i + 1} · {k}
+                </span>
+                <span className="text-ui font-medium text-fg">{t}</span>
+                <span className="text-callout text-fg-2">{d}</span>
+              </li>
+            ))}
+          </ol>
         </section>
       </Main>
     </>
