@@ -117,7 +117,7 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
                     const on = sel?.test.id === r.test.id;
                     const [kind, label] = HEALTH[r.test.health];
                     return (
-                      <Tr key={r.test.id} className={`relative ${on ? "bg-s2" : ""}`} aria-selected={on || undefined}>
+                      <Tr key={r.test.id} className={`relative ${on ? "shadow-[inset_2px_0_0_var(--color-signal)]" : ""}`} aria-selected={on || undefined}>
                         <Td className="w-full min-w-48 max-w-0">
                           <Link href={q({ test: r.test.id })} aria-current={on ? "true" : undefined} className="flex flex-col py-1 no-underline after:absolute after:inset-0 after:content-['']">
                             <span className="flex min-w-0 items-baseline gap-2">
