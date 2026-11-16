@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { DsLink } from "@/components/ds/Button";
-import { CodeBlock } from "@/components/ds/CodeBlock";
+import { DsLink } from "@/components/ui/Button";
+import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Band, SectionHead } from "@/components/site/Section";
 
 export const metadata: Metadata = { title: "Audit evidence", description: "Signed, verifiable evidence that incidents became tested controls, for SOC 2 and DORA.", alternates: { canonical: "/evidence" } };

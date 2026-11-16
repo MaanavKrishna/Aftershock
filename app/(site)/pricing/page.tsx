@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DsLink } from "@/components/ds/Button";
+import { DsLink } from "@/components/ui/Button";
 import { Band, SectionHead } from "@/components/site/Section";
 import { CostCalculator } from "@/components/site/CostCalculator";
 import { PLANS } from "@/lib/billing/plans";

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SOURCES, SOURCE_IDS, isSource } from "@/lib/integrations/sources";
-import { DsLink } from "@/components/ds/Button";
-import { CodeBlock } from "@/components/ds/CodeBlock";
+import { DsLink } from "@/components/ui/Button";
+import { CodeBlock } from "@/components/ui/CodeBlock";
 
 export const dynamicParams = false;
 export function generateStaticParams() {

@@ -5,7 +5,7 @@ import { CommandPalette } from "./CommandPalette";
 import { Inbox } from "./Inbox";
 import { MobileDrawer } from "./MobileDrawer";
 import { Sidebar } from "./Sidebar";
-import { ThemeToggle } from "@/components/ds/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /** Page header: breadcrumbs or title, the page's own actions, then search, activity and theme. */
 export async function TopBar({ crumbs, title, children }: { crumbs?: { label: string; href?: string }[]; title?: string; children?: ReactNode }) {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/Logo";
-import { ThemeToggle } from "@/components/ds/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const metadata: Metadata = { title: "Sign in", alternates: { canonical: "/signin" } };
 

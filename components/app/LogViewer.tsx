@@ -1,6 +1,6 @@
 "use client";
 import { useId, useMemo, useState } from "react";
-import { CopyText } from "@/components/ds/CopyText";
+import { CopyText } from "@/components/ui/CopyText";
 
 const FAILURE = /\b(FAILED|FAIL|Error|Exception|assert|AssertionError|Traceback|panic|expected|✕)\b/;
 

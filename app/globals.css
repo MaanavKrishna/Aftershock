@@ -1,186 +1,308 @@
 @import "tailwindcss";
 
+/* Fault Line, the Aftershock design system. Spec: docs/design-system.md. Components never use raw hex. */
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-ui: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-code: var(--font-geist-mono), ui-monospace, monospace;
 
-  /* App colour names, now theme-aware: they resolve to the same DS 2 variables as the site. */
-  --color-ink: var(--ds-fg);
-  --color-paper: var(--ds-canvas);
-  --color-site: var(--ds-canvas);
-  --color-card: var(--ds-raised);
-  --color-card-2: var(--app-card-2);
-  --color-line: var(--ds-rule);
-  --color-line-soft: var(--app-rule-soft);
-  --color-line-strong: var(--ds-rule-strong);
-  --color-field: var(--app-field);
-  --color-muted: var(--ds-fg-3);
-  --color-muted-2: var(--ds-fg-3);
-  --color-body: var(--ds-fg-2);
-  --color-pass: var(--ds-signal);
-  --color-pass-deep: var(--app-pass-deep);
-  --color-pass-tint: var(--ds-signal-soft);
-  --color-pass-wash: var(--app-pass-wash);
-  --color-fail: var(--ds-quake);
-  --color-fail-deep: var(--app-fail-deep);
-  --color-fail-ink: var(--app-fail-ink);
-  --color-fail-tint: var(--ds-quake-soft);
-  --color-fail-line: var(--app-fail-line);
-  --color-neutral-tint: var(--ds-raised-2);
-  /* Chrome: the sidebar and dark panels stay dark in both themes. */
-  --color-chrome: var(--app-chrome);
-  --color-ink-2: #161e2a;
-  --color-ink-line: #26313d;
-  --color-on-dark: #e6eaee;
-  --color-on-dark-muted: #a3aebb;
-  --color-pass-dark: #7dd3fc;
-  --color-fail-dark: #fb8a4c;
+  /* Fault Line colours. Components use these names; values change with the theme below. */
+  --color-canvas: var(--fl-canvas);
+  --color-s1: var(--fl-s1);
+  --color-s2: var(--fl-s2);
+  --color-s3: var(--fl-s3);
+  --color-sunken: var(--fl-sunken);
+  --color-border: var(--fl-border);
+  --color-border-soft: var(--fl-border-soft);
+  --color-border-strong: var(--fl-border-strong);
+  --color-field: var(--fl-field);
+  --color-fg: var(--fl-fg);
+  --color-fg-2: var(--fl-fg-2);
+  --color-fg-3: var(--fl-fg-3);
+  --color-signal: var(--fl-signal);
+  --color-signal-soft: var(--fl-signal-soft);
+  --color-on-signal: var(--fl-on-signal);
+  --color-proven: var(--fl-proven);
+  --color-proven-soft: var(--fl-proven-soft);
+  --color-recur: var(--fl-recur);
+  --color-recur-soft: var(--fl-recur-soft);
+  --color-recur-line: var(--fl-recur-line);
+  --color-safe: var(--fl-safe);
+  --color-safe-soft: var(--fl-safe-soft);
+  --color-inconclusive: var(--fl-inconclusive);
+  --color-inconclusive-soft: var(--fl-inconclusive-soft);
+  --color-flaky: var(--fl-flaky);
+  --color-flaky-soft: var(--fl-flaky-soft);
 
-  /* Aftershock DS 2 ("night shift"). Values come from the theme variables below; components never use raw hex. */
-  --font-display: var(--font-instrument), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-ui: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-code: var(--font-jetbrains), ui-monospace, monospace;
-  --color-canvas: var(--ds-canvas);
-  --color-raised: var(--ds-raised);
-  --color-raised-2: var(--ds-raised-2);
-  --color-sunken: var(--ds-sunken);
-  --color-fg: var(--ds-fg);
-  --color-fg-2: var(--ds-fg-2);
-  --color-fg-3: var(--ds-fg-3);
-  --color-rule: var(--ds-rule);
-  --color-rule-strong: var(--ds-rule-strong);
-  --color-signal: var(--ds-signal);
-  --color-signal-soft: var(--ds-signal-soft);
-  --color-quake: var(--ds-quake);
-  --color-quake-soft: var(--ds-quake-soft);
-  --color-amber: var(--ds-amber);
-  --color-violet: var(--ds-violet);
-  --color-on-accent: var(--ds-on-accent);
+  /* Legacy names, kept as aliases while pages move to the names above. Remove once unused. */
+  --color-ink: var(--fl-fg);
+  --color-paper: var(--fl-canvas);
+  --color-site: var(--fl-canvas);
+  --color-card: var(--fl-s1);
+  --color-card-2: var(--fl-s2);
+  --color-line: var(--fl-border);
+  --color-line-soft: var(--fl-border-soft);
+  --color-line-strong: var(--fl-border-strong);
+  --color-muted: var(--fl-fg-3);
+  --color-muted-2: var(--fl-fg-3);
+  --color-body: var(--fl-fg-2);
+  --color-pass: var(--fl-proven);
+  --color-pass-deep: var(--fl-proven);
+  --color-pass-tint: var(--fl-proven-soft);
+  --color-pass-wash: var(--fl-proven-soft);
+  --color-fail: var(--fl-recur);
+  --color-fail-deep: var(--fl-recur);
+  --color-fail-ink: var(--fl-recur);
+  --color-fail-tint: var(--fl-recur-soft);
+  --color-fail-line: var(--fl-recur-line);
+  --color-neutral-tint: var(--fl-s2);
+  --color-chrome: var(--fl-s1);
+  --color-ink-2: var(--fl-s2);
+  --color-ink-line: var(--fl-border);
+  --color-on-dark: var(--fl-fg);
+  --color-on-dark-muted: var(--fl-fg-2);
+  --color-pass-dark: var(--fl-proven);
+  --color-fail-dark: var(--fl-recur);
+  --color-raised: var(--fl-s1);
+  --color-raised-2: var(--fl-s2);
+  --color-rule: var(--fl-border);
+  --color-rule-strong: var(--fl-border-strong);
+  --color-quake: var(--fl-recur);
+  --color-quake-soft: var(--fl-recur-soft);
+  --color-amber: var(--fl-inconclusive);
+  --color-violet: var(--fl-flaky);
+  --color-on-accent: var(--fl-on-signal);
+
+  /* Type scale (Apple-style hierarchy: weight and tracking carry the display sizes). */
+  --text-display-1: clamp(3rem, 1.9rem + 4.4vw, 5rem);
+  --text-display-1--line-height: 1;
+  --text-display-1--letter-spacing: -0.035em;
+  --text-display-2: clamp(2.5rem, 1.95rem + 2.2vw, 3.5rem);
+  --text-display-2--line-height: 1.05;
+  --text-display-2--letter-spacing: -0.03em;
+  --text-title-1: 1.75rem;
+  --text-title-1--line-height: 2.125rem;
+  --text-title-1--letter-spacing: -0.02em;
+  --text-title-2: 1.375rem;
+  --text-title-2--line-height: 1.75rem;
+  --text-title-2--letter-spacing: -0.015em;
+  --text-title-3: 1.125rem;
+  --text-title-3--line-height: 1.5rem;
+  --text-title-3--letter-spacing: -0.01em;
+  --text-lede: 1.125rem;
+  --text-lede--line-height: 1.75rem;
+  --text-lede--letter-spacing: -0.005em;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.25rem;
+  --text-callout: 0.8125rem;
+  --text-callout--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--letter-spacing: 0.01em;
+  /* Older display names. */
+  --text-d1: clamp(3rem, 1.9rem + 4.4vw, 5rem);
+  --text-d1--line-height: 1;
+  --text-d1--letter-spacing: -0.035em;
+  --text-d2: clamp(2.5rem, 1.95rem + 2.2vw, 3.5rem);
+  --text-d2--line-height: 1.05;
+  --text-d2--letter-spacing: -0.03em;
+  --text-d3: 1.75rem;
+  --text-d3--line-height: 2.125rem;
+  --text-d3--letter-spacing: -0.02em;
+
   --radius-chip: 6px;
   --radius-control: 10px;
-  --radius-panel: 16px;
-  --radius-stage: 24px;
-  --shadow-lift: var(--ds-shadow);
-  --text-d1: clamp(2.6rem, 1.6rem + 4.2vw, 5rem);
-  --text-d1--line-height: 1.02;
-  --text-d2: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
-  --text-d2--line-height: 1.06;
-  --text-d3: clamp(1.4rem, 1.15rem + 1vw, 1.9rem);
-  --text-d3--line-height: 1.18;
-  --text-lede: clamp(1.08rem, 1rem + 0.35vw, 1.3rem);
-  --text-lede--line-height: 1.55;
+  --radius-card: 14px;
+  --radius-panel: 14px;
+  --radius-stage: 20px;
+  --shadow-e1: var(--fl-e1);
+  --shadow-e2: var(--fl-e2);
+  --shadow-lift: var(--fl-e2);
+  --ease-fl: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Day shift (light) is the default; night shift (dark) follows the system or the toggle. */
+/* Light is the default; dark follows the system or the toggle. */
 :root {
-  --ds-canvas: #f5f7fa;
-  --ds-raised: #ffffff;
-  --ds-raised-2: #eef1f5;
-  --ds-sunken: #e8ecf1;
-  --ds-fg: #0a0e14;
-  --ds-fg-2: #3f4957;
-  --ds-fg-3: #5d6877;
-  --ds-rule: rgb(10 14 20 / 0.1);
-  --ds-rule-strong: rgb(10 14 20 / 0.2);
-  --ds-signal: #0369a1;
-  --ds-signal-soft: rgb(3 105 161 / 0.1);
-  --ds-quake: #a8380a;
-  --ds-quake-soft: rgb(168 56 10 / 0.09);
-  --ds-amber: #a15c07;
-  --ds-violet: #6d28d9;
-  --ds-on-accent: #ffffff;
-  --ds-shadow: 0 1px 2px rgb(10 14 20 / 0.06), 0 8px 24px -12px rgb(10 14 20 / 0.18);
-  --ds-scheme: light;
-  --app-card-2: #f8fafc;
-  --app-rule-soft: rgb(10 14 20 / 0.06);
-  --app-field: rgb(10 14 20 / 0.26);
-  --app-pass-deep: #075985;
-  --app-pass-wash: rgb(3 105 161 / 0.05);
-  --app-fail-deep: #9a3412;
-  --app-fail-ink: #7c2d12;
-  --app-fail-line: rgb(168 56 10 / 0.3);
-  --app-chrome: #0a0e14;
+  --fl-canvas: #fafafb;
+  --fl-s1: #ffffff;
+  --fl-s2: #f3f4f6;
+  --fl-s3: #eaecf0;
+  --fl-sunken: #f3f4f6;
+  --fl-border: rgb(11 13 18 / 0.08);
+  --fl-border-soft: rgb(11 13 18 / 0.05);
+  --fl-border-strong: rgb(11 13 18 / 0.16);
+  --fl-field: rgb(11 13 18 / 0.32);
+  --fl-fg: #0b0d12;
+  --fl-fg-2: #4a5263;
+  --fl-fg-3: #626b7a;
+  --fl-signal: #0b63ce;
+  --fl-signal-soft: rgb(11 99 206 / 0.10);
+  --fl-on-signal: #ffffff;
+  --fl-proven: #16794a;
+  --fl-proven-soft: rgb(22 121 74 / 0.10);
+  --fl-recur: #b23c0a;
+  --fl-recur-soft: rgb(178 60 10 / 0.09);
+  --fl-recur-line: rgb(178 60 10 / 0.32);
+  --fl-safe: #0e7490;
+  --fl-safe-soft: rgb(14 116 144 / 0.10);
+  --fl-inconclusive: #9a5b06;
+  --fl-inconclusive-soft: rgb(154 91 6 / 0.10);
+  --fl-flaky: #7341d6;
+  --fl-flaky-soft: rgb(115 65 214 / 0.10);
+  --fl-glass: rgb(250 250 251 / 0.72);
+  --fl-e1: 0 1px 2px rgb(11 13 18 / 0.06);
+  --fl-e2: 0 1px 2px rgb(11 13 18 / 0.06), 0 12px 32px -12px rgb(11 13 18 / 0.22);
+  --fl-dot: rgb(11 13 18 / 0.10);
+  --fl-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ds-canvas: #0a0e14;
-    --ds-raised: #10161f;
-    --ds-raised-2: #161e2a;
-    --ds-sunken: #070a0f;
-    --ds-fg: #e8edf3;
-    --ds-fg-2: #b2bcc9;
-    --ds-fg-3: #8691a0;
-    --ds-rule: rgb(255 255 255 / 0.09);
-    --ds-rule-strong: rgb(255 255 255 / 0.18);
-    --ds-signal: #38bdf8;
-    --ds-signal-soft: rgb(56 189 248 / 0.12);
-    --ds-quake: #ff6b2c;
-    --ds-quake-soft: rgb(255 107 44 / 0.13);
-    --ds-amber: #f5b942;
-    --ds-violet: #a78bfa;
-    --ds-on-accent: #04121c;
-    --ds-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 32px -16px rgb(0 0 0 / 0.7);
-    --ds-scheme: dark;
-    --app-card-2: #0d131b;
-    --app-rule-soft: rgb(255 255 255 / 0.05);
-    --app-field: rgb(255 255 255 / 0.24);
-    --app-pass-deep: #7dd3fc;
-    --app-pass-wash: rgb(56 189 248 / 0.07);
-    --app-fail-deep: #ff8a55;
-    --app-fail-ink: #ffb08a;
-    --app-fail-line: rgb(255 107 44 / 0.35);
-    --app-chrome: #0d131b;
+    --fl-canvas: #08090c;
+    --fl-s1: #0f1115;
+    --fl-s2: #16191f;
+    --fl-s3: #1e222a;
+    --fl-sunken: #050608;
+    --fl-border: rgb(255 255 255 / 0.08);
+    --fl-border-soft: rgb(255 255 255 / 0.05);
+    --fl-border-strong: rgb(255 255 255 / 0.14);
+    --fl-field: rgb(255 255 255 / 0.26);
+    --fl-fg: #edeff3;
+    --fl-fg-2: #a9b0bc;
+    --fl-fg-3: #828a98;
+    --fl-signal: #5eb1ff;
+    --fl-signal-soft: rgb(94 177 255 / 0.12);
+    --fl-on-signal: #04121f;
+    --fl-proven: #3dd68c;
+    --fl-proven-soft: rgb(61 214 140 / 0.12);
+    --fl-recur: #ff7a45;
+    --fl-recur-soft: rgb(255 122 69 / 0.13);
+    --fl-recur-line: rgb(255 122 69 / 0.36);
+    --fl-safe: #4fc3d9;
+    --fl-safe-soft: rgb(79 195 217 / 0.12);
+    --fl-inconclusive: #f0b44c;
+    --fl-inconclusive-soft: rgb(240 180 76 / 0.12);
+    --fl-flaky: #b49cff;
+    --fl-flaky-soft: rgb(180 156 255 / 0.12);
+    --fl-glass: rgb(8 9 12 / 0.72);
+    --fl-e1: inset 0 1px 0 rgb(255 255 255 / 0.04);
+    --fl-e2: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 32px -12px rgb(0 0 0 / 0.5);
+    --fl-dot: rgb(255 255 255 / 0.07);
+    --fl-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --ds-canvas: #0a0e14;
-  --ds-raised: #10161f;
-  --ds-raised-2: #161e2a;
-  --ds-sunken: #070a0f;
-  --ds-fg: #e8edf3;
-  --ds-fg-2: #b2bcc9;
-  --ds-fg-3: #8691a0;
-  --ds-rule: rgb(255 255 255 / 0.09);
-  --ds-rule-strong: rgb(255 255 255 / 0.18);
-  --ds-signal: #38bdf8;
-  --ds-signal-soft: rgb(56 189 248 / 0.12);
-  --ds-quake: #ff6b2c;
-  --ds-quake-soft: rgb(255 107 44 / 0.13);
-  --ds-amber: #f5b942;
-  --ds-violet: #a78bfa;
-  --ds-on-accent: #04121c;
-  --ds-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 32px -16px rgb(0 0 0 / 0.7);
-  --ds-scheme: dark;
-  --app-card-2: #0d131b;
-  --app-rule-soft: rgb(255 255 255 / 0.05);
-  --app-field: rgb(255 255 255 / 0.24);
-  --app-pass-deep: #7dd3fc;
-  --app-pass-wash: rgb(56 189 248 / 0.07);
-  --app-fail-deep: #ff8a55;
-  --app-fail-ink: #ffb08a;
-  --app-fail-line: rgb(255 107 44 / 0.35);
-  --app-chrome: #0d131b;
+  --fl-canvas: #08090c;
+  --fl-s1: #0f1115;
+  --fl-s2: #16191f;
+  --fl-s3: #1e222a;
+  --fl-sunken: #050608;
+  --fl-border: rgb(255 255 255 / 0.08);
+  --fl-border-soft: rgb(255 255 255 / 0.05);
+  --fl-border-strong: rgb(255 255 255 / 0.14);
+  --fl-field: rgb(255 255 255 / 0.26);
+  --fl-fg: #edeff3;
+  --fl-fg-2: #a9b0bc;
+  --fl-fg-3: #828a98;
+  --fl-signal: #5eb1ff;
+  --fl-signal-soft: rgb(94 177 255 / 0.12);
+  --fl-on-signal: #04121f;
+  --fl-proven: #3dd68c;
+  --fl-proven-soft: rgb(61 214 140 / 0.12);
+  --fl-recur: #ff7a45;
+  --fl-recur-soft: rgb(255 122 69 / 0.13);
+  --fl-recur-line: rgb(255 122 69 / 0.36);
+  --fl-safe: #4fc3d9;
+  --fl-safe-soft: rgb(79 195 217 / 0.12);
+  --fl-inconclusive: #f0b44c;
+  --fl-inconclusive-soft: rgb(240 180 76 / 0.12);
+  --fl-flaky: #b49cff;
+  --fl-flaky-soft: rgb(180 156 255 / 0.12);
+  --fl-glass: rgb(8 9 12 / 0.72);
+  --fl-e1: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --fl-e2: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 32px -12px rgb(0 0 0 / 0.5);
+  --fl-dot: rgb(255 255 255 / 0.07);
+  --fl-scheme: dark;
+}
+
+/* Material: translucent chrome for the nav, sidebar and command palette. Never stack glass on glass. */
+@utility glass {
+  background-color: var(--fl-glass);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--fl-s1);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  @media (forced-colors: active) {
+    background-color: Canvas;
+    backdrop-filter: none;
+  }
+}
+/* A dot grid that fades out toward the edges (marketing backgrounds only). */
+@utility dot-grid {
+  background-image: radial-gradient(var(--fl-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+@keyframes fl-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes fl-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--fl-canvas);
+  color: var(--fl-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  line-height: var(--text-ui--line-height);
+  color-scheme: var(--fl-scheme);
+  font-feature-settings: "ss01";
+}
+
+:focus-visible {
+  outline: 2px solid var(--fl-signal);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--fl-signal-soft);
+}
+pre,
+code,
+.font-code,
+.font-mono {
+  font-variant-ligatures: none;
 }
 
 .site {
-  color-scheme: var(--ds-scheme);
-  background: var(--ds-canvas);
-  color: var(--ds-fg);
-  font-family: var(--font-ui);
-  font-feature-settings: "cv11", "ss01", "tnum";
-}
-.site :focus-visible {
-  outline: 2px solid var(--ds-signal);
-  outline-offset: 3px;
-}
-.site pre,
-.site code,
-.site .font-code {
-  font-variant-ligatures: none;
+  color-scheme: var(--fl-scheme);
+  background: var(--fl-canvas);
+  color: var(--fl-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
 }
 .site [data-pending],
 .site [data-pending] * {
-  color: var(--ds-fg-3) !important;
+  color: var(--fl-fg-3) !important;
 }
 .site a.text-signal,
 .site p a,
@@ -188,32 +310,13 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.site ::selection {
-  background: var(--ds-signal-soft);
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-}
-
-body {
-  margin: 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  color-scheme: var(--ds-scheme);
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-pass);
-  outline-offset: 2px;
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
@@ -221,7 +324,7 @@ body {
 /* Rendered markdown (docs). */
 .prose {
   max-width: 72ch;
-  color: var(--ds-fg-2);
+  color: var(--fl-fg-2);
   font-size: 16px;
   line-height: 1.7;
 }
@@ -234,7 +337,7 @@ body {
 .prose h2,
 .prose h3 {
   position: relative;
-  color: var(--ds-fg);
+  color: var(--fl-fg);
   font-family: var(--font-display);
   letter-spacing: -0.015em;
   scroll-margin-top: 6rem;
@@ -251,7 +354,7 @@ body {
 .prose .anchor {
   position: absolute;
   left: -1.1em;
-  color: var(--ds-fg-3);
+  color: var(--fl-fg-3);
   text-decoration: none;
   opacity: 0;
 }
@@ -260,12 +363,12 @@ body {
   opacity: 1;
 }
 .prose a {
-  color: var(--ds-signal);
+  color: var(--fl-signal);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 .prose strong {
-  color: var(--ds-fg);
+  color: var(--fl-fg);
 }
 .prose ul,
 .prose ol {
@@ -279,26 +382,26 @@ body {
   font-size: 0.88em;
   padding: 0.12em 0.36em;
   border-radius: 5px;
-  background: var(--ds-raised-2);
-  color: var(--ds-fg);
+  background: var(--fl-s2);
+  color: var(--fl-fg);
 }
 .prose pre {
   overflow-x: auto;
   padding: 14px 16px;
-  border: 1px solid var(--ds-rule);
+  border: 1px solid var(--fl-border);
   border-radius: 12px;
-  background: var(--ds-sunken);
+  background: var(--fl-sunken);
   font-size: 13px;
   line-height: 1.65;
 }
 .prose pre code {
   padding: 0;
   background: none;
-  color: var(--ds-fg-2);
+  color: var(--fl-fg-2);
 }
 .prose .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--ds-rule);
+  border: 1px solid var(--fl-border);
   border-radius: 12px;
 }
 .prose table {
@@ -309,18 +412,18 @@ body {
 .prose th,
 .prose td {
   padding: 10px 14px;
-  border-top: 1px solid var(--ds-rule);
+  border-top: 1px solid var(--fl-border);
   text-align: left;
   vertical-align: top;
 }
 .prose thead th {
   border-top: 0;
-  color: var(--ds-fg-3);
+  color: var(--fl-fg-3);
   font-weight: 500;
   font-size: 13px;
 }
 .prose blockquote {
   margin-left: 0;
   padding-left: 1em;
-  border-left: 3px solid var(--ds-rule-strong);
+  border-left: 3px solid var(--fl-border-strong);
 }

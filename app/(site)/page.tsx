@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DsLink } from "@/components/ds/Button";
-import { CodeBlock } from "@/components/ds/CodeBlock";
+import { DsLink } from "@/components/ui/Button";
+import { CodeBlock } from "@/components/ui/CodeBlock";
 import { ProofReplay } from "@/components/motion/ProofReplay";
 import { Band, SectionHead } from "@/components/site/Section";
 import { CostCalculator } from "@/components/site/CostCalculator";

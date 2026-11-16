@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/Logo";
-import { ThemeToggle } from "@/components/ds/ThemeToggle";
-import { DsLink } from "@/components/ds/Button";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { DsLink } from "@/components/ui/Button";
 
 export const NAV = [
   ["/product", "Product"],

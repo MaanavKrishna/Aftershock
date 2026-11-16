@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { DsLink } from "@/components/ds/Button";
-import { Verdict } from "@/components/ds/Verdict";
-import { CodeBlock } from "@/components/ds/CodeBlock";
+import { DsLink } from "@/components/ui/Button";
+import { Verdict } from "@/components/ui/Verdict";
+import { CodeBlock } from "@/components/ui/CodeBlock";
 
 export const metadata: Metadata = { title: "Product", description: "Time travel, pull request guard, risk, Epicenter, still-guarding re-proofs, test strength, insights and Ask Aftershock.", alternates: { canonical: "/product" } };
 
