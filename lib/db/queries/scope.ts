@@ -70,7 +70,7 @@ const before = (col: SQLWrapper, idCol: SQLWrapper, key: string | number, id: st
 
 /** Only a pull request's latest check: no later check exists for the same repository and number. */
 const newer = alias(s.prChecks, "newer_check");
-const latestPerPr = sql`not exists (select 1 from ${s.prChecks} as ${newer} where ${newer.repoId} = ${s.prChecks.repoId} and ${newer.prNumber} = ${s.prChecks.prNumber} and (${newer.createdAt}, ${newer.id}) > (${s.prChecks.createdAt}, ${s.prChecks.id}))`;
+const latestPerPr = sql`not exists (select 1 from ${s.prChecks} as ${newer} where ${newer.workspaceId} = ${s.prChecks.workspaceId} and ${newer.repoId} = ${s.prChecks.repoId} and ${newer.prNumber} = ${s.prChecks.prNumber} and (${newer.createdAt}, ${newer.id}) > (${s.prChecks.createdAt}, ${s.prChecks.id}))`;
 
 const month = () => new Date().toISOString().slice(0, 7);
 
@@ -664,7 +664,8 @@ export function scoped(workspaceId: string) {
 
     /**
      * Everything the Overview page needs (see OverviewSummary), as one parallel batch of bounded queries:
-     * one row of counts, then short lists. Nothing here grows with the size of the workspace.
+     * one row of counts, then short lists. Only the fault-line aggregate is one row per watched file
+     * (sorted and cut to 5 here, to keep the page's tie order).
      */
     async overviewSummary(): Promise<OverviewSummary> {
       const db = await getDb();
