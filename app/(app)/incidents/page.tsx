@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/Feedback";
 import { Plus } from "@/components/ui/icons";
 import { Strip, toCells, type Cell } from "@/components/ui/Strip";
 import { FilterChips } from "@/components/app/bits";
+import { Pager, testLimit } from "@/components/app/Pager";
 import { SOURCES } from "@/components/app/sources";
 import { incidentKey } from "@/lib/domain/ids";
 import { timeAgo } from "@/lib/format";
@@ -19,12 +20,12 @@ export const metadata: Metadata = { title: "Incidents" };
 
 const TABS: [IncidentStatus | "all", string][] = [["all", "All"], ["awaiting_fix", "Awaiting fix"], ["traveling", "Time traveling"], ["proven", "Proven"], ["unproven", "Unproven"]];
 
-export default async function Incidents({ searchParams }: { searchParams: Promise<{ status?: string; source?: string }> }) {
+export default async function Incidents({ searchParams }: { searchParams: Promise<{ status?: string; source?: string; cursor?: string; limit?: string }> }) {
   const sp = await searchParams;
   const status = TABS.some(([id]) => id === sp.status && id !== "all") ? (sp.status as IncidentStatus) : undefined;
   const source = sp.source && sp.source in SOURCES ? (sp.source as IncidentSource) : undefined;
   const { scope } = await currentScope();
-  const [ws, rows, counts] = await Promise.all([scope.workspace(), scope.incidentRows({ status, source }), scope.statusCounts()]);
+  const [ws, { rows, nextCursor }, counts] = await Promise.all([scope.workspace(), scope.incidentPage({ status, source, cursor: sp.cursor, limit: testLimit(sp.limit) }), scope.statusCounts()]);
   const q = (next: { status?: string; source?: string }) => {
     const p = new URLSearchParams();
     const st = "status" in next ? next.status : status;
@@ -116,6 +117,7 @@ export default async function Incidents({ searchParams }: { searchParams: Promis
             </tbody>
           </Table>
         )}
+        <Pager path="/incidents" params={{ status, source, limit: sp.limit }} cursor={sp.cursor} nextCursor={nextCursor} label="Incident pages" />
         <p className="m-0 text-caption text-fg-3">Proof shows three runs before the fix (they must fail) and three on the fix (they must pass).</p>
       </Main>
     </>

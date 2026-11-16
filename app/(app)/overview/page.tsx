@@ -27,75 +27,75 @@ function More({ href, children }: { href: string; children: React.ReactNode }) {
 
 export default async function Overview() {
   const { scope } = await currentScope();
-  const [ws, rows, memory, checks, history, faults, activity, repos] = await Promise.all([
-    scope.workspace(),
-    scope.incidentRows({}),
-    scope.memory(),
-    scope.checks(),
-    scope.checks({ history: true }),
-    scope.faultLines(),
+  // Counts and short lists in one batch; the newest incidents, the unwell memory tests and six activity
+  // entries are bounded reads beside it (the summary has none of the first two and five activity entries).
+  const [summary, recent, failing, flaky, activity] = await Promise.all([
+    scope.overviewSummary(),
+    scope.incidentPage({ limit: 5 }),
+    scope.memoryPage({ health: "failing", limit: 200 }),
+    scope.memoryPage({ health: "flaky", limit: 200 }),
     scope.activity(6),
-    scope.repos(),
   ]);
+  const { workspace: ws, counts, latestRecurrence, recentChecks: checks, traveling, faults } = summary;
+  const rows = recent.rows;
   const prefix = ws?.incidentPrefix ?? "INC";
   const key = (n: number) => incidentKey(prefix, n);
 
-  const decisions = [
-    ...memory
-      .filter((m) => m.test.botPrState === "open")
-      .map((m) => ({
-        kind: "proven" as const,
-        tag: "Merge proven test",
-        ref: `PR #${m.test.botPr}`,
-        title: `${key(m.incident.number)} is proven. Merge the test that guards it.`,
-        sub: `Aftershock opened a pull request adding ${m.test.path}.`,
-        cta: "Review the incident",
-        href: `/incidents/${m.incident.number}`,
-      })),
-    ...rows
-      .filter((r) => r.incident.status === "unproven")
-      .map((r) => ({
-        kind: "unproven" as const,
-        tag: undefined,
-        ref: key(r.incident.number),
-        title: r.incident.title,
-        sub: r.incident.statusReason ?? "The drafts could not reproduce it.",
-        cta: "Open the run",
-        href: `/incidents/${r.incident.number}/travel`,
-      })),
-    ...rows
-      .filter((r) => r.incident.status === "awaiting_fix")
-      .map((r) => ({
-        kind: "awaiting" as const,
-        tag: undefined,
-        ref: key(r.incident.number),
-        title: r.incident.title,
-        sub: `Opened from ${SOURCES[r.incident.source]?.[0] ?? "a report"} ${timeAgo(r.incident.createdAt).toLowerCase()}. Link the fix when it lands.`,
-        cta: "Link a fix",
-        href: `/incidents/${r.incident.number}`,
-      })),
-  ];
+  const decisions = summary.decisions.map((d) =>
+    d.kind === "merge_test"
+      ? {
+          kind: "proven" as const,
+          tag: "Merge proven test",
+          ref: `PR #${d.botPr}`,
+          title: `${key(d.incidentNumber)} is proven. Merge the test that guards it.`,
+          sub: `Aftershock opened a pull request adding ${d.path}.`,
+          cta: "Review the incident",
+          href: `/incidents/${d.incidentNumber}`,
+        }
+      : d.kind === "unproven"
+        ? {
+            kind: "unproven" as const,
+            tag: undefined,
+            ref: key(d.incident.number),
+            title: d.incident.title,
+            sub: d.incident.statusReason ?? "The drafts could not reproduce it.",
+            cta: "Open the run",
+            href: `/incidents/${d.incident.number}/travel`,
+          }
+        : {
+            kind: "awaiting" as const,
+            tag: undefined,
+            ref: key(d.incident.number),
+            title: d.incident.title,
+            sub: `Opened from ${SOURCES[d.incident.source]?.[0] ?? "a report"} ${timeAgo(d.incident.createdAt).toLowerCase()}. Link the fix when it lands.`,
+            cta: "Link a fix",
+            href: `/incidents/${d.incident.number}`,
+          },
+  );
   const steps = [
-    { label: "Install the GitHub App on a repository", done: repos.length > 0, href: "/repositories" },
-    { label: "Bring in your first incident", done: rows.length > 0, href: "/incidents/new" },
-    { label: "Prove a test with time travel", done: memory.length > 0, href: "/incidents" },
-    { label: "See a pull request checked", done: history.length > 0, href: "/pulls" },
+    { label: "Install the GitHub App on a repository", done: counts.repositories > 0, href: "/repositories" },
+    { label: "Bring in your first incident", done: counts.incidents > 0, href: "/incidents/new" },
+    { label: "Prove a test with time travel", done: counts.memory > 0, href: "/incidents" },
+    { label: "See a pull request checked", done: counts.checksEver > 0, href: "/pulls" },
   ];
-  const week = Date.now() - 7 * 86_400_000;
-  const recentChecks = checks.filter((c) => c.check.createdAt.getTime() > week);
-  // Every pull request a recurrence was ever blocked on, newest first — even if it has since been fixed.
-  const recur = history.filter((c, i, all) => c.check.verdict === "recur" && all.findIndex((x) => x.check.verdict === "recur" && x.check.repoId === c.check.repoId && x.check.prNumber === c.check.prNumber) === i);
-  const awaiting = rows.filter((r) => r.incident.status === "awaiting_fix");
-  const traveling = rows.find((r) => r.incident.status === "traveling");
-  const unwell = memory.filter((m) => m.test.health !== "healthy" || m.test.quarantined);
+  // Failing and flaky tests in the memory list's order (newest incident first).
+  const unwell = [...failing.rows, ...flaky.rows].sort((a, b) => b.incident.number - a.incident.number || (a.test.id < b.test.id ? 1 : a.test.id > b.test.id ? -1 : 0));
+  const unwellCount = `${unwell.length}${failing.nextCursor || flaky.nextCursor ? "+" : ""}`;
   const maxFault = Math.max(1, ...faults.map((f) => f.count));
-  const n = decisions.length;
+  const n = summary.decisionCount;
+  const repoCount = counts.repositories;
 
   const stats = [
-    { k: "Proven tests in memory", v: memory.length, sub: `across ${new Set(memory.map((m) => m.repo.id)).size} repositories`, href: "/memory", recur: false },
-    { k: "Pull requests checked", v: recentChecks.length, sub: "last 7 days", href: "/pulls", recur: false },
-    { k: "Recurrences blocked", v: recur.length, sub: recur[0] ? `latest PR #${recur[0].check.prNumber}` : "none yet", href: recur[0] ? `/pulls/${recur[0].check.prNumber}?repo=${recur[0].repo.name}` : "/pulls", recur: recur.length > 0 },
-    { k: "Awaiting fix", v: awaiting.length, sub: "from alerts and reports", href: "/incidents?status=awaiting_fix", recur: false },
+    { k: "Proven tests in memory", v: counts.memory, sub: `across ${counts.memoryRepositories} repositories`, href: "/memory", recur: false },
+    { k: "Pull requests checked", v: counts.pullsChecked7d, sub: "last 7 days", href: "/pulls", recur: false },
+    {
+      k: "Recurrences blocked",
+      v: counts.recurrencesBlocked,
+      sub: latestRecurrence ? `latest PR #${latestRecurrence.prNumber}` : "none yet",
+      href: latestRecurrence ? `/pulls/${latestRecurrence.prNumber}?repo=${latestRecurrence.repoName}` : "/pulls",
+      recur: counts.recurrencesBlocked > 0,
+    },
+    { k: "Awaiting fix", v: counts.awaitingFix, sub: "from alerts and reports", href: "/incidents?status=awaiting_fix", recur: false },
   ];
 
   return (
@@ -103,7 +103,7 @@ export default async function Overview() {
       <TopBar title="Overview" />
       <Main>
         <PageTitle
-          eyebrow={`${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${repos.length} ${repos.length === 1 ? "repository" : "repositories"}`}
+          eyebrow={`${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${repoCount} ${repoCount === 1 ? "repository" : "repositories"}`}
           title={n === 0 ? "Nothing is waiting on you." : `${word(n)} ${n === 1 ? "decision is" : "decisions are"} waiting on you.`}
           actions={
             <ButtonLink href="/incidents/new" size="sm">
@@ -227,7 +227,7 @@ export default async function Overview() {
 
           <aside className="flex min-w-0 flex-col gap-4" aria-label="Memory health and fault lines">
             <Card>
-              <CardHead sub="Memory tests that need a look" aside={unwell.length > 0 ? <Badge>{unwell.length}</Badge> : undefined}>
+              <CardHead sub="Memory tests that need a look" aside={unwell.length > 0 ? <Badge>{unwellCount}</Badge> : undefined}>
                 Failing and flaky
               </CardHead>
               {unwell.length === 0 ? (

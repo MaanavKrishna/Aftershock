@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/Feedback";
 import { THead, Th, Tr, Td } from "@/components/ui/Table";
 import { Verdict } from "@/components/ui/Verdict";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
+import { Pager } from "@/components/app/Pager";
 import {
   AddTargetForm,
   TestTargetButton,
@@ -207,14 +208,41 @@ export function NotificationsTab({
 export function AuditTab({
   admin,
   audit,
+  cursor,
+  nextCursor,
+  limit,
 }: {
   admin: boolean;
-  audit: Rows<"auditLog">;
+  audit: Rows<"auditPage">["rows"];
+  cursor?: string;
+  nextCursor: string | null;
+  limit?: string;
 }) {
   return (
     <Section
       title="Audit log"
       sub="Deletions, role changes and removals in this workspace. Kept after the workspace is deleted."
+      aside={
+        admin ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Plain links: the route answers with a file download, not a page. */}
+            <a
+              href="/api/v1/audit?format=csv"
+              download
+              className={buttonClass("secondary", "sm")}
+            >
+              Export CSV
+            </a>
+            <a
+              href="/api/v1/audit?format=json"
+              download
+              className={buttonClass("secondary", "sm")}
+            >
+              Export JSON
+            </a>
+          </div>
+        ) : undefined
+      }
     >
       {!admin ? (
         <Note>Only owners and admins can see the audit log.</Note>
@@ -260,6 +288,17 @@ export function AuditTab({
           </table>
         </div>
       )}
+      {admin && (cursor || nextCursor) ? (
+        <div className="border-t border-border-soft px-5 py-3 sm:px-6">
+          <Pager
+            path="/settings"
+            params={{ tab: "audit", limit }}
+            cursor={cursor}
+            nextCursor={nextCursor}
+            label="Audit log pages"
+          />
+        </div>
+      ) : null}
     </Section>
   );
 }

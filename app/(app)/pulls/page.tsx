@@ -7,6 +7,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, THead, Th, Tr, Td } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/Feedback";
 import { Strip, toCells } from "@/components/ui/Strip";
+import { Pager, testLimit } from "@/components/app/Pager";
 import { duration, timeAgo } from "@/lib/format";
 import type { CheckVerdict } from "@/lib/db/schema";
 
@@ -20,11 +21,11 @@ const HOW: [string, string, string][] = [
   ["Run", "Three runs on the head commit", "All fail: Recur. All pass: Safe. Anything else: Inconclusive."],
 ];
 
-export default async function Pulls({ searchParams }: { searchParams: Promise<{ verdict?: string }> }) {
-  const { verdict: v } = await searchParams;
+export default async function Pulls({ searchParams }: { searchParams: Promise<{ verdict?: string; cursor?: string; limit?: string }> }) {
+  const { verdict: v, cursor, limit } = await searchParams;
   const verdict = FILTERS.some(([id]) => id === v && id !== "all") ? (v as CheckVerdict) : undefined;
   const { scope } = await currentScope();
-  const [rows, counts] = await Promise.all([scope.checks({ verdict }), scope.verdictCounts()]);
+  const [{ rows, nextCursor }, counts] = await Promise.all([scope.checkPage({ verdict, cursor, limit: testLimit(limit) }), scope.verdictCounts()]);
   return (
     <>
       <TopBar title="Pull requests" />
@@ -81,6 +82,7 @@ export default async function Pulls({ searchParams }: { searchParams: Promise<{ 
             </tbody>
           </Table>
         )}
+        <Pager path="/pulls" params={{ verdict, limit }} cursor={cursor} nextCursor={nextCursor} label="Pull request pages" />
         <section aria-labelledby="how-h" className="flex flex-col gap-3">
           <h2 id="how-h" className="m-0 text-title-3 font-semibold text-fg">
             How a check chooses its tests
