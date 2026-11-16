@@ -79,7 +79,7 @@ export default async function Incidents({ searchParams }: { searchParams: Promis
                 const cells: Cell[] = run ? [...toCells(run.beforeResults, 3), ...toCells(run.fixResults, 3)] : Array(6).fill("none");
                 return (
                   <Tr key={i.id} className="relative">
-                    <Td className="font-mono text-callout text-fg-3">{incidentKey(ws?.incidentPrefix ?? "INC", i.number)}</Td>
+                    <Td className="whitespace-nowrap font-mono text-callout text-fg-3">{incidentKey(ws?.incidentPrefix ?? "INC", i.number)}</Td>
                     <Td className="max-w-0 w-full min-w-48">
                       <Link href={href} className="flex flex-col py-1 no-underline after:absolute after:inset-0 after:content-['']">
                         <span className="truncate font-medium text-fg">{i.title}</span>
