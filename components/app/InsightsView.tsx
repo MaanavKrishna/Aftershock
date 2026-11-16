@@ -12,7 +12,7 @@ const CHECK_ROWS: [VerdictKind, Series, "recur" | "safe" | "inconclusive" | "ski
 
 function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "proven" | "recur" }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 bg-s1 px-5 py-4">
+    <div className="flex min-w-0 flex-col gap-1 bg-s1 px-4 py-4 sm:px-5">
       <dt className="text-callout text-fg-3">{label}</dt>
       <dd className={`m-0 text-title-1 font-semibold tabular-nums ${tone === "proven" ? "text-proven" : tone === "recur" ? "text-recur" : "text-fg"}`}>{value}</dd>
       {sub && <dd className="m-0 text-caption text-fg-3">{sub}</dd>}
@@ -27,7 +27,7 @@ export function InsightsView({ i, showFiles = true }: { i: Insights; showFiles?:
   const maxFault = Math.max(1, ...i.faultLines.map((f) => f.count));
   return (
     <div className="flex flex-col gap-4">
-      <dl className="m-0 grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border bg-border shadow-e1 min-[480px]:grid-cols-2 lg:grid-cols-3">
+      <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border shadow-e1 lg:grid-cols-3">
         <Tile label="Incidents proven" value={`${i.incidents.proven}`} sub={`of ${i.incidents.total} · ${i.proofRate}% of attempts proven`} tone={i.incidents.proven > 0 ? "proven" : undefined} />
         <Tile label="Median time to proof" value={i.medianHoursToProof === null ? "—" : `${i.medianHoursToProof} h`} sub="From incident opened to test proven" />
         <Tile label="Recurrences blocked" value={`${i.recurrencesBlocked}`} sub={`${i.overridden} overridden by a person`} />

@@ -7,7 +7,10 @@ const ROWS: { key: "opened" | "proven" | "blocked"; label: string; series: Serie
   { key: "blocked", label: "Recurrences blocked", series: "blocked" },
 ];
 
-const short = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const short = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return `${d.getUTCDate()} ${d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}`;
+};
 
 /**
  * Eight weeks as small multiples: one row per series on a shared scale, each labelled directly
@@ -53,7 +56,7 @@ export function TrendChart({ weeks }: { weeks: Insights["weeks"] }) {
           <span className="hidden text-caption text-fg-3 sm:block">Week of</span>
           <div className="grid gap-1.5" style={cols}>
             {weeks.map((w, i) => (
-              <span key={w.weekStart} className={`truncate text-center text-caption tabular-nums text-fg-3 ${i % 2 ? "max-sm:invisible" : ""}`}>
+              <span key={w.weekStart} className={`whitespace-nowrap text-center text-caption tabular-nums text-fg-3 ${i % 2 ? "max-sm:invisible" : ""}`}>
                 {short(w.weekStart)}
               </span>
             ))}
