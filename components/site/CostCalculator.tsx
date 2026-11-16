@@ -18,24 +18,26 @@ export function CostCalculator() {
     ["rate", "Loaded hourly cost", "$", 5],
   ];
   return (
-    <div className="grid gap-6 rounded-stage border border-rule bg-raised p-6 shadow-lift md:grid-cols-[1.1fr_1fr] md:p-8">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid overflow-hidden rounded-stage border border-border bg-canvas shadow-e1 md:grid-cols-[1.15fr_1fr]">
+      <div className="grid gap-5 p-6 sm:grid-cols-2 md:p-8">
         {fields.map(([k, label, unit, step]) => (
-          <label key={k} htmlFor={`${id}-${k}`} className="flex flex-col gap-1.5 text-[14px] font-medium text-fg-2">
+          <label key={k} htmlFor={`${id}-${k}`} className="flex flex-col gap-2 text-callout font-medium text-fg-2">
             {label}
-            <span className="flex min-h-12 items-center gap-2 rounded-control border border-rule-strong bg-canvas px-3 focus-within:border-signal">
+            <span className="flex min-h-11 items-center gap-2 rounded-control border border-field bg-s1 px-3 transition-colors duration-150 focus-within:border-signal">
               {unit === "$" && <span className="text-fg-3">$</span>}
-              <input id={`${id}-${k}`} type="number" inputMode="decimal" min={0} step={step} value={v[k]} onChange={set(k)} className="w-full min-w-0 border-0 bg-transparent font-code text-[17px] text-fg outline-none" />
+              <input id={`${id}-${k}`} type="number" inputMode="decimal" min={0} step={step} value={v[k]} onChange={set(k)} className="w-full min-w-0 border-0 bg-transparent font-mono text-body tabular-nums text-fg outline-none" />
               {unit && unit !== "$" && <span className="text-fg-3">{unit}</span>}
             </span>
           </label>
         ))}
       </div>
-      <div className="flex flex-col justify-center gap-2 rounded-panel bg-sunken p-6" aria-live="polite">
-        <span className="text-[14px] text-fg-3">Repeat incidents a year</span>
-        <span className="font-display text-d2 font-semibold tracking-[-0.03em] text-quake">{fmt(recurrences)}</span>
-        <span className="text-[15px] text-fg-2">{fmt(hours)} engineer hours, about <strong className="text-fg">${fmt(cost)}</strong>, spent on bugs you already fixed once.</span>
-        <span className="pt-2 text-[12.5px] text-fg-3">Every default is a placeholder. Put in your own numbers; nothing here is sent anywhere.</span>
+      <div className="flex flex-col justify-center gap-2 border-t border-border bg-sunken p-6 md:border-l md:border-t-0 md:p-8" aria-live="polite">
+        <span className="text-callout text-fg-3">Repeat incidents a year</span>
+        <span className="text-display-2 font-semibold tabular-nums text-fg">{fmt(recurrences)}</span>
+        <span className="text-body text-fg-2">
+          {fmt(hours)} engineer hours, about <strong className="font-semibold text-fg">${fmt(cost)}</strong>, spent on bugs you already fixed once.
+        </span>
+        <span className="pt-3 text-caption text-fg-3">Every default is a placeholder. Put in your own numbers; nothing here is sent anywhere.</span>
       </div>
     </div>
   );

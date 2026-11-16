@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /** The marketing measure: 1200px, 16px gutters on phones, 24px above. */
-export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-[1200px] px-4 sm:px-6 ${className}`}>{children}</div>;
+export function Container({ children, className = "", width = "wide" }: { children: ReactNode; className?: string; width?: "wide" | "narrow" }) {
+  return <div className={`mx-auto w-full px-4 sm:px-6 ${width === "narrow" ? "max-w-[860px]" : "max-w-[1200px]"} ${className}`}>{children}</div>;
 }
 
 /** A full-width band. `tone` changes the surface, never the content width. Sections sit 120px apart (80 on phones). */
@@ -39,7 +39,7 @@ export function PageHero({ eyebrow, title, lede, children, narrow = false }: { e
   return (
     <section className="relative overflow-hidden">
       <div aria-hidden="true" className="hero-spotlight pointer-events-none absolute inset-x-0 top-0 h-[420px] opacity-70" />
-      <Container className={`relative flex flex-col gap-6 pb-16 pt-16 sm:pt-24 lg:pb-20 ${narrow ? "max-w-[860px]" : ""}`}>
+      <Container width={narrow ? "narrow" : "wide"} className="relative flex flex-col gap-6 pb-16 pt-16 sm:pt-24 lg:pb-20">
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
         <h1 className="m-0 max-w-[20ch] text-balance text-display-2 font-semibold text-fg">{title}</h1>
         {lede && <div className="m-0 max-w-[62ch] text-pretty text-lede text-fg-2">{lede}</div>}
