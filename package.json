@@ -34,7 +34,7 @@
     "@octokit/webhooks-methods": "^6.0.0",
     "@vercel/blob": "^2.9.0",
     "@vercel/sandbox": "^3.5.1",
-    "diff": "^8.0.4",
+    "diff": "^9.0.0",
     "drizzle-orm": "^0.45.4",
     "geist": "^1.9.2",
     "jose": "^6.2.17",
