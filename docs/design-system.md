@@ -20,14 +20,14 @@ Quiet surfaces, one instrument. Aftershock's interface follows Apple's restraint
 | `border` / `border-soft` / `border-strong` | ink at 8% / 5% / 16% | white at 8% / 5% / 14% | Hairlines |
 | `field` | ink at 32% | white at 26% | Input borders (3:1 against the surface) |
 | `fg` / `fg-2` / `fg-3` | #0B0D12 / #4A5263 / #626B7A | #EDEFF3 / #A9B0BC / #828A98 | Primary, secondary, tertiary text |
-| `signal` | #0B63CE | #5EB1FF | Interactive accent; text on it is `on-signal` |
-| `proven` | #16794A | #3DD68C | Proven, healthy |
-| `recur` | #B23C0A | #FF7A45 | Recur, failing, destructive |
-| `safe` | #0E7490 | #4FC3D9 | Safe pull request |
-| `inconclusive` | #9A5B06 | #F0B44C | Inconclusive, weak, awaiting fix |
+| `signal` | #0A5CBF | #5EB1FF | Interactive accent; text on it is `on-signal` |
+| `proven` | #126A40 | #3DD68C | Proven, healthy |
+| `recur` | #A8380A | #FF7A45 | Recur, failing, destructive |
+| `safe` | #0B6680 | #4FC3D9 | Safe pull request |
+| `inconclusive` | #875004 | #F0B44C | Inconclusive, weak, awaiting fix |
 | `flaky` | #7341D6 | #B49CFF | Flaky, drifted, AI draft |
 
-Each verdict colour has a `-soft` tint (10–13%). All text pairs meet WCAG AA on `canvas`, `s1` and `s2`; keep verdict text off `s3`.
+Each verdict colour has a `-soft` tint (10–13%). Every text pair, including verdict text on its own tint, meets WCAG AA (4.5:1) on `canvas`, `s1`, `s2` and `s3` in both themes.
 
 Use only these names: raw hex, arbitrary colours (`text-[#…]`), pixel font sizes (`text-[13px]`) and one-off radii (`rounded-[…]`) are not used in `app/` or `components/` (the OG image and the README badge, which can't read CSS variables, are the exceptions).
 

@@ -2,10 +2,10 @@ name: CI
 on: [push, pull_request]
 permissions:
   contents: read
-# A newer push to the same branch or pull request cancels the run still in progress.
+# A newer push to a branch or pull request cancels its run still in progress; runs on main always finish.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -47,6 +47,8 @@ jobs:
         run: npm run test:e2e
         env:
           E2E_PROD: "1"
+          # Reuse the build from the step above instead of building again.
+          E2E_PREBUILT: "1"
       - name: Upload Playwright traces and report
         if: failure()
         uses: actions/upload-artifact@v4

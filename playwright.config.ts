@@ -4,6 +4,8 @@ import { defineConfig } from "@playwright/test";
 const port = Number(process.env.E2E_PORT ?? 3000);
 /** E2E_PROD=1 tests the production build (`next build` + `next start`), including its strict CSP, instead of `next dev`. */
 const prod = process.env.E2E_PROD === "1";
+/** With E2E_PROD, E2E_PREBUILT=1 starts the existing `.next` build instead of building again (CI builds in an earlier step). */
+const prebuilt = process.env.E2E_PREBUILT === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -17,7 +19,7 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${port}`, headless: true, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: prod ? `npx next build && npx next start --hostname 127.0.0.1 --port ${port}` : `npx next dev --hostname 127.0.0.1 --port ${port}`,
+    command: prod ? `${prebuilt ? "" : "npx next build && "}npx next start --hostname 127.0.0.1 --port ${port}` : `npx next dev --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/signin`,
     reuseExistingServer: false,
     timeout: prod ? 600_000 : 180_000,
