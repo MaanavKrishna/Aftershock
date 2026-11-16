@@ -4,9 +4,6 @@
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-ui: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-code: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Fault Line colours. Components use these names; values change with the theme below. */
   --color-canvas: var(--fl-canvas);
@@ -36,45 +33,6 @@
   --color-flaky: var(--fl-flaky);
   --color-flaky-soft: var(--fl-flaky-soft);
 
-  /* Legacy names, kept as aliases while pages move to the names above. Remove once unused. */
-  --color-ink: var(--fl-fg);
-  --color-paper: var(--fl-canvas);
-  --color-site: var(--fl-canvas);
-  --color-card: var(--fl-s1);
-  --color-card-2: var(--fl-s2);
-  --color-line: var(--fl-border);
-  --color-line-soft: var(--fl-border-soft);
-  --color-line-strong: var(--fl-border-strong);
-  --color-muted: var(--fl-fg-3);
-  --color-muted-2: var(--fl-fg-3);
-  --color-body: var(--fl-fg-2);
-  --color-pass: var(--fl-proven);
-  --color-pass-deep: var(--fl-proven);
-  --color-pass-tint: var(--fl-proven-soft);
-  --color-pass-wash: var(--fl-proven-soft);
-  --color-fail: var(--fl-recur);
-  --color-fail-deep: var(--fl-recur);
-  --color-fail-ink: var(--fl-recur);
-  --color-fail-tint: var(--fl-recur-soft);
-  --color-fail-line: var(--fl-recur-line);
-  --color-neutral-tint: var(--fl-s2);
-  --color-chrome: var(--fl-s1);
-  --color-ink-2: var(--fl-s2);
-  --color-ink-line: var(--fl-border);
-  --color-on-dark: var(--fl-fg);
-  --color-on-dark-muted: var(--fl-fg-2);
-  --color-pass-dark: var(--fl-proven);
-  --color-fail-dark: var(--fl-recur);
-  --color-raised: var(--fl-s1);
-  --color-raised-2: var(--fl-s2);
-  --color-rule: var(--fl-border);
-  --color-rule-strong: var(--fl-border-strong);
-  --color-quake: var(--fl-recur);
-  --color-quake-soft: var(--fl-recur-soft);
-  --color-amber: var(--fl-inconclusive);
-  --color-violet: var(--fl-flaky);
-  --color-on-accent: var(--fl-on-signal);
-
   /* Type scale (Apple-style hierarchy: weight and tracking carry the display sizes). */
   --text-display-1: clamp(3rem, 1.9rem + 4.4vw, 5rem);
   --text-display-1--line-height: 1;
@@ -103,25 +61,13 @@
   --text-caption: 0.75rem;
   --text-caption--line-height: 1rem;
   --text-caption--letter-spacing: 0.01em;
-  /* Older display names. */
-  --text-d1: clamp(3rem, 1.9rem + 4.4vw, 5rem);
-  --text-d1--line-height: 1;
-  --text-d1--letter-spacing: -0.035em;
-  --text-d2: clamp(2.5rem, 1.95rem + 2.2vw, 3.5rem);
-  --text-d2--line-height: 1.05;
-  --text-d2--letter-spacing: -0.03em;
-  --text-d3: 1.75rem;
-  --text-d3--line-height: 2.125rem;
-  --text-d3--letter-spacing: -0.02em;
 
   --radius-chip: 6px;
   --radius-control: 10px;
   --radius-card: 14px;
-  --radius-panel: 14px;
   --radius-stage: 20px;
   --shadow-e1: var(--fl-e1);
   --shadow-e2: var(--fl-e2);
-  --shadow-lift: var(--fl-e2);
   --ease-fl: cubic-bezier(0.22, 1, 0.36, 1);
 }
 

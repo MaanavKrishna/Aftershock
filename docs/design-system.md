@@ -29,7 +29,7 @@ Quiet surfaces, one instrument. Aftershock's interface follows Apple's restraint
 
 Each verdict colour has a `-soft` tint (10–13%). All text pairs meet WCAG AA on `canvas`, `s1` and `s2`; keep verdict text off `s3`.
 
-Older names (`ink`, `paper`, `card`, `line`, `pass`, `fail`, `raised`, `rule`, `quake`…) are aliases kept while pages move over. Don't use them in new code.
+Use only these names: raw hex, arbitrary colours (`text-[#…]`), pixel font sizes (`text-[13px]`) and one-off radii (`rounded-[…]`) are not used in `app/` or `components/` (the OG image and the README badge, which can't read CSS variables, are the exceptions).
 
 ## Type
 
