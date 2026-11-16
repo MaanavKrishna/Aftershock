@@ -328,8 +328,11 @@ code,
   font-size: 1rem;
   line-height: 1.75;
 }
-.prose :where(p, li, h2, h3, h4, td) {
+.prose :where(p, li, h2, h3, h4) {
   overflow-wrap: anywhere;
+}
+.prose td code {
+  white-space: nowrap;
 }
 .prose > * + * {
   margin-top: 1.1em;
@@ -396,6 +399,12 @@ code,
 .prose ol {
   padding-left: 1.3em;
 }
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
 .prose li::marker {
   color: var(--fl-fg-3);
 }
@@ -438,6 +447,7 @@ code,
 }
 .prose th,
 .prose td {
+  min-width: 9rem;
   padding: 10px 14px;
   border-top: 1px solid var(--fl-border);
   text-align: left;

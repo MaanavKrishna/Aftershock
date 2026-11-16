@@ -62,7 +62,7 @@ function Row({ at, stage, children, label }: { at: number; stage: number; label:
   // Rows still to come use the tertiary text colour (AA contrast) rather than opacity.
   return (
     <li data-pending={reached ? undefined : ""} className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border-soft px-4 py-3 transition-colors duration-300 first:border-t-0 sm:px-5">
-      <span className="flex w-[112px] shrink-0 items-center gap-2 text-callout text-fg-3">
+      <span className="flex w-full shrink-0 items-center gap-2 text-callout text-fg-3 sm:w-[112px]">
         <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${reached ? "bg-fg-2" : "bg-border-strong"}`} />
         {label}
       </span>
