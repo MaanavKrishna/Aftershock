@@ -33,12 +33,12 @@ export default function Evidence() {
             <SectionHead id="bundle-h" title="One signed bundle per incident" lede="Download it from the incident page or the API. The payload is canonical JSON (RFC 8785), signed with Ed25519." />
             <dl className="m-0 flex flex-col">
               {CONTENTS.map(([t, d], i) => (
-                <div key={t} className="grid grid-cols-[2.5rem_1fr] gap-x-3 border-t border-border-soft py-4">
-                  <span className="pt-0.5 font-mono text-callout text-fg-3" aria-hidden="true">0{i + 1}</span>
-                  <div className="flex flex-col gap-1">
-                    <dt className="text-body font-semibold text-fg">{t}</dt>
-                    <dd className="m-0 text-body text-fg-2">{d}</dd>
-                  </div>
+                <div key={t} className="relative flex flex-col gap-1 border-t border-border-soft py-4 pl-[3.25rem]">
+                  <dt className="text-body font-semibold text-fg">
+                    <span className="absolute left-0 top-4 pt-0.5 font-mono text-callout font-normal text-fg-3" aria-hidden="true">0{i + 1}</span>
+                    {t}
+                  </dt>
+                  <dd className="m-0 text-body text-fg-2">{d}</dd>
                 </div>
               ))}
             </dl>

@@ -151,7 +151,7 @@ export function ProofReplay() {
               <span key={i} className={`block whitespace-pre transition-opacity duration-200 ${i < lines ? "" : "opacity-0"}`}>{l}</span>
             ))}
           </pre>
-          <Verdict kind="drafted" size="sm" label="AI draft, not trusted yet" />
+          {stage >= 1 ? <Verdict kind="drafted" size="sm" label="AI draft, not trusted yet" /> : <span className="inline-flex min-h-5 items-center rounded-chip bg-s2 px-1.5 text-caption font-medium text-fg-3">AI draft, not trusted yet</span>}
         </Row>
         <Row at={2} stage={stage} label="Before the fix">
           <span className="font-mono text-callout text-fg">3f2a1c9</span>
