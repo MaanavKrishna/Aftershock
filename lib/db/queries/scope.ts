@@ -1,9 +1,75 @@
-import { and, asc, count, desc, eq, gte, inArray, sql, type SQL, isNull, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, sql, type SQL, type SQLWrapper, isNull, isNotNull } from "drizzle-orm";
+import { alias, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
 import * as s from "@/lib/db/schema";
 import { faultLines } from "@/lib/domain/faultlines";
+import { clampLimit, decodeCursor, encodeCursor, toPage, type Page } from "./paging";
+import { toCsv } from "@/lib/data/csv";
 
+export type { Page } from "./paging";
 export type IncidentFilter = { status?: s.IncidentStatus; source?: s.IncidentSource };
+
+/** One incident on a list: its repository (unless archived) and its latest time travel attempt. */
+export type IncidentListRow = { incident: s.IncidentRow; repo: s.RepositoryRow | undefined; run: s.TimeTravelRunRow | undefined };
+/** One pull request check with its results and how many incidents it skipped. */
+export type CheckListRow = { check: s.PrCheckRow; repo: s.RepositoryRow; results: (typeof s.prCheckResults.$inferSelect)[]; skipped: number };
+/** One memory test with its incident, repository, and how often it ran in (guarded) and blocked a pull request. */
+export type MemoryListRow = { test: s.MemoryTestRow; incident: s.IncidentRow; repo: s.RepositoryRow; guarded: number; blocked: number };
+export type AuditListRow = { id: string; action: string; target: string; detail: string; createdAt: Date; actor: string | null };
+export type ActivityRow = typeof s.activity.$inferSelect;
+
+/** Something on the Overview waiting on a person, in the order the page shows them. */
+export type OverviewDecision =
+  | { kind: "merge_test"; incidentNumber: number; botPr: number | null; path: string }
+  | { kind: "unproven" | "awaiting_fix"; incident: s.IncidentRow };
+
+/**
+ * Everything the Overview page shows, from `scoped(ws).overviewSummary()`.
+ * Lists are already cut to what the page shows; counts cover the whole workspace.
+ */
+export type OverviewSummary = {
+  workspace: typeof s.workspaces.$inferSelect | null;
+  counts: {
+    /** Repositories the GitHub App can see (archived ones excluded). */
+    repositories: number;
+    incidents: number;
+    awaitingFix: number;
+    unproven: number;
+    /** Memory tests, and how many repositories they span. */
+    memory: number;
+    memoryRepositories: number;
+    /** Every check ever run (the "see a pull request checked" step). */
+    checksEver: number;
+    /** Pull requests whose latest check ran in the last 7 days. */
+    pullsChecked7d: number;
+    /** Distinct pull requests a recurrence was ever blocked on. */
+    recurrencesBlocked: number;
+  };
+  /** The newest pull request a recurrence was blocked on, for the stat's link. */
+  latestRecurrence: { prNumber: number; repoName: string } | null;
+  /** Up to 3, ordered: test PRs to merge, then unproven, then awaiting fix (newest incident first in each). */
+  decisions: OverviewDecision[];
+  /** All waiting decisions, for the headline ("Three decisions are waiting on you"). */
+  decisionCount: number;
+  /** Latest check per pull request, newest first, up to 5. */
+  recentChecks: CheckListRow[];
+  /** The newest incident being time travelled, with its current run. */
+  traveling: IncidentListRow | null;
+  /** Files where incidents keep starting, most incidents first, up to 5. */
+  faults: { file: string; count: number }[];
+  /** Newest activity, up to 5. */
+  activity: ActivityRow[];
+};
+
+/** A timestamp as UTC text with microseconds, so a cursor round-trips exactly. */
+const tsKey = (col: AnyPgColumn) => sql<string>`to_char(${col} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
+/** Rows strictly after the cursor in a (sort column desc, id desc) order. */
+const before = (col: SQLWrapper, idCol: SQLWrapper, key: string | number, id: string, ts = false) =>
+  ts ? sql`(${col}, ${idCol}) < (${key}::timestamptz, ${id})` : sql`(${col}, ${idCol}) < (${key}, ${id})`;
+
+/** Only a pull request's latest check: no later check exists for the same repository and number. */
+const newer = alias(s.prChecks, "newer_check");
+const latestPerPr = sql`not exists (select 1 from ${s.prChecks} as ${newer} where ${newer.repoId} = ${s.prChecks.repoId} and ${newer.prNumber} = ${s.prChecks.prNumber} and (${newer.createdAt}, ${newer.id}) > (${s.prChecks.createdAt}, ${s.prChecks.id}))`;
 
 const month = () => new Date().toISOString().slice(0, 7);
 
@@ -13,6 +79,110 @@ const month = () => new Date().toISOString().slice(0, 7);
  */
 export function scoped(workspaceId: string) {
   const mineInc = eq(s.incidents.workspaceId, workspaceId);
+  const mineCheck = eq(s.prChecks.workspaceId, workspaceId);
+
+  const incidentWhere = (filter: IncidentFilter & { repo?: string }): SQL => {
+    const where: SQL[] = [mineInc];
+    if (filter.status) where.push(eq(s.incidents.status, filter.status));
+    if (filter.source) where.push(eq(s.incidents.source, filter.source));
+    if (filter.repo) where.push(eq(s.incidents.repoId, filter.repo));
+    return and(...where)!;
+  };
+
+  /** Incidents (newest number first) with their repository and latest attempt: two queries, whatever the count. */
+  async function incidentList(where: SQL, limit?: number): Promise<(IncidentListRow & { key: number })[]> {
+    const db = await getDb();
+    const q = db
+      .select({ incident: s.incidents, repo: s.repositories })
+      .from(s.incidents)
+      .leftJoin(s.repositories, and(eq(s.repositories.id, s.incidents.repoId), eq(s.repositories.workspaceId, workspaceId), isNull(s.repositories.archivedAt)))
+      .where(where)
+      .orderBy(desc(s.incidents.number), desc(s.incidents.id))
+      .$dynamic();
+    const rows = await (limit === undefined ? q : q.limit(limit));
+    if (!rows.length) return [];
+    // Latest attempt per incident, in SQL. A page asks by id; a full list by the same filter (no huge IN list).
+    const which =
+      limit === undefined
+        ? inArray(s.timeTravelRuns.incidentId, db.select({ id: s.incidents.id }).from(s.incidents).where(where))
+        : inArray(s.timeTravelRuns.incidentId, rows.map((r) => r.incident.id));
+    const runs = await db.selectDistinctOn([s.timeTravelRuns.incidentId]).from(s.timeTravelRuns).where(which).orderBy(s.timeTravelRuns.incidentId, desc(s.timeTravelRuns.attempt), desc(s.timeTravelRuns.createdAt));
+    const latest = new Map(runs.map((r) => [r.incidentId, r]));
+    return rows.map((r) => ({ incident: r.incident, repo: r.repo ?? undefined, run: latest.get(r.incident.id), key: r.incident.number }));
+  }
+
+  /** Checks newest first, latest per pull request unless `history`, with results and skip counts for just those checks. */
+  async function checkList(filter: { verdict?: s.CheckVerdict; history?: boolean }, page?: { after: { key: string; id: string } | null; limit: number }): Promise<(CheckListRow & { key: string })[]> {
+    const db = await getDb();
+    const where: SQL[] = [mineCheck];
+    if (!filter.history) where.push(latestPerPr);
+    if (filter.verdict) where.push(eq(s.prChecks.verdict, filter.verdict));
+    if (page?.after) where.push(before(s.prChecks.createdAt, s.prChecks.id, page.after.key, page.after.id, true));
+    const q = db
+      .select({ check: s.prChecks, repo: s.repositories, key: tsKey(s.prChecks.createdAt) })
+      .from(s.prChecks)
+      .innerJoin(s.repositories, eq(s.repositories.id, s.prChecks.repoId))
+      .where(and(...where))
+      .orderBy(desc(s.prChecks.createdAt), desc(s.prChecks.id))
+      .$dynamic();
+    const rows = await (page ? q.limit(page.limit) : q);
+    const ids = rows.map((r) => r.check.id);
+    if (!ids.length) return [];
+    const [results, skips] = await Promise.all([
+      db.select().from(s.prCheckResults).where(inArray(s.prCheckResults.checkId, ids)),
+      db.select({ checkId: s.prCheckSkips.checkId, n: count() }).from(s.prCheckSkips).where(inArray(s.prCheckSkips.checkId, ids)).groupBy(s.prCheckSkips.checkId),
+    ]);
+    const resultsBy = new Map<string, typeof results>();
+    for (const r of results) resultsBy.set(r.checkId, [...(resultsBy.get(r.checkId) ?? []), r]);
+    const skipBy = new Map(skips.map((x) => [x.checkId, x.n]));
+    return rows.map((r) => ({ check: r.check, repo: r.repo, results: resultsBy.get(r.check.id) ?? [], skipped: skipBy.get(r.check.id) ?? 0, key: r.key }));
+  }
+
+  /** Memory tests by incident number (newest first) with how often each guarded and blocked a pull request. */
+  async function memoryList(filter: { health?: s.MemoryTestRow["health"] }, page?: { after: { key: number; id: string } | null; limit: number }): Promise<(MemoryListRow & { key: number })[]> {
+    const db = await getDb();
+    const where: SQL[] = [eq(s.memoryTests.workspaceId, workspaceId)];
+    if (filter.health) where.push(eq(s.memoryTests.health, filter.health));
+    if (page?.after) where.push(before(s.incidents.number, s.memoryTests.id, page.after.key, page.after.id));
+    const q = db
+      .select({ test: s.memoryTests, incident: s.incidents, repo: s.repositories })
+      .from(s.memoryTests)
+      .innerJoin(s.incidents, eq(s.incidents.id, s.memoryTests.incidentId))
+      .innerJoin(s.repositories, eq(s.repositories.id, s.memoryTests.repoId))
+      .where(and(...where))
+      .orderBy(desc(s.incidents.number), desc(s.memoryTests.id))
+      .$dynamic();
+    const rows = await (page ? q.limit(page.limit) : q);
+    if (!rows.length) return [];
+    const statWhere: SQL[] = [mineCheck];
+    if (page) statWhere.push(inArray(s.prCheckResults.memoryTestId, rows.map((r) => r.test.id)));
+    const stats = await db
+      .select({ id: s.prCheckResults.memoryTestId, guarded: count(), blocked: sql<number>`count(*) filter (where ${s.prCheckResults.verdict} = 'recur')` })
+      .from(s.prCheckResults)
+      .innerJoin(s.prChecks, eq(s.prChecks.id, s.prCheckResults.checkId))
+      .where(and(...statWhere))
+      .groupBy(s.prCheckResults.memoryTestId);
+    const by = new Map(stats.map((x) => [x.id, x]));
+    return rows.map((r) => ({ ...r, guarded: Number(by.get(r.test.id)?.guarded ?? 0), blocked: Number(by.get(r.test.id)?.blocked ?? 0), key: r.incident.number }));
+  }
+
+  async function auditList(filter: { action?: string }, page?: { after: { key: string; id: string } | null; limit: number }): Promise<(AuditListRow & { key: string })[]> {
+    const db = await getDb();
+    const where: SQL[] = [eq(s.auditLog.workspaceId, workspaceId)];
+    if (filter.action) where.push(eq(s.auditLog.action, filter.action));
+    if (page?.after) where.push(before(s.auditLog.createdAt, s.auditLog.id, page.after.key, page.after.id, true));
+    const q = db
+      .select({ id: s.auditLog.id, action: s.auditLog.action, target: s.auditLog.target, detail: s.auditLog.detail, createdAt: s.auditLog.createdAt, actor: s.users.login, key: tsKey(s.auditLog.createdAt) })
+      .from(s.auditLog)
+      .leftJoin(s.users, eq(s.users.id, s.auditLog.actorUserId))
+      .where(and(...where))
+      .orderBy(desc(s.auditLog.createdAt), desc(s.auditLog.id))
+      .$dynamic();
+    return page ? q.limit(page.limit) : q;
+  }
+
+  /** Drops the internal sort key the cursor is built from. */
+  const strip = <T extends { key: unknown }>(rows: T[]): Omit<T, "key">[] => rows.map(({ key: _k, ...rest }) => rest);
 
   const api = {
     workspaceId,
@@ -43,15 +213,23 @@ export function scoped(workspaceId: string) {
         .orderBy(asc(s.workspaces.name));
     },
 
-    async auditLog(limit: number) {
-      const db = await getDb();
-      return db
-        .select({ id: s.auditLog.id, action: s.auditLog.action, target: s.auditLog.target, detail: s.auditLog.detail, createdAt: s.auditLog.createdAt, actor: s.users.login })
-        .from(s.auditLog)
-        .leftJoin(s.users, eq(s.users.id, s.auditLog.actorUserId))
-        .where(eq(s.auditLog.workspaceId, workspaceId))
-        .orderBy(desc(s.auditLog.createdAt))
-        .limit(limit);
+    async auditLog(limit: number): Promise<AuditListRow[]> {
+      return strip(await auditList({}, { after: null, limit }));
+    },
+
+    /** The audit log, newest first, `limit` (1–200, default 100) entries at a time. `action` matches exactly, e.g. "token.created". */
+    async auditPage(opts: { cursor?: string | null; limit?: number; action?: string } = {}): Promise<Page<AuditListRow>> {
+      const limit = clampLimit(opts.limit, 100);
+      const rows = await auditList({ action: opts.action }, { after: decodeCursor<string>("audit", opts.cursor, "string"), limit: limit + 1 });
+      const page = toPage(rows, limit, (r) => encodeCursor("audit", r.key, r.id));
+      return { rows: strip(page.rows), nextCursor: page.nextCursor };
+    },
+
+    /** The whole audit log as a file body, newest first: CSV (safe to open in a spreadsheet) or JSON. */
+    async auditExport(format: "csv" | "json"): Promise<string> {
+      const rows = strip(await auditList({}));
+      if (format === "json") return JSON.stringify(rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })), null, 2);
+      return toCsv(["time", "actor", "action", "target", "detail", "id"], rows.map((r) => [r.createdAt.toISOString(), r.actor ?? "", r.action, r.target, r.detail, r.id]));
     },
 
     async members() {
@@ -89,22 +267,25 @@ export function scoped(workspaceId: string) {
 
     async listIncidents(filter: IncidentFilter) {
       const db = await getDb();
-      const where: SQL[] = [mineInc];
-      if (filter.status) where.push(eq(s.incidents.status, filter.status));
-      if (filter.source) where.push(eq(s.incidents.source, filter.source));
-      return db.select().from(s.incidents).where(and(...where)).orderBy(desc(s.incidents.number));
+      return db.select().from(s.incidents).where(incidentWhere(filter)).orderBy(desc(s.incidents.number));
     },
 
-    /** Incidents with their repo name and the latest attempt's results, for the list page. */
-    async incidentRows(filter: IncidentFilter) {
-      const db = await getDb();
-      const rows = await api.listIncidents(filter);
-      const repos = Object.fromEntries((await api.repos()).map((r) => [r.id, r]));
-      const ids = rows.map((r) => r.id);
-      const runs = ids.length ? await db.select().from(s.timeTravelRuns).where(inArray(s.timeTravelRuns.incidentId, ids)).orderBy(asc(s.timeTravelRuns.attempt)) : [];
-      const latest = new Map<string, s.TimeTravelRunRow>();
-      for (const r of runs) latest.set(r.incidentId, r);
-      return rows.map((i) => ({ incident: i, repo: i.repoId ? repos[i.repoId] : undefined, run: latest.get(i.id) }));
+    /** Incidents with their repo name and the latest attempt's results. Every row: prefer `incidentPage`. */
+    async incidentRows(filter: IncidentFilter): Promise<IncidentListRow[]> {
+      return strip(await incidentList(incidentWhere(filter)));
+    },
+
+    /**
+     * One page of incidents, newest number first, each with its repository and latest attempt.
+     * `repo` is a repository id. `limit` is 1–200 (default 50). Pass `nextCursor` back as `cursor` for the next page.
+     */
+    async incidentPage(opts: IncidentFilter & { repo?: string; cursor?: string | null; limit?: number } = {}): Promise<Page<IncidentListRow>> {
+      const limit = clampLimit(opts.limit, 50);
+      const after = decodeCursor<number>("incident", opts.cursor, "number");
+      const where = incidentWhere(opts);
+      const rows = await incidentList(after ? and(where, before(s.incidents.number, s.incidents.id, after.key, after.id))! : where, limit + 1);
+      const page = toPage(rows, limit, (r) => encodeCursor("incident", r.key, r.incident.id));
+      return { rows: strip(page.rows), nextCursor: page.nextCursor };
     },
 
     async statusCounts() {
@@ -134,16 +315,18 @@ export function scoped(workspaceId: string) {
     /** Inputs for lib/domain/insights.ts: incidents with when they were first proven, checks, and test health. */
     async insightsData() {
       const db = await getDb();
-      const incidents = await db.select({ id: s.incidents.id, status: s.incidents.status, createdAt: s.incidents.createdAt, watchedFiles: s.incidents.watchedFiles }).from(s.incidents).where(eq(s.incidents.workspaceId, workspaceId));
-      const proofs = await db
-        .select({ incidentId: s.timeTravelRuns.incidentId, at: sql<Date>`min(${s.timeTravelRuns.finishedAt})` })
-        .from(s.timeTravelRuns)
-        .innerJoin(s.incidents, eq(s.incidents.id, s.timeTravelRuns.incidentId))
-        .where(and(eq(s.incidents.workspaceId, workspaceId), eq(s.timeTravelRuns.status, "proven")))
-        .groupBy(s.timeTravelRuns.incidentId);
+      const [incidents, proofs, checks, tests] = await Promise.all([
+        db.select({ id: s.incidents.id, status: s.incidents.status, createdAt: s.incidents.createdAt, watchedFiles: s.incidents.watchedFiles }).from(s.incidents).where(eq(s.incidents.workspaceId, workspaceId)),
+        db
+          .select({ incidentId: s.timeTravelRuns.incidentId, at: sql<Date>`min(${s.timeTravelRuns.finishedAt})` })
+          .from(s.timeTravelRuns)
+          .innerJoin(s.incidents, eq(s.incidents.id, s.timeTravelRuns.incidentId))
+          .where(and(eq(s.incidents.workspaceId, workspaceId), eq(s.timeTravelRuns.status, "proven")))
+          .groupBy(s.timeTravelRuns.incidentId),
+        db.select({ verdict: s.prChecks.verdict, overridden: s.prChecks.overridden, createdAt: s.prChecks.createdAt }).from(s.prChecks).where(and(eq(s.prChecks.workspaceId, workspaceId), eq(s.prChecks.status, "done"))),
+        db.select({ health: s.memoryTests.health, guardStatus: s.memoryTests.guardStatus, strength: s.memoryTests.strength }).from(s.memoryTests).where(eq(s.memoryTests.workspaceId, workspaceId)),
+      ]);
       const provenAt = new Map(proofs.map((p) => [p.incidentId, p.at ? new Date(p.at) : null]));
-      const checks = await db.select({ verdict: s.prChecks.verdict, overridden: s.prChecks.overridden, createdAt: s.prChecks.createdAt }).from(s.prChecks).where(and(eq(s.prChecks.workspaceId, workspaceId), eq(s.prChecks.status, "done")));
-      const tests = await db.select({ health: s.memoryTests.health, guardStatus: s.memoryTests.guardStatus, strength: s.memoryTests.strength }).from(s.memoryTests).where(eq(s.memoryTests.workspaceId, workspaceId));
       return {
         now: new Date(),
         incidents: incidents.map((i) => ({ ...i, provenAt: i.status === "proven" ? (provenAt.get(i.id) ?? null) : null })),
@@ -212,59 +395,43 @@ export function scoped(workspaceId: string) {
         .orderBy(desc(s.prChecks.createdAt));
     },
 
-    async memory() {
-      const db = await getDb();
-      const rows = await db
-        .select({ test: s.memoryTests, incident: s.incidents, repo: s.repositories })
-        .from(s.memoryTests)
-        .innerJoin(s.incidents, eq(s.incidents.id, s.memoryTests.incidentId))
-        .innerJoin(s.repositories, eq(s.repositories.id, s.memoryTests.repoId))
-        .where(eq(s.memoryTests.workspaceId, workspaceId))
-        .orderBy(desc(s.incidents.number));
-      const stats = await db
-        .select({ id: s.prCheckResults.memoryTestId, guarded: count(), blocked: sql<number>`count(*) filter (where ${s.prCheckResults.verdict} = 'recur')` })
-        .from(s.prCheckResults)
-        .innerJoin(s.prChecks, eq(s.prChecks.id, s.prCheckResults.checkId))
-        .where(eq(s.prChecks.workspaceId, workspaceId))
-        .groupBy(s.prCheckResults.memoryTestId);
-      const by = Object.fromEntries(stats.map((x) => [x.id, x]));
-      return rows.map((r) => ({ ...r, guarded: Number(by[r.test.id]?.guarded ?? 0), blocked: Number(by[r.test.id]?.blocked ?? 0) }));
+    /** Every memory test. Prefer `memoryPage`. */
+    async memory(): Promise<MemoryListRow[]> {
+      return strip(await memoryList({}));
     },
 
-    /** One row per pull request — its latest check — unless `history` asks for every check. */
-    async checks(filter: { verdict?: s.CheckVerdict; history?: boolean } = {}) {
-      const db = await getDb();
-      const all = await db
-        .select({ check: s.prChecks, repo: s.repositories })
-        .from(s.prChecks)
-        .innerJoin(s.repositories, eq(s.repositories.id, s.prChecks.repoId))
-        .where(eq(s.prChecks.workspaceId, workspaceId))
-        .orderBy(desc(s.prChecks.createdAt));
-      const seen = new Set<string>();
-      const latest = filter.history ? all : all.filter((r) => !seen.has(`${r.check.repoId}#${r.check.prNumber}`) && seen.add(`${r.check.repoId}#${r.check.prNumber}`));
-      const rows = filter.verdict ? latest.filter((r) => r.check.verdict === filter.verdict) : latest;
-      const ids = rows.map((r) => r.check.id);
-      const results = ids.length ? await db.select().from(s.prCheckResults).where(inArray(s.prCheckResults.checkId, ids)) : [];
-      const skips = ids.length ? await db.select({ checkId: s.prCheckSkips.checkId, n: count() }).from(s.prCheckSkips).where(inArray(s.prCheckSkips.checkId, ids)).groupBy(s.prCheckSkips.checkId) : [];
-      const skipBy = Object.fromEntries(skips.map((x) => [x.checkId, x.n]));
-      return rows.map((r) => ({ ...r, results: results.filter((x) => x.checkId === r.check.id), skipped: skipBy[r.check.id] ?? 0 }));
+    /** One page of memory tests, newest incident first. `limit` is 1–200 (default 50). */
+    async memoryPage(opts: { cursor?: string | null; limit?: number; health?: s.MemoryTestRow["health"] } = {}): Promise<Page<MemoryListRow>> {
+      const limit = clampLimit(opts.limit, 50);
+      const rows = await memoryList({ health: opts.health }, { after: decodeCursor<number>("memory", opts.cursor, "number"), limit: limit + 1 });
+      const page = toPage(rows, limit, (r) => encodeCursor("memory", r.key, r.test.id));
+      return { rows: strip(page.rows), nextCursor: page.nextCursor };
+    },
+
+    /** One row per pull request — its latest check — unless `history` asks for every check. Every row: prefer `checkPage`. */
+    async checks(filter: { verdict?: s.CheckVerdict; history?: boolean } = {}): Promise<CheckListRow[]> {
+      return strip(await checkList(filter));
+    },
+
+    /**
+     * One page of checks, newest first: the latest check per pull request, or every check with `history`.
+     * `limit` is 1–200 (default 50).
+     */
+    async checkPage(opts: { cursor?: string | null; limit?: number; history?: boolean; verdict?: s.CheckVerdict } = {}): Promise<Page<CheckListRow>> {
+      const limit = clampLimit(opts.limit, 50);
+      const rows = await checkList({ history: opts.history, verdict: opts.verdict }, { after: decodeCursor<string>("check", opts.cursor, "string"), limit: limit + 1 });
+      const page = toPage(rows, limit, (r) => encodeCursor("check", r.key, r.check.id));
+      return { rows: strip(page.rows), nextCursor: page.nextCursor };
     },
 
     async verdictCounts() {
       const db = await getDb();
-      const rows = await db
-        .select({ repoId: s.prChecks.repoId, pr: s.prChecks.prNumber, v: s.prChecks.verdict })
-        .from(s.prChecks)
-        .where(eq(s.prChecks.workspaceId, workspaceId))
-        .orderBy(desc(s.prChecks.createdAt));
-      const seen = new Set<string>();
+      const rows = await db.select({ v: s.prChecks.verdict, n: count() }).from(s.prChecks).where(and(mineCheck, latestPerPr)).groupBy(s.prChecks.verdict);
       const out: Record<string, number> = { all: 0 };
       for (const r of rows) {
-        if (seen.has(`${r.repoId}#${r.pr}`)) continue;
-        seen.add(`${r.repoId}#${r.pr}`);
         const k = r.v ?? "running";
-        out[k] = (out[k] ?? 0) + 1;
-        out.all += 1;
+        out[k] = (out[k] ?? 0) + r.n;
+        out.all += r.n;
       }
       return out;
     },
@@ -388,11 +555,86 @@ export function scoped(workspaceId: string) {
     },
 
     async navCounts() {
-      const counts = await api.statusCounts();
-      const verdicts = await api.verdictCounts();
       const db = await getDb();
-      const [{ n }] = await db.select({ n: count() }).from(s.memoryTests).where(eq(s.memoryTests.workspaceId, workspaceId));
+      const [counts, verdicts, [{ n }]] = await Promise.all([
+        api.statusCounts(),
+        api.verdictCounts(),
+        db.select({ n: count() }).from(s.memoryTests).where(eq(s.memoryTests.workspaceId, workspaceId)),
+      ]);
       return { open: (counts.awaiting_fix ?? 0) + (counts.unproven ?? 0), memory: n, recur: verdicts.recur ?? 0 };
+    },
+
+    /**
+     * Everything the Overview page needs (see OverviewSummary), as one parallel batch of bounded queries:
+     * one row of counts, then short lists. Nothing here grows with the size of the workspace.
+     */
+    async overviewSummary(): Promise<OverviewSummary> {
+      const db = await getDb();
+      const week = new Date(Date.now() - 7 * 86_400_000);
+      const n = (q: SQL) => sql<number>`(${q})::int`;
+      const [workspace, [c], [recur], openTests, waiting, recentChecks, [traveling], faults, activity] = await Promise.all([
+        api.workspace(),
+        db
+          .select({
+            repositories: n(sql`select count(*) from ${s.repositories} where ${s.repositories.workspaceId} = ${workspaceId} and ${s.repositories.archivedAt} is null`),
+            incidents: n(sql`select count(*) from ${s.incidents} where ${s.incidents.workspaceId} = ${workspaceId}`),
+            awaitingFix: n(sql`select count(*) from ${s.incidents} where ${s.incidents.workspaceId} = ${workspaceId} and ${s.incidents.status} = 'awaiting_fix'`),
+            unproven: n(sql`select count(*) from ${s.incidents} where ${s.incidents.workspaceId} = ${workspaceId} and ${s.incidents.status} = 'unproven'`),
+            memory: n(sql`select count(*) from ${s.memoryTests} where ${s.memoryTests.workspaceId} = ${workspaceId}`),
+            memoryRepositories: n(sql`select count(distinct ${s.memoryTests.repoId}) from ${s.memoryTests} where ${s.memoryTests.workspaceId} = ${workspaceId}`),
+            openTestPrs: n(sql`select count(*) from ${s.memoryTests} where ${s.memoryTests.workspaceId} = ${workspaceId} and ${s.memoryTests.botPrState} = 'open'`),
+            checksEver: n(sql`select count(*) from ${s.prChecks} where ${s.prChecks.workspaceId} = ${workspaceId}`),
+            pullsChecked7d: n(sql`select count(distinct (${s.prChecks.repoId}, ${s.prChecks.prNumber})) from ${s.prChecks} where ${s.prChecks.workspaceId} = ${workspaceId} and ${s.prChecks.createdAt} > ${week}`),
+          })
+          .from(sql`(select 1) as one`),
+        db
+          .select({ prNumber: s.prChecks.prNumber, repoName: s.repositories.name, total: sql<number>`(count(*) over ())::int` })
+          .from(s.prChecks)
+          .innerJoin(s.repositories, eq(s.repositories.id, s.prChecks.repoId))
+          .where(and(mineCheck, eq(s.prChecks.verdict, "recur")))
+          .groupBy(s.prChecks.repoId, s.prChecks.prNumber, s.repositories.name)
+          .orderBy(sql`max(${s.prChecks.createdAt}) desc`)
+          .limit(1),
+        db
+          .select({ incidentNumber: s.incidents.number, botPr: s.memoryTests.botPr, path: s.memoryTests.path })
+          .from(s.memoryTests)
+          .innerJoin(s.incidents, eq(s.incidents.id, s.memoryTests.incidentId))
+          .where(and(eq(s.memoryTests.workspaceId, workspaceId), eq(s.memoryTests.botPrState, "open")))
+          .orderBy(desc(s.incidents.number), desc(s.memoryTests.id))
+          .limit(3),
+        // Unproven before awaiting fix, newest first within each: the page's order.
+        db
+          .select()
+          .from(s.incidents)
+          .where(and(mineInc, inArray(s.incidents.status, ["unproven", "awaiting_fix"])))
+          .orderBy(sql`case when ${s.incidents.status} = 'unproven' then 0 else 1 end`, desc(s.incidents.number))
+          .limit(3),
+        checkList({}, { after: null, limit: 5 }),
+        incidentList(and(mineInc, eq(s.incidents.status, "traveling"))!, 1),
+        db
+          .select({ file: sql<string>`f.file`, count: sql<number>`(count(distinct ${s.incidents.id}))::int` })
+          .from(s.incidents)
+          .innerJoin(sql`jsonb_array_elements_text(${s.incidents.watchedFiles}) as f(file)`, sql`true`)
+          .where(mineInc)
+          .groupBy(sql`f.file`),
+        api.activity(5),
+      ]);
+      const { openTestPrs, ...counts } = c;
+      const decisions: OverviewDecision[] = [
+        ...openTests.map((t) => ({ kind: "merge_test" as const, ...t })),
+        ...waiting.map((i) => ({ kind: i.status as "unproven" | "awaiting_fix", incident: i })),
+      ];
+      return {
+        workspace,
+        counts: { ...counts, recurrencesBlocked: recur?.total ?? 0 },
+        latestRecurrence: recur ? { prNumber: recur.prNumber, repoName: recur.repoName } : null,
+        decisions: decisions.slice(0, 3),
+        decisionCount: openTestPrs + counts.unproven + counts.awaitingFix,
+        recentChecks: strip(recentChecks),
+        traveling: traveling ? strip([traveling])[0] : null,
+        faults: faults.sort((a, b) => b.count - a.count || a.file.localeCompare(b.file)).slice(0, 5),
+        activity,
+      };
     },
   };
   return api;
