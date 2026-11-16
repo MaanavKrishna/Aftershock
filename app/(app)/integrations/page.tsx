@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { currentScope } from "@/lib/auth/scope";
-import { TopBar, Main, PageTitle } from "@/components/app/TopBar";
+import { TopBar, Main } from "@/components/app/TopBar";
 import { Card, CardHead } from "@/components/ui/Card";
-import { Pill } from "@/components/ui/Pill";
+import { ButtonLink } from "@/components/ui/Button";
+import { CopyText } from "@/components/ui/CopyText";
+import { Badge, PageHeader } from "@/components/ui/Feedback";
+import { Verdict } from "@/components/ui/Verdict";
+import { External } from "@/components/ui/icons";
 import { timeAgo } from "@/lib/format";
 import { AlertForms, ModelForm } from "./forms";
 import { flagEnabled } from "@/lib/flags";
@@ -18,6 +22,20 @@ const BASE = {
 } as const;
 type Kind = keyof typeof BASE | IntakeKind;
 const meta = (k: Kind) => (k === "github" || k === "model" ? BASE[k] : { name: SOURCES[k].label, text: SOURCES[k].text, icon: SOURCES[k].icon });
+
+function Icon({ d }: { d: string }) {
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border bg-s2 text-fg-2">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={d} />
+      </svg>
+    </span>
+  );
+}
+
+function State({ on, label }: { on: boolean; label: string }) {
+  return on ? <Verdict kind="healthy" label={label} size="sm" /> : <Badge tone="outline">{label}</Badge>;
+}
 
 export default async function Integrations({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
   const { kind: k } = await searchParams;
@@ -42,60 +60,121 @@ export default async function Integrations({ searchParams }: { searchParams: Pro
     return isConnected(id) ? "Connected" : "Not connected";
   };
   const hint = (id: Kind) => (by[id]?.config.secretHint ? `••••••••••••••••${by[id]?.config.secretHint}` : "Not set");
-  const fieldsFor = (id: Kind): [string, string, string][] => {
-    if (id === "github") return [["Installation", `${ws?.name} · ${repos.length} repositories`, "Add or remove repositories on GitHub."], ["Permissions", "contents: write (aftershock/* branches only) · issues: read · checks: write · pull_requests: write", "Runner clone tokens are scoped read-only to one repository. Nothing is pushed to a default branch."]];
-    if (id === "model") return [["Provider", by.model?.config.provider === "gateway" ? "Vercel AI Gateway" : by.model?.config.provider === "custom" ? "Custom OpenAI-compatible endpoint" : "Muse · OpenAI-compatible", "Or Vercel AI Gateway, or any OpenAI-compatible endpoint."], ["Model", modelName, "Used for drafting tests, triage and postmortem extraction."], ["API key", isConnected("model") ? "•••••••••••••••••••• (server)" : "Not set", "Encrypted at rest. Never sent to a sandbox."]];
+  /** Read-only facts about the selected integration: label, value, help, and whether the value is worth copying. */
+  const fieldsFor = (id: Kind): [string, string, string, boolean][] => {
+    if (id === "github")
+      return [
+        ["Installation", `${ws?.name} · ${repos.length} repositories`, "Add or remove repositories on GitHub.", false],
+        ["Permissions", "contents: write (aftershock/* branches only) · issues: read · checks: write · pull_requests: write", "Runner clone tokens are scoped read-only to one repository. Nothing is pushed to a default branch.", false],
+      ];
+    if (id === "model")
+      return [
+        ["Provider", by.model?.config.provider === "gateway" ? "Vercel AI Gateway" : by.model?.config.provider === "custom" ? "Custom OpenAI-compatible endpoint" : "Muse · OpenAI-compatible", "Or Vercel AI Gateway, or any OpenAI-compatible endpoint.", false],
+        ["Model", modelName, "Used for drafting tests, triage and postmortem extraction.", false],
+        ["API key", isConnected("model") ? "•••••••••••••••••••• (server)" : "Not set", "Encrypted at rest. Never sent to a sandbox.", false],
+      ];
     const def = SOURCES[id];
     return [
-      ["Webhook URL", `${base}/api/webhooks/${id}?workspace=${ws?.login}`, def.setup],
-      [def.auth === "token" ? "Token" : "Signing secret", hint(id), def.auth === "token" ? "Send it as Authorization: Bearer <token>. Deliveries without it are rejected." : "Deliveries without a valid signature are rejected; signed timestamps older than five minutes too."],
-      [def.mapping.label, by[id]?.config[def.mapping.key] || "None mapped", "Unmapped alerts go to the repository with the same name, or to your only repository."],
+      ["Webhook URL", `${base}/api/webhooks/${id}?workspace=${ws?.login}`, def.setup, true],
+      [def.auth === "token" ? "Token" : "Signing secret", hint(id), def.auth === "token" ? "Send it as Authorization: Bearer <token>. Deliveries without it are rejected." : "Deliveries without a valid signature are rejected; signed timestamps older than five minutes too.", false],
     ];
   };
+  const appUrl = process.env.GITHUB_APP_SLUG ? `https://github.com/apps/${process.env.GITHUB_APP_SLUG}/installations/new` : null;
   return (
     <>
       <TopBar title="Integrations" />
       <Main>
-        <PageTitle title="Where incidents come from, and who drafts the tests." sub="Every delivery is verified by signature or token before anything is stored or run." />
-        <nav aria-label="Integrations" className="grid grid-cols-[repeat(auto-fit,minmax(min(230px,100%),1fr))] gap-2.5">
-          {visible.map((id) => (
-            <Link key={id} href={`/integrations?kind=${id}`} aria-current={kind === id ? "page" : undefined} className={`flex min-h-[150px] flex-col items-start gap-2.5 rounded-[14px] bg-card p-[18px] text-inherit no-underline ${kind === id ? "border-2 border-ink" : "border border-line"}`}>
-              <span className="flex w-full items-center justify-between gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-ink text-paper"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={meta(id).icon} /></svg></span>
-                <Pill tone={isConnected(id) ? "pass" : "dashed"}>{stateOf(id)}</Pill>
-              </span>
-              <span className="text-[15px] font-semibold">{meta(id).name}</span>
-              <span className="text-[13px] text-muted">{meta(id).text}</span>
-            </Link>
-          ))}
+        <PageHeader title="Where incidents come from, and who drafts the tests." sub="Every delivery is verified by signature or token before anything is stored or run." />
+        <nav aria-label="Integrations" className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3">
+          {visible.map((id) => {
+            const on = kind === id;
+            return (
+              <Link
+                key={id}
+                href={`/integrations?kind=${id}`}
+                aria-current={on ? "page" : undefined}
+                className={`flex min-h-36 flex-col items-start gap-3 rounded-card border bg-s1 p-4 no-underline shadow-e1 transition-[border-color,background-color] duration-150 ease-fl ${on ? "border-signal ring-1 ring-signal" : "border-border hover:border-border-strong hover:bg-s2"}`}
+              >
+                <span className="flex w-full items-center justify-between gap-2">
+                  <Icon d={meta(id).icon} />
+                  <State on={isConnected(id)} label={stateOf(id)} />
+                </span>
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-ui font-semibold text-fg">{meta(id).name}</span>
+                  <span className="text-callout text-fg-3">{meta(id).text}</span>
+                </span>
+              </Link>
+            );
+          })}
         </nav>
-        {!labsOn && <p className="m-0 text-[13px] text-muted">incident.io, Linear, Rootly, Opsgenie, Datadog, Jira and a generic signed webhook are in <Link href="/settings?tab=labs">Settings → Labs</Link>.</p>}
-        <div className="flex flex-wrap items-start gap-4">
-          <Card className="min-w-0 flex-[1.5_1_520px]">
-            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line-soft px-[22px] py-[18px]"><h2 className="m-0 text-lg font-semibold tracking-[-0.015em]">{meta(kind).name}</h2><Pill tone={isConnected(kind) ? "pass" : "dashed"}>{stateOf(kind)}</Pill></div>
-            <div className="flex flex-col gap-4 px-[22px] py-5">
-              {fieldsFor(kind).map(([label, value, help]) => (
-                <div key={label} className="flex flex-col gap-1.5">
-                  <span className="text-[13px] font-semibold">{label}</span>
-                  <span className="flex min-h-11 items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[9px] border border-line bg-card-2 px-3 font-mono text-[12.5px]">{value}</span>
-                  <span className="text-[12.5px] text-muted">{help}</span>
+        {!labsOn && (
+          <p className="m-0 text-callout text-fg-3">
+            incident.io, Linear, Rootly, Opsgenie, Datadog, Jira and a generic signed webhook are in{" "}
+            <Link href="/settings?tab=labs" className="font-medium text-signal underline underline-offset-2">
+              Settings → Labs
+            </Link>
+            .
+          </p>
+        )}
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <Card>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-soft px-5 py-4">
+              <span className="flex min-w-0 items-center gap-3">
+                <Icon d={meta(kind).icon} />
+                <h2 className="m-0 text-title-3 font-semibold text-fg">{meta(kind).name}</h2>
+              </span>
+              <State on={isConnected(kind)} label={stateOf(kind)} />
+            </div>
+            <dl className="m-0 flex flex-col gap-4 px-5 py-5">
+              {fieldsFor(kind).map(([label, value, help, copy]) => (
+                <div key={label} className="flex min-w-0 flex-col gap-1.5">
+                  <dt className="text-callout font-medium text-fg">{label}</dt>
+                  <dd className="m-0 flex min-w-0 items-center gap-2">
+                    <span className="flex min-h-10 min-w-0 flex-1 items-center truncate rounded-control border border-border bg-s2 px-3 font-mono text-callout text-fg-2">{value}</span>
+                    {copy && <CopyText text={value} />}
+                  </dd>
+                  <dd className="m-0 text-caption text-fg-3">{help}</dd>
                 </div>
               ))}
-              {kind !== "github" && kind !== "model" && <AlertForms kind={kind} label={SOURCES[kind].label} auth={SOURCES[kind].auth} secretFrom={SOURCES[kind].secretFrom} mappingLabel={SOURCES[kind].mapping.label} placeholder={SOURCES[kind].mapping.placeholder} mapping={by[kind]?.config[SOURCES[kind].mapping.key] ?? ""} />}
-              {kind === "model" && <ModelForm provider={by.model?.config.provider ?? "muse"} model={by.model?.config.model ?? ""} baseUrl={by.model?.config.baseUrl ?? ""} />}
-              {kind === "github" && process.env.GITHUB_APP_SLUG && <a href={`https://github.com/apps/${process.env.GITHUB_APP_SLUG}/installations/new`} className="inline-flex min-h-[42px] items-center self-start rounded-[9px] bg-ink px-4 font-semibold text-paper no-underline">Manage on GitHub</a>}
-            </div>
-          </Card>
-          <Card className="min-w-0 flex-[1_1_340px]">
-            <CardHead>Recent deliveries</CardHead>
-            {log.map((l) => (
-              <div key={l.id} className="flex items-center gap-3 border-b border-line-soft px-5 py-[11px] text-[13px]">
-                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${l.ok ? "bg-pass" : "bg-fail"}`} aria-label={l.ok ? "accepted" : "rejected"} />
-                <span className="flex min-w-0 flex-1 flex-col"><span className="truncate font-semibold">{l.event}</span><span className="font-mono text-[11.5px] text-muted-2">{l.detail}</span></span>
-                <span className="font-mono text-xs text-muted">{timeAgo(l.createdAt)}</span>
+            </dl>
+            {kind !== "github" && (
+              <div className="border-t border-border-soft px-5 py-5">
+                {kind === "model" ? (
+                  <ModelForm provider={by.model?.config.provider ?? "muse"} model={by.model?.config.model ?? ""} baseUrl={by.model?.config.baseUrl ?? ""} />
+                ) : (
+                  <AlertForms kind={kind} label={SOURCES[kind].label} auth={SOURCES[kind].auth} secretFrom={SOURCES[kind].secretFrom} mappingLabel={SOURCES[kind].mapping.label} placeholder={SOURCES[kind].mapping.placeholder} mapping={by[kind]?.config[SOURCES[kind].mapping.key] ?? ""} />
+                )}
               </div>
-            ))}
-            {log.length === 0 && <p className="m-0 px-5 py-6 text-muted">Nothing delivered yet.</p>}
+            )}
+            {kind === "github" && appUrl && (
+              <div className="border-t border-border-soft px-5 py-4">
+                <ButtonLink href={appUrl}>
+                  Manage on GitHub
+                  <External size={14} />
+                </ButtonLink>
+              </div>
+            )}
+          </Card>
+          <Card>
+            <CardHead sub={`${meta(kind).name}, newest first`}>Recent deliveries</CardHead>
+            {log.length === 0 ? (
+              <p className="m-0 px-5 py-8 text-center text-ui text-fg-3">Nothing delivered yet.</p>
+            ) : (
+              <ul className="m-0 list-none p-0">
+                {log.map((l) => (
+                  <li key={l.id} className="flex items-center gap-3 border-b border-border-soft px-5 py-3 last:border-b-0">
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-ui font-medium text-fg">{l.event}</span>
+                      <span className="truncate font-mono text-caption text-fg-3">{l.detail}</span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <Verdict kind={l.ok ? "healthy" : "failing"} label={l.ok ? "Accepted" : "Rejected"} size="sm" />
+                      <span className="text-caption tabular-nums text-fg-3">{timeAgo(l.createdAt)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
       </Main>
