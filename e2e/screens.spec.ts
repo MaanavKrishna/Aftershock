@@ -66,7 +66,7 @@ test.describe("product app (demo workspace)", () => {
 
   test("attempt 1 of the time travel shows the rejected draft", async ({ page }) => {
     await page.goto("/incidents/12/travel?attempt=1");
-    await expect(page.getByText("REJECTED", { exact: true })).toBeVisible();
+    await expect(page.getByText("Rejected", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/passed before the fix/);
   });
 

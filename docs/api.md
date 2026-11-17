@@ -18,6 +18,7 @@ Authenticate with `Authorization: Bearer as_live_…` (Settings → API tokens) 
 | GET | `/api/v1/memory` | Admitted tests with health and guard counts |
 | GET | `/api/v1/lessons` | `LESSONS.md` for coding agents |
 | POST | `/api/v1/checks/report` | Results from your own runner (below) |
+| GET | `/api/v1/audit?format=csv\|json` | Audit log export, owners and admins or a write token ([Operations](operations.md)) |
 | GET | `/api/v1/export` | Everything in the workspace as JSON |
 
 Webhooks: `/api/webhooks/github` (each delivery id is handled once; repeats answer `duplicate delivery`), and `/api/webhooks/<source>?workspace=<login>` for alert sources (see [Integrations](integrations.md)).
@@ -51,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: MaanavKrishna/Aftershock/action@v0.2.1
+      - uses: MaanavKrishna/Aftershock/action@v0.2.2
         with:
           token: ${{ secrets.AFTERSHOCK_TOKEN }}
           install: pip install -r requirements.txt pytest   # or: npm ci

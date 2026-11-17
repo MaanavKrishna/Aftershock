@@ -1,44 +1,47 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as m from "motion/react-m";
+import { Bolt, Chart, Gear, Home, Memory, Plug, PullRequest, Repo } from "@/components/ui/icons";
+import { SNAPPY } from "@/lib/motion";
 
-const ICONS: Record<string, string> = {
-  overview: "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z",
-  incidents: "M12 3 2 20h20L12 3z M12 10v4 M12 17h.01",
-  memory: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z M9 12l2 2 4-4",
-  insights: "M4 20V10 M10 20V4 M16 20v-7 M22 20H2",
-  pulls: "M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M6 9v12 M18 15V9a3 3 0 0 0-3-3h-4",
-  repositories: "M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z M4 16a4 4 0 0 1 4-4h12",
-  integrations: "M9 2v6 M15 2v6 M6 8h12v4a6 6 0 0 1-12 0z M12 18v4",
-  settings: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12h2 M3 12h2 M12 3v2 M12 19v2 M17 7l1.5-1.5 M5.5 18.5 7 17 M17 17l1.5 1.5 M5.5 5.5 7 7",
-};
+const ICONS = { overview: Home, incidents: Bolt, memory: Memory, pulls: PullRequest, insights: Chart, repositories: Repo, integrations: Plug, settings: Gear } as const;
 
-export type NavItem = { id: keyof typeof ICONS; label: string; badge?: number; hot?: boolean };
+export type NavItem = { id: keyof typeof ICONS; label: string; badge?: number; hot?: boolean; badgeLabel?: string };
 
-export function NavList({ items }: { items: NavItem[] }) {
+/** Primary navigation. In `rail` mode the labels hide between 768 and 1024px and become tooltips. */
+export function NavList({ items, rail = false }: { items: NavItem[]; rail?: boolean }) {
   const path = usePathname();
   return (
-    <div className="flex flex-col gap-0.5">
+    <ul className="m-0 flex w-full list-none flex-col gap-0.5 p-0">
       {items.map((n) => {
         const href = `/${n.id}`;
         const on = path === href || path.startsWith(href + "/");
+        const Icon = ICONS[n.id];
         return (
-          <Link
-            key={n.id}
-            href={href}
-            aria-current={on ? "page" : undefined}
-            className={`flex min-h-[42px] items-center gap-[11px] rounded-lg px-2.5 text-sm no-underline ${on ? "bg-on-dark font-semibold text-chrome" : "font-medium text-[#AEB8C4] hover:bg-ink-2 hover:text-on-dark"}`}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d={ICONS[n.id]} />
-            </svg>
-            <span className="flex-1">{n.label}</span>
-            {n.badge ? (
-              <span className={`rounded-[10px] px-[7px] py-px font-mono text-[11px] font-semibold ${n.hot ? "bg-fail text-on-accent" : on ? "bg-chrome/10 text-chrome" : "bg-ink-line text-[#C9D1DA]"}`}>{n.badge}</span>
-            ) : null}
-          </Link>
+          <li key={n.id} className="relative">
+            {on && <m.span layoutId={rail ? "nav-on-rail" : "nav-on"} transition={SNAPPY} aria-hidden="true" className="absolute inset-0 rounded-control bg-s2 shadow-e1" />}
+            <Link
+              href={href}
+              title={rail ? n.label : undefined}
+              aria-current={on ? "page" : undefined}
+              className={`relative flex min-h-9 items-center gap-2.5 rounded-control px-2.5 text-ui no-underline transition-colors duration-150 ease-fl ${on ? "font-medium text-fg" : "text-fg-2 hover:bg-s2/70 hover:text-fg"} ${rail ? "max-lg:justify-center max-lg:px-0 max-lg:min-h-10" : ""}`}
+            >
+              <Icon size={16} />
+              <span className={`flex-1 truncate ${rail ? "max-lg:sr-only" : ""}`}>{n.label}</span>
+              {n.badge ? (
+                <>
+                  <span className={`min-w-5 rounded-full px-1.5 text-center text-caption font-medium tabular-nums ${n.hot ? "bg-recur-soft text-recur" : "bg-s3 text-fg-2"} ${rail ? "max-lg:sr-only" : ""}`}>
+                    {n.badge}
+                    <span className="sr-only"> {n.badgeLabel ?? ""}</span>
+                  </span>
+                  {rail && <span aria-hidden="true" className={`absolute right-1.5 top-1.5 hidden h-1.5 w-1.5 rounded-full max-lg:block ${n.hot ? "bg-recur" : "bg-fg-3"}`} />}
+                </>
+              ) : null}
+            </Link>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

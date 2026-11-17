@@ -1,13 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Instrument_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { THEME_SCRIPT } from "@/lib/theme";
-
-const display = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument", display: "swap" });
-const ui = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const code = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 const description = "Aftershock turns each production incident into a regression test that git history proves, then guards every pull request against it.";
 
@@ -24,15 +19,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0A0E14" },
-    { media: "(prefers-color-scheme: light)", color: "#F5F7FA" },
+    { media: "(prefers-color-scheme: dark)", color: "#08090C" },
+    { media: "(prefers-color-scheme: light)", color: "#FAFAFB" },
   ],
 };
 
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} ${display.variable} ${ui.variable} ${code.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

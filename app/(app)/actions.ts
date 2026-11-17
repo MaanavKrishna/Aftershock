@@ -2,11 +2,8 @@
 import { fieldsFromIssue } from "@/lib/domain/issueBody";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { authorize, currentScope } from "@/lib/auth/scope";
-import { getDb } from "@/lib/db/client";
-import * as s from "@/lib/db/schema";
 import { recordActivity } from "@/lib/notify/outbox";
 import { incidentKey } from "@/lib/domain/ids";
 import { listImportableIssues } from "@/lib/github/issues";
@@ -54,7 +51,6 @@ export async function createIncident(_prev: FormState, form: FormData): Promise<
     fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, status: "awaiting_fix",
     statusReason: fix.sha || fix.pr ? null : "No fix linked yet. Link the fix commit or PR to start time travel.",
   });
-  const db = await getDb();
   await recordActivity({ workspaceId: session.workspaceId, incidentId: row.id, title: `${incidentKey(ws?.incidentPrefix ?? "INC", row.number)} recorded`, detail: d.source === "postmortem" ? "From a postmortem" : "From the form", tone: "neutral", event: "incident.opened" });
   if (d.intent === "travel" && (fix.sha || fix.pr)) {
     const { startTimeTravel } = await import("@/lib/workflows/start");
@@ -102,8 +98,7 @@ export async function linkFix(form: FormData): Promise<void> {
   if (!inc) redirect("/incidents");
   const fix = await parseFixRef(String(form.get("fix") ?? ""));
   if (!fix || (!fix.sha && !fix.pr)) redirect(`/incidents/${inc.number}?error=fix`);
-  const db = await getDb();
-  await db.update(s.incidents).set({ fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, parentSha: null, statusReason: null, updatedAt: new Date() }).where(and(eq(s.incidents.id, inc.id), eq(s.incidents.workspaceId, session.workspaceId)));
+  await scope.updateIncident(inc.id, { fixSha: fix.sha ?? null, fixPr: fix.pr ?? null, parentSha: null, statusReason: null, updatedAt: new Date() });
   await recordActivity({ workspaceId: session.workspaceId, incidentId: inc.id, title: "Fix linked", detail: fix.sha ? fix.sha : `PR #${fix.pr}`, tone: "pass" });
   const { startTimeTravel } = await import("@/lib/workflows/start");
   await startTimeTravel(inc.id);
@@ -127,8 +122,7 @@ export async function searchEpicenter(form: FormData): Promise<void> {
   if (!inc) redirect("/incidents");
   const mem = await scope.memoryForIncident(inc.id);
   if (mem) {
-    const db = await getDb();
-    await db.update(s.incidents).set({ epicenter: null }).where(and(eq(s.incidents.id, inc.id), eq(s.incidents.workspaceId, inc.workspaceId)));
+    await scope.updateIncident(inc.id, { epicenter: null });
     const { startEpicenter } = await import("@/lib/workflows/start");
     await startEpicenter(mem.id);
   }
@@ -140,47 +134,39 @@ export async function addNote(form: FormData): Promise<void> {
   const inc = await scope.getIncidentById(String(form.get("incidentId")));
   const text = String(form.get("text") ?? "").trim();
   if (!inc) redirect("/incidents");
-  if (text) {
-    const db = await getDb();
-    await db.insert(s.notes).values({ incidentId: inc.id, userId: session.userId, text: text.slice(0, 4000) });
-  }
+  if (text) await scope.addNote(inc.id, session.userId, text);
   revalidatePath(`/incidents/${inc.number}`);
 }
 
 export async function setRepoSetting(form: FormData): Promise<void> {
-  const { scope, session, allowed } = await authorize("manageRepositories");
+  const { scope, allowed } = await authorize("manageRepositories");
   if (!allowed) return;
   const repo = await scope.repo(String(form.get("repoId")));
   if (!repo) return;
   const field = String(form.get("field"));
   const value = String(form.get("value"));
-  const db = await getDb();
-  const where = and(eq(s.repositories.id, repo.id), eq(s.repositories.workspaceId, session.workspaceId));
-  if (field === "runner" && (value === "sandbox" || value === "actions")) await db.update(s.repositories).set({ runner: value }).where(where);
-  if (field === "checkMode" && (value === "blocking" || value === "advisory")) await db.update(s.repositories).set({ checkMode: value }).where(where);
-  if (field === "installCmd" && value.trim()) await db.update(s.repositories).set({ installCmd: value.trim().slice(0, 300) }).where(where);
+  if (field === "runner" && (value === "sandbox" || value === "actions")) await scope.updateRepo(repo.id, { runner: value });
+  if (field === "checkMode" && (value === "blocking" || value === "advisory")) await scope.updateRepo(repo.id, { checkMode: value });
+  if (field === "installCmd" && value.trim()) await scope.updateRepo(repo.id, { installCmd: value.trim().slice(0, 300) });
   revalidatePath("/repositories");
 }
 
 export async function overrideCheck(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session, allowed } = await authorize("override");
+  const { scope, session, allowed } = await authorize("override");
   if (!allowed) return { error: "Only owners and admins can do this." };
   const reason = String(form.get("reason") ?? "").trim();
   if (reason.length < 10) return { error: "Give a reason of at least 10 characters. It is recorded on the incident trail." };
-  const db = await getDb();
-  const [check] = await db.select().from(s.prChecks).where(and(eq(s.prChecks.id, String(form.get("checkId"))), eq(s.prChecks.workspaceId, session.workspaceId)));
+  // The override and the check's flag are written in one transaction.
+  const check = await scope.overrideCheck(String(form.get("checkId")), session.userId, reason);
   if (!check) return { error: "Check not found." };
-  await db.insert(s.overrides).values({ checkId: check.id, userId: session.userId, reason: reason.slice(0, 2000) });
-  await db.update(s.prChecks).set({ overridden: true }).where(eq(s.prChecks.id, check.id));
   await recordActivity({ workspaceId: session.workspaceId, title: `PR #${check.prNumber} check overridden`, detail: reason.slice(0, 200), tone: "neutral", event: "check.overridden" });
   revalidatePath(`/pulls/${check.prNumber}`);
   return { ok: "Override recorded." };
 }
 
 export async function requestSuggestedFix(form: FormData): Promise<void> {
-  const { session } = await currentScope();
-  const db = await getDb();
-  const [check] = await db.select().from(s.prChecks).where(and(eq(s.prChecks.id, String(form.get("checkId"))), eq(s.prChecks.workspaceId, session.workspaceId)));
+  const { scope } = await currentScope();
+  const check = await scope.checkById(String(form.get("checkId")));
   if (!check) return;
   const { startSuggestFix } = await import("@/lib/workflows/start");
   await startSuggestFix(check.id);
@@ -188,31 +174,25 @@ export async function requestSuggestedFix(form: FormData): Promise<void> {
 }
 
 export async function saveWorkspace(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session, allowed } = await authorize("manageWorkspace");
+  const { scope, allowed } = await authorize("manageWorkspace");
   if (!allowed) return { error: "Only owners and admins can do this." };
   const name = String(form.get("name") ?? "").trim();
   const prefix = String(form.get("prefix") ?? "").trim().toUpperCase();
   if (name.length < 2) return { error: "Name must be at least 2 characters." };
   if (!/^[A-Z]{2,6}$/.test(prefix)) return { error: "Prefix must be 2–6 letters." };
-  const db = await getDb();
-  const [current] = await db.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, session.workspaceId));
-  await db
-    .update(s.workspaces)
-    // Merge: other settings (feature flags) must survive saving this form.
-    .set({ name, incidentPrefix: prefix, settings: { ...current?.settings, autoImportIssues: form.get("autoImport") === "on", autoTravelOnMerge: form.get("autoTravel") === "on", issueLabel: String(form.get("label") || "incident").slice(0, 50) } })
-    .where(eq(s.workspaces.id, session.workspaceId));
+  // Merge: other settings (feature flags) must survive saving this form.
+  await scope.updateWorkspace({ name, incidentPrefix: prefix }, (current) => ({ ...current, autoImportIssues: form.get("autoImport") === "on", autoTravelOnMerge: form.get("autoTravel") === "on", issueLabel: String(form.get("label") || "incident").slice(0, 50) }));
   revalidatePath("/", "layout");
   return { ok: "Saved." };
 }
 
 export async function createToken(_prev: FormState, form: FormData): Promise<FormState> {
-  const { session, allowed } = await authorize("manageTokens");
+  const { scope: sc, session, allowed } = await authorize("manageTokens");
   if (!allowed) return { error: "Only owners and admins can do this." };
   const name = String(form.get("name") ?? "").trim() || "API token";
   const scope = form.get("scope") === "read" ? "read" : "write";
   const token = newToken();
-  const db = await getDb();
-  await db.insert(s.apiTokens).values({ workspaceId: session.workspaceId, name: name.slice(0, 100), prefix: `as_live_••••${token.slice(-4)}`, hash: hashToken(token), scope });
+  await sc.createToken({ name: name.slice(0, 100), prefix: `as_live_••••${token.slice(-4)}`, hash: hashToken(token), scope });
   const { audit } = await import("@/lib/data/lifecycle");
   await audit(session.workspaceId, session.userId, "token.created", name.slice(0, 100), scope);
   revalidatePath("/settings");
@@ -220,47 +200,37 @@ export async function createToken(_prev: FormState, form: FormData): Promise<For
 }
 
 export async function revokeToken(form: FormData): Promise<void> {
-  const { session, allowed } = await authorize("manageTokens");
+  const { scope, allowed } = await authorize("manageTokens");
   if (!allowed) return;
-  const db = await getDb();
-  await db.delete(s.apiTokens).where(and(eq(s.apiTokens.id, String(form.get("tokenId"))), eq(s.apiTokens.workspaceId, session.workspaceId)));
+  await scope.revokeToken(String(form.get("tokenId")));
   revalidatePath("/settings");
 }
 
 export async function finishOnboarding(form: FormData): Promise<void> {
-  const { scope, session, allowed } = await authorize("manageRepositories");
+  const { scope, allowed } = await authorize("manageRepositories");
   if (!allowed) redirect("/overview");
   const runner = form.get("runner") === "actions" ? "actions" : "sandbox";
   const provider = ["muse", "gateway", "custom"].includes(String(form.get("provider"))) ? String(form.get("provider")) : "muse";
   const chosen = new Set(form.getAll("repo").map(String));
-  const db = await getDb();
   for (const r of await scope.repos()) {
-    if (chosen.has(r.id)) await db.update(s.repositories).set({ runner }).where(and(eq(s.repositories.id, r.id), eq(s.repositories.workspaceId, session.workspaceId)));
+    if (chosen.has(r.id)) await scope.updateRepo(r.id, { runner });
   }
   const config: Record<string, string> = { provider, model: String(form.get("model") || (provider === "muse" ? "muse-spark-1.3-contributor" : "")) };
   if (provider === "custom") config.baseUrl = String(form.get("baseUrl") ?? "");
   const key = String(form.get("apiKey") ?? "").trim();
-  await db
-    .insert(s.integrations)
-    .values({ workspaceId: session.workspaceId, kind: "model", config, secretCiphertext: key ? encrypt(key) : null })
-    .onConflictDoUpdate({ target: [s.integrations.workspaceId, s.integrations.kind], set: { config, ...(key ? { secretCiphertext: encrypt(key) } : {}) } });
+  await scope.upsertIntegration("model", config, key ? encrypt(key) : undefined);
   redirect("/incidents/new?tab=issue");
 }
 
 /** Turns a Labs feature on or off for this workspace (owners and admins). */
 export async function setFlag(form: FormData): Promise<void> {
-  const { session, allowed } = await authorize("manageWorkspace");
+  const { scope, allowed } = await authorize("manageWorkspace");
   if (!allowed) return;
   const { FLAGS } = await import("@/lib/flags");
   const flag = String(form.get("flag") ?? "");
   if (!(flag in FLAGS)) return;
   const on = form.get("on") === "1";
-  const db = await getDb();
-  const [current] = await db.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, session.workspaceId));
-  await db
-    .update(s.workspaces)
-    .set({ settings: { ...current?.settings, flags: { ...current?.settings.flags, [flag]: on } } })
-    .where(eq(s.workspaces.id, session.workspaceId));
+  await scope.updateWorkspace({}, (current) => ({ ...current, flags: { ...current.flags, [flag]: on } }));
   revalidatePath("/settings");
 }
 
@@ -345,10 +315,7 @@ export async function changeMember(form: FormData): Promise<void> {
   const { memberChange } = await import("@/lib/domain/members");
   const problem = memberChange({ actor: role, target: target.role, to, owners: members.filter((m) => m.role === "owner").length, self: targetId === session.userId });
   if (problem) redirect(`/settings?tab=team&error=${encodeURIComponent(problem)}`);
-  const db = await getDb();
-  const where = and(eq(s.memberships.workspaceId, session.workspaceId), eq(s.memberships.userId, targetId));
-  if (to === "remove") await db.delete(s.memberships).where(where);
-  else await db.update(s.memberships).set({ role: to }).where(where);
+  await scope.setMemberRole(targetId, to);
   const { audit } = await import("@/lib/data/lifecycle");
   await audit(session.workspaceId, session.userId, to === "remove" ? "member.removed" : "member.role", target.user.login, to === "remove" ? "" : `${target.role} → ${to}`);
   revalidatePath("/settings");
@@ -356,14 +323,9 @@ export async function changeMember(form: FormData): Promise<void> {
 
 /** Admins can release a quarantined test early (for example after fixing its flakiness). */
 export async function releaseQuarantine(form: FormData): Promise<void> {
-  const { session, allowed } = await authorize("manageRepositories");
+  const { scope, session, allowed } = await authorize("manageRepositories");
   if (!allowed) return;
-  const db = await getDb();
-  const [t] = await db
-    .update(s.memoryTests)
-    .set({ quarantined: false, quarantineReason: null, quarantinedAt: null })
-    .where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)))
-    .returning();
+  const t = await scope.releaseQuarantine(String(form.get("memoryTestId")));
   if (t) {
     await recordActivity({ workspaceId: t.workspaceId, incidentId: t.incidentId, title: "Memory test released from quarantine", detail: "Released by an admin", tone: "pass" });
     const { audit } = await import("@/lib/data/lifecycle");
@@ -374,10 +336,9 @@ export async function releaseQuarantine(form: FormData): Promise<void> {
 
 /** Starts a still-guarding re-proof for one memory test. */
 export async function reproveNow(form: FormData): Promise<void> {
-  const { session, allowed } = await authorize("manageRepositories");
+  const { scope, allowed } = await authorize("manageRepositories");
   if (!allowed) return;
-  const db = await getDb();
-  const [t] = await db.select().from(s.memoryTests).where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)));
+  const t = await scope.memoryTest(String(form.get("memoryTestId")));
   if (!t) return;
   const { startReproof } = await import("@/lib/workflows/start");
   await startReproof(t.id);
@@ -414,9 +375,8 @@ export async function backfillAction(form: FormData): Promise<void> {
 
 /** Re-runs an earlier incident's memory tests on the default branch now (the nightly re-check, on demand). */
 export async function rerunRelated(form: FormData): Promise<void> {
-  const { session } = await currentScope();
-  const db = await getDb();
-  const tests = await db.select({ id: s.memoryTests.id }).from(s.memoryTests).where(and(eq(s.memoryTests.incidentId, String(form.get("incidentId") ?? "")), eq(s.memoryTests.workspaceId, session.workspaceId)));
+  const { scope } = await currentScope();
+  const tests = await scope.memoryTestsForIncident(String(form.get("incidentId") ?? ""));
   const { startNightly } = await import("@/lib/workflows/start");
   for (const t of tests) await startNightly(t.id);
   revalidatePath("/incidents");
@@ -424,12 +384,11 @@ export async function rerunRelated(form: FormData): Promise<void> {
 
 /** Confirms the suggested fix: links it and starts time travel. */
 export async function acceptSuggestedFix(form: FormData): Promise<void> {
-  const { session } = await currentScope();
-  const db = await getDb();
-  const [inc] = await db.select().from(s.incidents).where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)));
+  const { scope, session } = await currentScope();
+  const inc = await scope.getIncidentById(String(form.get("incidentId") ?? ""));
   if (!inc?.suggestedFix || inc.status !== "awaiting_fix") return;
   const fix = inc.suggestedFix;
-  await db.update(s.incidents).set({ fixSha: fix.sha, fixPr: fix.pr, fixTitle: fix.title, parentSha: null, suggestedFix: null, statusReason: null, updatedAt: new Date() }).where(eq(s.incidents.id, inc.id));
+  await scope.updateIncident(inc.id, { fixSha: fix.sha, fixPr: fix.pr, fixTitle: fix.title, parentSha: null, suggestedFix: null, statusReason: null, updatedAt: new Date() });
   await recordActivity({ workspaceId: session.workspaceId, incidentId: inc.id, title: "Fix linked", detail: `PR #${fix.pr} (suggested)`, tone: "pass" });
   const { startTimeTravel } = await import("@/lib/workflows/start");
   await startTimeTravel(inc.id);
@@ -437,9 +396,8 @@ export async function acceptSuggestedFix(form: FormData): Promise<void> {
 }
 
 export async function dismissSuggestedFix(form: FormData): Promise<void> {
-  const { session } = await currentScope();
-  const db = await getDb();
-  await db.update(s.incidents).set({ suggestedFix: null }).where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)));
+  const { scope } = await currentScope();
+  await scope.updateIncident(String(form.get("incidentId") ?? ""), { suggestedFix: null });
   revalidatePath("/incidents");
 }
 
@@ -456,10 +414,9 @@ export async function addAnotherTest(form: FormData): Promise<void> {
 
 /** Measures (again) how many small changes to the fixed lines a memory test catches. */
 export async function measureStrength(form: FormData): Promise<void> {
-  const { session, allowed } = await authorize("manageRepositories");
+  const { scope, allowed } = await authorize("manageRepositories");
   if (!allowed) return;
-  const db = await getDb();
-  const [t] = await db.select().from(s.memoryTests).where(and(eq(s.memoryTests.id, String(form.get("memoryTestId"))), eq(s.memoryTests.workspaceId, session.workspaceId)));
+  const t = await scope.memoryTest(String(form.get("memoryTestId")));
   if (!t) return;
   const { startStrength } = await import("@/lib/workflows/start");
   await startStrength(t.id);
@@ -467,12 +424,9 @@ export async function measureStrength(form: FormData): Promise<void> {
 }
 
 async function setReportToken(token: string | undefined): Promise<void> {
-  const { session, allowed } = await authorize("manageWorkspace");
+  const { scope, session, allowed } = await authorize("manageWorkspace");
   if (!allowed) return;
-  const db = await getDb();
-  const [cur] = await db.select({ settings: s.workspaces.settings }).from(s.workspaces).where(eq(s.workspaces.id, session.workspaceId));
-  const { reportToken: _old, ...rest } = cur?.settings ?? {};
-  await db.update(s.workspaces).set({ settings: token ? { ...rest, reportToken: token } : rest }).where(eq(s.workspaces.id, session.workspaceId));
+  await scope.updateWorkspace({}, ({ reportToken: _old, ...rest }) => (token ? { ...rest, reportToken: token } : rest));
   const { audit } = await import("@/lib/data/lifecycle");
   await audit(session.workspaceId, session.userId, token ? "report.shared" : "report.unshared");
   revalidatePath("/insights");
@@ -490,17 +444,12 @@ export async function unshareReport(): Promise<void> {
 
 /** Corrects an incident's title and description. The proof, if any, is unchanged. */
 export async function editIncident(_p: FormState, form: FormData): Promise<FormState> {
-  const { session, allowed } = await authorize("recordIncident");
+  const { scope, session, allowed } = await authorize("recordIncident");
   if (!allowed) return { error: "You can’t edit incidents in this workspace." };
   const text = (k: string, max: number) => String(form.get(k) ?? "").trim().slice(0, max);
   const title = text("title", 200);
   if (title.length < 3) return { error: "Give the incident a title." };
-  const db = await getDb();
-  const [inc] = await db
-    .update(s.incidents)
-    .set({ title, trigger: text("trigger", 4000), observed: text("observed", 4000), expected: text("expected", 4000), updatedAt: new Date() })
-    .where(and(eq(s.incidents.id, String(form.get("incidentId") ?? "")), eq(s.incidents.workspaceId, session.workspaceId)))
-    .returning();
+  const inc = await scope.updateIncident(String(form.get("incidentId") ?? ""), { title, trigger: text("trigger", 4000), observed: text("observed", 4000), expected: text("expected", 4000), updatedAt: new Date() });
   if (!inc) return { error: "Incident not found." };
   const { audit } = await import("@/lib/data/lifecycle");
   await audit(session.workspaceId, session.userId, "incident.edited", `#${inc.number}`, title);

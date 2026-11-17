@@ -2,6 +2,10 @@ name: CI
 on: [push, pull_request]
 permissions:
   contents: read
+# A newer push to a branch or pull request cancels its run still in progress; runs on main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -12,6 +16,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: No high or critical advisories in dependencies
+        run: npm audit --audit-level=high
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -20,5 +26,36 @@ jobs:
       - run: npm run build:cli
       - name: Action bundle matches the CLI source
         run: npm run build:action && git diff --exit-code -- action/dist
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      # The cache holds the browser only; its system libraries still need installing.
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      # E2E_PROD runs the suite against `next build` + `next start`, so the production CSP is tested end to end.
+      - name: End-to-end tests (production build)
+        run: npm run test:e2e
+        env:
+          E2E_PROD: "1"
+          # Reuse the build from the step above instead of building again.
+          E2E_PREBUILT: "1"
+      - name: Upload Playwright traces and report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
