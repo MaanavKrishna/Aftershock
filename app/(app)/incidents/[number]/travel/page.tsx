@@ -1,44 +1,61 @@
 import type { Metadata } from "next";
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { currentScope } from "@/lib/auth/scope";
 import { TopBar, Main } from "@/components/app/TopBar";
-import { Card, CardHead } from "@/components/ui/Card";
+import { Card, CardHead, CardBody } from "@/components/ui/Card";
+import { Verdict, type VerdictKind } from "@/components/ui/Verdict";
+import { Tabs } from "@/components/ui/Tabs";
+import { TextArea } from "@/components/ui/Field";
+import { CodeBlock } from "@/components/ui/CodeBlock";
+import { ButtonLink, buttonClass } from "@/components/ui/Button";
+import { Check, Clock, Cross, Dashed, Ring } from "@/components/ui/icons";
 import { AutoRefresh } from "@/components/app/AutoRefresh";
+import { KeyValue } from "@/components/app/bits";
 import { incidentKey } from "@/lib/domain/ids";
 import { duration, stamp } from "@/lib/format";
 import { retryTimeTravel } from "../../../actions";
 import { RunCells } from "@/components/app/RunCells";
 import { LogViewer } from "@/components/app/LogViewer";
 import type { RunResult } from "@/lib/domain/verdict";
+import type { RunStep } from "@/lib/db/schema";
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params;
   return { title: `Time travel · incident ${number}` };
 }
 
-const VERDICT = {
-  proven: ["PROVEN", "bg-pass-dark text-chrome"],
-  rejected: ["REJECTED", "bg-on-dark text-ink"],
-  unproven: ["UNPROVEN", "border border-dashed border-on-dark-muted text-on-dark"],
-  running: ["RUNNING", "bg-on-dark text-ink"],
-} as const;
+const KIND: Record<string, VerdictKind> = { proven: "proven", rejected: "rejected", unproven: "unproven", running: "running" };
 
 function Lane({ sha, name, must, runs, detail }: { sha: string; name: string; must: "fail" | "pass"; runs: RunResult[]; detail: string }) {
+  const met = runs.length > 0 && runs.every((r) => r.outcome === (must === "fail" ? "failed" : "passed"));
   return (
-    <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-3.5 rounded-xl border border-ink-line bg-ink-2 p-[18px]">
-      <div className="flex flex-wrap justify-between gap-2.5">
-        <span className="flex flex-col"><span className="font-mono font-semibold text-white">{sha}</span><span className="text-[12.5px] text-on-dark-muted">{name}</span></span>
-        <span className="flex flex-col items-end"><span className="text-xs text-[#7D8896]">must</span><span className={`font-semibold ${must === "fail" ? "text-fail-dark" : "text-pass-dark"}`}>{must}</span></span>
+    <Card as="div" className="flex min-w-0 flex-col">
+      <div className="flex items-start justify-between gap-3 px-5 pt-4">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-callout text-fg-3">{name}</span>
+          <span className="truncate font-mono text-title-3 font-medium text-fg">{sha}</span>
+        </span>
+        <span className="flex shrink-0 flex-col items-end gap-0.5">
+          <span className="text-caption text-fg-3">must</span>
+          <span className={`text-callout font-semibold ${must === "fail" ? "text-recur" : "text-proven"}`}>{must}</span>
+        </span>
       </div>
-      <RunCells runs={[0, 1, 2].map((i) => runs[i])} />
-      <span className="font-mono text-xs text-[#8792A0]">{detail}</span>
-    </div>
+      <div className="px-5 py-4">
+        <RunCells runs={[0, 1, 2].map((i) => runs[i])} />
+      </div>
+      <p className={`m-0 mt-auto truncate border-t border-border-soft px-5 py-2.5 font-mono text-caption ${met ? (must === "fail" ? "text-recur" : "text-proven") : "text-fg-3"}`}>{detail}</p>
+    </Card>
   );
 }
 
-const STEP_DOT = { ok: "bg-pass", bad: "bg-fail", skip: "border-2 border-field", running: "bg-muted-2 animate-pulse", pending: "border-2 border-line" } as const;
+const STEP: Record<RunStep["state"], { Icon: typeof Check; cls: string; word: string }> = {
+  ok: { Icon: Check, cls: "bg-proven-soft text-proven", word: "done" },
+  bad: { Icon: Cross, cls: "bg-recur-soft text-recur", word: "failed" },
+  skip: { Icon: Ring, cls: "bg-s2 text-fg-3", word: "skipped" },
+  running: { Icon: Clock, cls: "bg-s3 text-fg", word: "running" },
+  pending: { Icon: Dashed, cls: "bg-transparent text-fg-3", word: "pending" },
+};
 
 export default async function TravelPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ attempt?: string }> }) {
   const { number } = await params;
@@ -49,114 +66,170 @@ export default async function TravelPage({ params, searchParams }: { params: Pro
   const [ws, repo, runs] = await Promise.all([scope.workspace(), inc.repoId ? scope.repo(inc.repoId) : null, scope.runs(inc.id)]);
   const key = incidentKey(ws?.incidentPrefix ?? "INC", inc.number);
   const run = runs.find((r) => String(r.attempt) === attempt) ?? runs.at(-1);
+  const crumbs = [{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }];
 
   if (!run) {
     return (
       <>
         <AutoRefresh active={inc.status === "traveling"} />
-        <TopBar crumbs={[{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }]} />
+        <TopBar crumbs={crumbs} />
         <Main>
-          <h1 className="m-0 text-[30px] font-semibold tracking-[-0.025em]">{inc.status === "traveling" ? `Starting time travel for ${key}…` : `No time travel has run for ${key} yet.`}</h1>
-          <p className="m-0 text-muted">{inc.status === "traveling" ? "Resolving the fix and drafting a test. This page updates on its own." : inc.statusReason ?? "Link the fix commit on the incident page to start one."}</p>
+          <div className="flex max-w-2xl flex-col items-start gap-3 py-6">
+            <Verdict kind={inc.status === "traveling" ? "running" : "unproven"} />
+            <h1 className="m-0 text-title-1 font-semibold text-fg">{inc.status === "traveling" ? `Starting time travel for ${key}…` : `No time travel has run for ${key} yet.`}</h1>
+            <p className="m-0 text-ui text-fg-2">{inc.status === "traveling" ? "Resolving the fix and drafting a test. This page updates on its own." : (inc.statusReason ?? "Link the fix commit on the incident page to start one.")}</p>
+            <ButtonLink href={`/incidents/${inc.number}`} variant="secondary" size="sm">
+              Back to the incident
+            </ButtonLink>
+          </div>
         </Main>
       </>
     );
   }
 
   const proven = run.status === "proven";
-  const [label, tagCls] = VERDICT[run.status];
   const headline =
-    run.status === "proven" ? `The test reproduces ${key} and the fix stops it.`
-    : run.status === "rejected" ? "This draft passed before the fix, so it proves nothing."
-    : run.status === "running" ? `Time traveling through ${repo?.name ?? "the repository"}…`
-    : "This draft could not be proven.";
-  const parent = inc.parentSha ?? "parent";
-  const fix = inc.fixSha ?? (inc.fixPr ? `PR #${inc.fixPr}` : "fix");
+    run.status === "proven"
+      ? `The test reproduces ${key} and the fix stops it.`
+      : run.status === "rejected"
+        ? "This draft passed before the fix, so it proves nothing."
+        : run.status === "running"
+          ? `Time traveling through ${repo?.name ?? "the repository"}…`
+          : "This draft could not be proven.";
+  const parent = inc.parentSha?.slice(0, 7) ?? "parent";
+  const fix = inc.fixSha?.slice(0, 7) ?? (inc.fixPr ? `PR #${inc.fixPr}` : "fix");
   const failedBefore = run.beforeResults.filter((r) => r.outcome === "failed").length;
 
   return (
     <>
       {/* A proven run still stores the test and opens the bot PR; keep refreshing until every step settles. */}
       <AutoRefresh active={run.status === "running" || inc.status === "traveling" || (run.status === "proven" && run.steps.some((st) => st.state === "running" || st.state === "pending"))} />
-      <TopBar crumbs={[{ label: "Incidents", href: "/incidents" }, { label: key, href: `/incidents/${inc.number}` }, { label: "Time travel" }]}>
-        <a href={`/api/v1/runs/${run.id}/evidence`} className="inline-flex min-h-[38px] items-center rounded-lg border border-line-strong bg-card px-3 text-[13px] font-semibold text-ink no-underline">Download evidence.json</a>
+      <TopBar crumbs={crumbs}>
+        <a href={`/api/v1/runs/${run.id}/evidence`} className={buttonClass("secondary", "sm", "max-sm:hidden")}>
+          Download evidence.json
+        </a>
       </TopBar>
       <Main>
-        <section className="overflow-hidden rounded-2xl bg-chrome text-on-dark">
-          <div className="flex flex-wrap items-end justify-between gap-[18px] px-7 pb-2 pt-[26px]">
-            <div className="flex flex-[1_1_460px] flex-col gap-2.5">
-              <div className="flex flex-wrap items-center gap-2"><span className={`rounded-md px-2.5 py-1 font-mono text-xs font-semibold ${tagCls}`}>{label}</span><span className="text-[12.5px] text-on-dark-muted">Attempt {run.attempt} of {runs.length} · {stamp(run.createdAt)}{run.wallMs ? ` · ${duration(run.wallMs)}` : ""}</span></div>
-              <h1 className="m-0 text-[clamp(26px,2.6vw,34px)] font-semibold leading-[1.15] tracking-[-0.025em] text-white">{headline}</h1>
-            </div>
-            {runs.length > 1 && (
-              <nav aria-label="Attempt" className="flex flex-wrap rounded-[9px] border border-ink-line bg-ink-2 p-[3px]">
-                {runs.map((r) => (
-                  <Link key={r.id} href={`?attempt=${r.attempt}`} aria-current={r.id === run.id ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-[7px] px-3.5 text-[13px] font-semibold no-underline ${r.id === run.id ? "bg-on-dark text-ink" : "text-on-dark-muted"}`}>Attempt {r.attempt} · {r.status}</Link>
-                ))}
-              </nav>
-            )}
+        <header className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Verdict kind={KIND[run.status] ?? "unproven"} />
+            <span className="text-callout text-fg-3">
+              Attempt {run.attempt} of {runs.length} · {stamp(run.createdAt)}
+              {run.wallMs ? ` · ${duration(run.wallMs)}` : ""}
+            </span>
           </div>
-          <div className="flex flex-wrap items-stretch gap-3.5 px-7 pb-7 pt-[22px]">
-            <Lane sha={parent} name="Before the fix" must="fail" runs={run.beforeResults} detail={run.beforeResults.length === 0 ? "not run yet" : failedBefore === run.beforeResults.length ? "reproduced the incident" : run.beforeResults[0]?.message ?? "did not reproduce"} />
-            <Lane sha={fix} name="On the fix" must="pass" runs={run.fixResults} detail={run.fixResults.length === 0 ? (run.status === "rejected" ? "skipped: nothing to prove" : "not run yet") : run.fixResults.every((r) => r.outcome === "passed") ? "the fix stops it" : run.fixResults.find((r) => r.message)?.message ?? "did not pass"} />
-          </div>
+          <h1 className="m-0 max-w-3xl text-title-1 font-semibold text-balance text-fg">{headline}</h1>
+        </header>
+        {runs.length > 1 && <Tabs label="Attempt" items={runs.map((r) => ({ href: `?attempt=${r.attempt}`, label: `Attempt ${r.attempt} · ${r.status}`, active: r.id === run.id }))} />}
+
+        <section aria-label="The two commits" className="grid gap-3 md:grid-cols-2">
+          <Lane
+            sha={parent}
+            name="Before the fix"
+            must="fail"
+            runs={run.beforeResults}
+            detail={run.beforeResults.length === 0 ? "not run yet" : failedBefore === run.beforeResults.length ? "reproduced the incident" : (run.beforeResults[0]?.message ?? "did not reproduce")}
+          />
+          <Lane
+            sha={fix}
+            name="On the fix"
+            must="pass"
+            runs={run.fixResults}
+            detail={run.fixResults.length === 0 ? (run.status === "rejected" ? "skipped: nothing to prove" : "not run yet") : run.fixResults.every((r) => r.outcome === "passed") ? "the fix stops it" : (run.fixResults.find((r) => r.message)?.message ?? "did not pass")}
+          />
         </section>
 
-        {run.reason && run.status !== "proven" && <p className="m-0 rounded-xl border border-line bg-card px-5 py-3.5 text-body">{run.reason}</p>}
+        {run.reason && !proven && <p className="m-0 rounded-card border border-border bg-s1 px-5 py-3.5 text-ui text-fg-2">{run.reason}</p>}
 
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex min-w-0 flex-[1.7_1_560px] flex-col gap-4">
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
             {run.steps.length > 0 && (
               <Card>
-                <CardHead aside={<span className="font-mono text-xs text-muted-2">durable · resumes after failures</span>}>Workflow</CardHead>
-                {run.steps.map((st) => (
-                  <div key={st.key} className="flex items-center gap-3.5 border-b border-line-soft px-[22px] py-3">
-                    <span className={`h-3 w-3 shrink-0 rounded-full ${STEP_DOT[st.state]}`} />
-                    <span className="flex min-w-0 flex-1 flex-col"><span className="font-semibold">{st.label}</span><span className="text-[12.5px] text-muted">{st.detail}</span></span>
-                    <span className="font-mono text-xs text-muted-2">{st.ms != null ? duration(st.ms) : "—"}</span>
-                  </div>
-                ))}
+                <CardHead sub="Durable: it resumes after failures">Workflow</CardHead>
+                <ol className="m-0 list-none p-0">
+                  {run.steps.map((st) => {
+                    const s = STEP[st.state];
+                    return (
+                      <li key={st.key} className="flex items-center gap-3 border-b border-border-soft px-5 py-2.5 last:border-b-0">
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${s.cls} ${st.state === "pending" ? "border border-dashed border-border-strong" : ""}`}>
+                          <s.Icon size={13} />
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className={`text-ui font-medium ${st.state === "pending" ? "text-fg-3" : "text-fg"}`}>
+                            {st.label}
+                            <span className="sr-only"> ({s.word})</span>
+                          </span>
+                          {st.detail && <span className="text-caption text-fg-3">{st.detail}</span>}
+                        </span>
+                        <span className="shrink-0 font-mono text-caption tabular-nums text-fg-3">{st.ms != null ? duration(st.ms) : "—"}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
               </Card>
             )}
             {run.testCode && (
-              <Card dark>
-                <CardHead dark aside={<span className={`font-mono text-xs ${proven ? "text-pass-dark" : "text-on-dark-muted"}`}>{proven ? "admitted" : `${run.status} draft`}</span>}><span className="font-mono text-[12.5px]">{run.testPath}</span></CardHead>
-                <pre tabIndex={0} className="m-0 overflow-x-auto px-[22px] py-[18px] font-mono text-[12.5px] leading-[1.75] text-[#C9D1DA]">{run.testCode}</pre>
-                {(run.feedback || proven) && <div className="border-t border-[#222C38] px-[22px] py-3.5 text-[13px] text-on-dark-muted">{proven ? "Why it is trusted: it fails on the commit before the fix and passes on the fix, on every run." : `Fed into the next draft: ${run.feedback}`}</div>}
-              </Card>
+              <section aria-labelledby="draft-h" className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 id="draft-h" className="m-0 text-title-3 font-semibold text-fg">
+                    {proven ? "The admitted test" : "The draft"}
+                  </h2>
+                  {proven ? <Verdict kind="proven" label="Admitted" size="sm" /> : <Verdict kind="drafted" label={`${run.status} draft`} size="sm" />}
+                </div>
+                <CodeBlock code={run.testCode} file={run.testPath ?? undefined} />
+                {(run.feedback || proven) && <p className="m-0 text-callout text-fg-2">{proven ? "Why it is trusted: it fails on the commit before the fix and passes on the fix, on every run." : `Fed into the next draft: ${run.feedback}`}</p>}
+              </section>
             )}
             {run.log && (
-              <Card dark>
-                <CardHead dark aside={<span className="font-mono text-xs text-[#7D8896]">trimmed to the failure</span>}>Sandbox output</CardHead>
+              <Card>
+                <CardHead sub="Trimmed to the failure">Sandbox output</CardHead>
                 <LogViewer log={run.log} />
               </Card>
             )}
           </div>
-          <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
+          <aside className="flex min-w-0 flex-col gap-4" aria-label="Run details">
             {run.inputs.length > 0 && (
               <Card>
                 <CardHead sub="Passed as fenced data, never instructions">What the model read</CardHead>
-                {run.inputs.map((i) => <div key={i.name} className="flex justify-between gap-3 border-b border-line-soft px-5 py-2.5 text-[13px]"><span className="truncate font-mono text-[12.5px]">{i.name}</span><span className="shrink-0 text-muted">{i.note}</span></div>)}
+                <KeyValue rows={run.inputs.map((i) => [i.name, <span key={i.name} className="font-sans text-fg-3">{i.note}</span>])} />
               </Card>
             )}
             <Card>
               <CardHead>Environment</CardHead>
-              {[["Runner", run.runner === "docker" ? "Local Docker" : run.runner === "sandbox" ? "Aftershock sandbox" : run.runner], ["Framework", repo?.framework ?? "—"], ["Install", repo?.installCmd ?? "—"], ["Network after install", "blocked"], ["Secrets", "none"], ["Wall time", duration(run.wallMs || null)], ["Active CPU", duration(run.cpuMs || null)], ["Model", run.model ?? "—"]].map(([k, v]) => (
-                <div key={k} className="flex justify-between gap-3 border-b border-line-soft px-5 py-2.5 text-[13px]"><span className="text-muted">{k}</span><span className="text-right font-mono text-[12.5px]">{v}</span></div>
-              ))}
+              <KeyValue
+                rows={[
+                  ["Runner", run.runner === "docker" ? "Local Docker" : run.runner === "sandbox" ? "Aftershock sandbox" : run.runner],
+                  ["Framework", repo?.framework ?? "—"],
+                  ["Install", repo?.installCmd ?? "—"],
+                  ["Network after install", "blocked"],
+                  ["Secrets", "none"],
+                  ["Wall time", duration(run.wallMs || null)],
+                  ["Active CPU", duration(run.cpuMs || null)],
+                  ["Model", run.model ?? "—"],
+                ]}
+              />
             </Card>
-            <Card>
-              <CardHead>Reproduce locally</CardHead>
-              <pre tabIndex={0} className="m-0 overflow-x-auto bg-card-2 px-5 py-3.5 font-mono text-xs">{`curl -fsSLo aftershock.mjs https://raw.githubusercontent.com/MaanavKrishna/Aftershock/main/action/dist/aftershock.mjs\nnode aftershock.mjs prove --fix ${inc.fixSha?.slice(0, 7) ?? "<fix>"} --test ${run.testPath ?? "<test file>"}`}</pre>
-            </Card>
+            <section aria-labelledby="repro-h" className="flex flex-col gap-2">
+              <h2 id="repro-h" className="m-0 text-ui font-semibold text-fg">
+                Reproduce locally
+              </h2>
+              <CodeBlock
+                code={`curl -fsSLo aftershock.mjs https://raw.githubusercontent.com/MaanavKrishna/Aftershock/main/action/dist/aftershock.mjs\nnode aftershock.mjs prove --fix ${inc.fixSha?.slice(0, 7) ?? "<fix>"} --test ${run.testPath ?? "<test file>"}`}
+              />
+            </section>
             {run.status !== "running" && !proven && (
-              <form action={retryTimeTravel} className="flex flex-col gap-3 rounded-[14px] bg-chrome p-5 text-on-dark">
-                <input type="hidden" name="incidentId" value={inc.id} />
-                <span className="font-semibold">Not convinced?</span>
-                <span className="text-[13px] text-on-dark-muted">Give the model a hint. The new draft faces the same time travel.</span>
-                <label className="flex flex-col gap-1.5 text-[12.5px] text-[#C9D1DA]">Hint<textarea name="hint" rows={2} placeholder="e.g. the bug only shows when the first response is lost" className="resize-y rounded-[9px] border border-[#344150] bg-ink-2 px-3 py-2.5 text-on-dark" /></label>
-                <SubmitButton className="min-h-11 cursor-pointer rounded-[9px] bg-paper font-semibold text-ink" pendingLabel="Starting…">Redraft and re-run</SubmitButton>
-              </form>
+              <Card>
+                <CardHead sub="The new draft faces the same time travel">Not convinced?</CardHead>
+                <CardBody>
+                  <form action={retryTimeTravel} className="flex flex-col gap-3">
+                    <input type="hidden" name="incidentId" value={inc.id} />
+                    <TextArea label="Hint" name="hint" rows={2} placeholder="e.g. the bug only shows when the first response is lost" className="" />
+                    <SubmitButton className={buttonClass("primary", "md", "w-full")} pendingLabel="Starting…">
+                      Redraft and re-run
+                    </SubmitButton>
+                  </form>
+                </CardBody>
+              </Card>
             )}
           </aside>
         </div>

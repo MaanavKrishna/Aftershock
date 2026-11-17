@@ -14,7 +14,7 @@ COPY --from=docker:27.3.1-cli /usr/local/bin/docker /usr/local/bin/docker
 WORKDIR /app
 COPY --from=build /app ./
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 \
-    AFTERSHOCK_RUNNER=docker AFTERSHOCK_WORKFLOWS=inline \
+    AFTERSHOCK_RUNNER=docker \
     AFTERSHOCK_WORK_DIR=/var/lib/aftershock/runs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD curl -fsS http://127.0.0.1:3000/signin >/dev/null || exit 1

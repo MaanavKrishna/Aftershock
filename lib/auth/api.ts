@@ -9,7 +9,7 @@ import { SESSION_COOKIE, verifySession } from "./token";
 export type ApiScope = "read" | "write";
 
 /** Bearer workspace token, or the browser session (full access). Null when neither is valid. */
-export async function apiAuth(req: NextRequest): Promise<{ workspaceId: string; scope: ApiScope; tokenId?: string } | null> {
+export async function apiAuth(req: NextRequest): Promise<{ workspaceId: string; scope: ApiScope; tokenId?: string; userId?: string } | null> {
   const auth = req.headers.get("authorization");
   if (auth?.startsWith("Bearer ")) {
     const token = auth.slice(7).trim();
@@ -23,7 +23,24 @@ export async function apiAuth(req: NextRequest): Promise<{ workspaceId: string; 
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) return null;
   const { sessionActive } = await import("./sessions");
-  return (await sessionActive(session)) ? { workspaceId: session.workspaceId, scope: "write" } : null;
+  return (await sessionActive(session)) ? { workspaceId: session.workspaceId, scope: "write", userId: session.userId } : null;
+}
+
+/**
+ * For admin endpoints (the audit log): a signed-in owner or admin, or a write token (only owners and
+ * admins can create tokens). Returns the workspace and acting user, or a 401/403 response to return.
+ */
+export async function apiAdminWorkspace(req: NextRequest): Promise<{ workspaceId: string; userId: string | null } | NextResponse> {
+  const a = await apiAuth(req);
+  if (!a) return unauthorized();
+  if (a.userId) {
+    const [{ scoped }, { can }] = await Promise.all([import("@/lib/db/queries/scope"), import("./roles")]);
+    const me = await scoped(a.workspaceId).me(a.userId);
+    if (!can(me?.role, "manageWorkspace")) return NextResponse.json({ error: "Only owners and admins can do this." }, { status: 403 });
+    return { workspaceId: a.workspaceId, userId: a.userId };
+  }
+  if (a.scope !== "write") return forbidden();
+  return { workspaceId: a.workspaceId, userId: null };
 }
 
 /** For read endpoints: the caller's workspace, or null. */
