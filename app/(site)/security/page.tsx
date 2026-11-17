@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Band, SectionHead } from "@/components/site/Section";
+import { Band, PageHero, SectionHead } from "@/components/site/Section";
 
 export const metadata: Metadata = { title: "Security", description: "How Aftershock isolates runs, what it keeps and for how long, and who processes your data.", alternates: { canonical: "/security" } };
 
@@ -40,53 +40,73 @@ const PROCESSORS: [string, string][] = [
 export default function Security() {
   return (
     <>
-      <section className="mx-auto max-w-[1240px] px-4 pb-16 pt-16 sm:px-6 sm:pt-20">
-        <h1 className="m-0 max-w-[18ch] text-balance font-display text-d1 font-semibold tracking-[-0.03em] text-fg">We run your code. So we assume it’s hostile.</h1>
-        <p className="mt-6 max-w-[60ch] text-lede text-fg-2">Running a team’s tests means executing their code, and code a model drafted. Every run is isolated, short-lived and secret-free by design. The full threat model is <a className="text-signal" href="https://github.com/MaanavKrishna/Aftershock/blob/main/docs/threat-model.md" rel="noopener">public</a>.</p>
-      </section>
-      <Band tone="raised">
-        <SectionHead title="The life of one sandbox run" lede="Every proof, re-proof and sandboxed pull request check follows the same path. Nothing survives the last step." />
-        <ol className="m-0 grid list-none gap-6 p-0 md:grid-cols-5">
+      <PageHero eyebrow="Security" title="We run your code. So we assume it’s hostile." lede={<p className="m-0">Running a team’s tests means executing their code, and code a model drafted. Every run is isolated, short-lived and secret-free by design. The full threat model is <a className="text-signal" href="https://github.com/MaanavKrishna/Aftershock/blob/main/docs/threat-model.md" rel="noopener">public</a>.</p>} />
+      <Band tone="s1" labelledBy="life-h">
+        <SectionHead id="life-h" title="The life of one sandbox run" lede="Every proof, re-proof and sandboxed pull request check follows the same path. Nothing survives the last step." />
+        <ol className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-5">
           {LIFE.map(([t, d], i) => (
-            <li key={t} className="flex flex-col gap-2 border-t-2 border-fg pt-4">
-              <span className="font-code text-[13px] text-fg-3">{i + 1}</span>
-              <h3 className="m-0 text-[18px] font-semibold text-fg">{t}</h3>
-              <p className="m-0 text-[14.5px] text-fg-2">{d}</p>
+            <li key={t} className="relative flex flex-col gap-2 rounded-card border border-border bg-canvas p-5">
+              <span className="flex items-center gap-2 font-mono text-caption text-fg-3">
+                <span className={`h-1.5 w-1.5 rounded-full ${i === LIFE.length - 1 ? "bg-fg-3" : "bg-fg-2"}`} aria-hidden="true" />
+                Step {i + 1}
+              </span>
+              <h3 className="m-0 text-title-3 font-semibold text-fg">{t}</h3>
+              <p className="m-0 text-callout text-fg-2">{d}</p>
             </li>
           ))}
         </ol>
       </Band>
-      <Band>
+      <Band labelledBy="rules-h">
+        <h2 id="rules-h" className="sr-only">Rules every run follows</h2>
         <div className="grid gap-x-14 gap-y-10 md:grid-cols-2">
           {RULES.map(([t, d]) => (
-            <div key={t} className="flex flex-col gap-2">
-              <h3 className="m-0 font-display text-[21px] font-semibold tracking-[-0.01em] text-fg">{t}</h3>
-              <p className="m-0 text-[15.5px] text-fg-2">{d}</p>
+            <div key={t} className="flex flex-col gap-2 border-t border-border-soft pt-6">
+              <h3 className="m-0 text-title-2 font-semibold text-fg">{t}</h3>
+              <p className="m-0 text-body text-fg-2">{d}</p>
             </div>
           ))}
         </div>
       </Band>
-      <Band tone="raised">
-        <SectionHead title="What we keep, and for how long" />
-        <div className="overflow-x-auto rounded-panel border border-rule bg-canvas">
-          <table className="w-full min-w-[680px] border-collapse text-left text-[14.5px]">
-            <thead><tr className="text-[13px] text-fg-3"><th scope="col" className="px-5 py-3 font-medium">Data</th><th scope="col" className="px-5 py-3 font-medium">Kept</th><th scope="col" className="px-5 py-3 font-medium">Why</th></tr></thead>
-            <tbody>{DATA.map(([k, v, w]) => <tr key={k} className="border-t border-rule"><th scope="row" className="px-5 py-3.5 font-semibold text-fg">{k}</th><td className="px-5 py-3.5 text-fg">{v}</td><td className="px-5 py-3.5 text-fg-2">{w}</td></tr>)}</tbody>
+      <Band tone="s1" labelledBy="keep-h">
+        <SectionHead id="keep-h" title="What we keep, and for how long" />
+        <div className="overflow-x-auto rounded-card border border-border bg-canvas">
+          <table className="w-full min-w-[680px] border-collapse text-left text-ui">
+            <thead>
+              <tr className="border-b border-border bg-s2 text-callout text-fg-2">
+                <th scope="col" className="px-5 py-3 font-medium">Data</th>
+                <th scope="col" className="px-5 py-3 font-medium">Kept</th>
+                <th scope="col" className="px-5 py-3 font-medium">Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DATA.map(([k, v, w]) => (
+                <tr key={k} className="border-t border-border-soft first:border-t-0">
+                  <th scope="row" className="px-5 py-3.5 font-medium text-fg">{k}</th>
+                  <td className="px-5 py-3.5 text-fg">{v}</td>
+                  <td className="px-5 py-3.5 text-fg-2">{w}</td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
-        <p className="mt-4 text-[14px] text-fg-3">Admins can delete an incident, a repository or the workspace, and anyone can delete their own account, from the app. Deletions are recorded in the workspace audit log.</p>
+        <p className="m-0 mt-4 max-w-[80ch] text-callout text-fg-3">Admins can delete an incident, a repository or the workspace, and anyone can delete their own account, from the app. Deletions are recorded in the workspace audit log.</p>
       </Band>
-      <Band>
-        <div className="grid gap-10 md:grid-cols-2">
+      <Band labelledBy="proc-h">
+        <div className="grid gap-12 md:grid-cols-2">
           <div>
-            <SectionHead title="Who processes your data" />
+            <SectionHead id="proc-h" title="Who processes your data" />
             <ul className="m-0 flex list-none flex-col p-0">
-              {PROCESSORS.map(([n, w]) => <li key={n} className="flex flex-col border-t border-rule py-3"><span className="font-semibold text-fg">{n}</span><span className="text-[14.5px] text-fg-2">{w}</span></li>)}
+              {PROCESSORS.map(([n, w]) => (
+                <li key={n} className="flex flex-col gap-0.5 border-t border-border-soft py-4">
+                  <span className="text-body font-semibold text-fg">{n}</span>
+                  <span className="text-callout text-fg-2">{w}</span>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
             <SectionHead title="Report a vulnerability" lede={<>Use GitHub’s private vulnerability reporting on the repository; you get a reply within 3 working days. Details are in <a className="text-signal" href="https://github.com/MaanavKrishna/Aftershock/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</>} />
-            <p className="m-0 text-[14.5px] text-fg-2">Audit evidence is signed and verifiable. See <Link href="/evidence" className="text-signal">audit evidence</Link>.</p>
+            <p className="m-0 text-body text-fg-2">Audit evidence is signed and verifiable. See <Link href="/evidence" className="text-signal">audit evidence</Link>.</p>
           </div>
         </div>
       </Band>

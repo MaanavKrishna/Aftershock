@@ -1,6 +1,8 @@
 "use client";
 import { useActionState, useId, useState } from "react";
 import type { FormState } from "@/app/(app)/actions";
+import { Button } from "@/components/ui/Button";
+import { FormMessage, inputClass } from "@/components/ui/Field";
 
 /** A destructive action behind a disclosure and a typed confirmation. */
 export function ConfirmDelete({
@@ -21,28 +23,48 @@ export function ConfirmDelete({
   const id = useId();
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-[42px] cursor-pointer items-center rounded-[9px] border border-fail-line bg-card px-4 font-semibold text-fail-deep">
+      <Button variant="dangerOutline" onClick={() => setOpen(true)}>
         {button}
-      </button>
+      </Button>
     );
   }
   return (
-    <form action={formAction} className="flex w-full flex-col gap-3 rounded-[12px] border border-fail-line bg-fail-tint/40 p-4" aria-busy={pending}>
-      {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
-      <p className="m-0 text-[13px] text-body">{description}</p>
-      <label htmlFor={id} className="flex flex-col gap-1.5 text-[13px] font-semibold">
-        Type <span className="font-mono">{expected}</span> to confirm
-        <input id={id} name="confirm" autoComplete="off" required className="min-h-[42px] rounded-[9px] border border-field px-3 font-mono font-normal" />
-      </label>
-      {state.error && <p role="alert" className="m-0 text-[13px] text-fail-deep">{state.error}</p>}
-      {state.ok && <p role="status" className="m-0 text-[13px] text-pass-deep">{state.ok}</p>}
+    <form action={formAction} className="flex w-full animate-[fl-in_200ms_var(--ease-fl)] flex-col gap-3 rounded-control border border-recur-line bg-recur-soft p-4" aria-busy={pending}>
+      {Object.entries(fields).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
+      <p id={`${id}-desc`} className="m-0 text-callout text-fg-2">
+        {description}
+      </p>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={id} className="text-callout font-medium text-fg">
+          Type <span className="font-mono font-semibold">{expected}</span> to confirm
+        </label>
+        <input
+          id={id}
+          name="confirm"
+          autoComplete="off"
+          spellCheck={false}
+          required
+          autoFocus
+          aria-invalid={state.error ? true : undefined}
+          aria-describedby={state.error ? `${id}-error ${id}-desc` : `${id}-desc`}
+          className={`${inputClass} font-mono`}
+        />
+      </div>
+      {state.error && (
+        <p id={`${id}-error`} role="alert" className="m-0 text-callout font-medium text-recur">
+          {state.error}
+        </p>
+      )}
+      <FormMessage ok={state.ok} />
       <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={pending} className="inline-flex min-h-[42px] cursor-pointer items-center rounded-[9px] bg-fail px-4 font-semibold text-on-accent disabled:opacity-70">
+        <Button type="submit" variant="danger" disabled={pending}>
           {pending ? "Deleting…" : "Delete permanently"}
-        </button>
-        <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-[42px] cursor-pointer items-center rounded-[9px] border border-line-strong bg-card px-4 font-semibold">
+        </Button>
+        <Button variant="secondary" onClick={() => setOpen(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -62,6 +62,10 @@ drizzle/               SQL migrations
 tests/unit, tests/integration, e2e/
 ```
 
+## Lists and paging
+
+Long lists use keyset paging on the scoped API: `incidentPage`, `checkPage`, `memoryPage` and `auditPage` each return `{ rows, nextCursor }`. The cursor is opaque (base64url of the list kind, the last row's sort key and its id), so a page continues strictly after the last row it showed: rows added meanwhile never repeat or hide others, and ties on a timestamp are broken by id. Limits are clamped to 1–200; a malformed cursor, or one from another list, starts again from the first page. The latest attempt per incident (`DISTINCT ON`) and the latest check per pull request (`NOT EXISTS` a newer one) are chosen in SQL, so a page costs the same however much history there is. The Overview reads `overviewSummary()`: one row of counts plus short lists, fetched in parallel. The older `incidentRows`, `checks` and `memory` return every row and stay for existing callers.
+
 ## Security model
 
 - **Isolation**: every run is a fresh microVM (or container locally). Dependencies install with network; the network is cut before tests run. No secrets enter a run.

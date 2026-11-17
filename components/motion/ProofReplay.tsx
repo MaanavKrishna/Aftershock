@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import * as m from "motion/react-m";
-import { useReducedMotion } from "motion/react";
+import { useInView, useReducedMotion } from "motion/react";
+import { Check, Cross } from "@/components/ui/icons";
+import { Verdict } from "@/components/ui/Verdict";
+import { EASE } from "@/lib/motion";
 
 const STAGES = [
   "INC-12 comes in from a GitHub issue: a payment retry charged a customer twice.",
@@ -39,15 +42,16 @@ function Cells({ kind, on }: { kind: "fail" | "pass"; on: boolean }) {
   return (
     <span className="flex gap-1.5" aria-hidden="true">
       {[0, 1, 2].map((i) => (
-        <m.span
-          key={i}
-          initial={false}
-          animate={on ? { rotateX: 0, opacity: 1 } : { rotateX: 90, opacity: 0.35 }}
-          transition={{ duration: 0.25, delay: on ? i * 0.18 : 0 }}
-          className={`flex h-8 w-8 items-center justify-center rounded-chip text-[15px] font-bold ${on ? (kind === "fail" ? "bg-quake-soft text-quake" : "bg-signal text-on-accent") : "bg-raised-2 text-fg-3"}`}
-        >
-          {on ? (kind === "fail" ? "✕" : "✓") : "·"}
-        </m.span>
+        <span key={i} className="relative flex h-7 w-7 items-center justify-center rounded-chip border border-dashed border-border-strong">
+          <m.span
+            initial={false}
+            animate={on ? { scale: 1, opacity: 1 } : { scale: 0.6, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30, delay: on ? i * 0.16 : 0 }}
+            className={`absolute -inset-px flex items-center justify-center rounded-chip ${kind === "fail" ? "bg-recur-soft text-recur" : "bg-proven-soft text-proven"}`}
+          >
+            {kind === "fail" ? <Cross size={14} /> : <Check size={14} />}
+          </m.span>
+        </span>
       ))}
     </span>
   );
@@ -57,8 +61,11 @@ function Row({ at, stage, children, label }: { at: number; stage: number; label:
   const reached = stage >= at;
   // Rows still to come use the tertiary text colour (AA contrast) rather than opacity.
   return (
-    <li data-pending={reached ? undefined : ""} className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-t border-rule px-5 py-3 transition-colors duration-300 first:border-t-0">
-      <span className="w-[118px] shrink-0 text-[13px] text-fg-3">{label}</span>
+    <li data-pending={reached ? undefined : ""} className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border-soft px-4 py-3 transition-colors duration-300 first:border-t-0 sm:px-5">
+      <span className="flex w-full shrink-0 items-center gap-2 text-callout text-fg-3 sm:w-[112px]">
+        <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${reached ? "bg-fg-2" : "bg-border-strong"}`} />
+        {label}
+      </span>
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-3">{children}</span>
     </li>
   );
@@ -71,6 +78,9 @@ export function ProofReplay() {
   const [playing, setPlaying] = useState(true);
   const [lines, setLines] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The story starts once the replay is on screen, so nobody scrolls down to a finished state.
+  const root = useRef<HTMLElement>(null);
+  const seen = useInView(root, { once: true, amount: 0.4 });
 
   useEffect(() => {
     if (reduce) {
@@ -81,7 +91,7 @@ export function ProofReplay() {
   }, [reduce]);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || !seen) return;
     if (stage >= LAST) {
       setPlaying(false);
       return;
@@ -90,12 +100,13 @@ export function ProofReplay() {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [playing, stage]);
+  }, [playing, stage, seen]);
 
   // The test "streams" in while stage 1 plays.
   useEffect(() => {
     if (stage < 1) return setLines(0);
     if (stage > 1 || !playing) return setLines(TEST.length);
+    if (!seen) return;
     let n = 0;
     const id = setInterval(() => {
       n++;
@@ -103,7 +114,7 @@ export function ProofReplay() {
       if (n >= TEST.length) clearInterval(id);
     }, 380);
     return () => clearInterval(id);
-  }, [stage, playing]);
+  }, [stage, playing, seen]);
 
   const replay = () => {
     setStage(0);
@@ -111,54 +122,60 @@ export function ProofReplay() {
     setPlaying(true);
   };
 
+  const status = stage >= 5 ? "Aftershock on PR #214" : stage >= 4 ? "Settled: INC-12 is guarded" : "INC-12 · live";
   return (
-    <figure className="m-0 flex flex-col overflow-hidden rounded-stage border border-rule bg-raised shadow-lift" aria-label="Replay of a real proof: INC-12">
-      <div className="relative border-b border-rule bg-sunken px-5 pb-2 pt-4">
+    <figure ref={root} className="m-0 flex flex-col overflow-hidden rounded-stage border border-border bg-s1 shadow-e2" aria-label="Replay of a real proof: INC-12">
+      <div className="relative border-b border-border-soft bg-sunken px-4 pb-2.5 pt-4 sm:px-5">
         <svg viewBox="0 0 600 56" className="h-14 w-full" preserveAspectRatio="none" aria-hidden="true">
-          <m.path d={trace(false)} initial={false} animate={{ d: trace(stage >= 4 && stage < 5) }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} fill="none" strokeWidth="1.6" vectorEffect="non-scaling-stroke" className={stage >= 5 ? "stroke-quake" : stage >= 4 ? "stroke-signal" : "stroke-fg-3"} />
+          <line x1="0" x2="600" y1="28" y2="28" className="stroke-border" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          <m.path d={trace(false)} initial={false} animate={{ d: trace(stage >= 4 && stage < 5) }} transition={{ duration: 0.9, ease: EASE }} fill="none" strokeWidth="1.6" vectorEffect="non-scaling-stroke" className={`transition-colors duration-500 ${stage >= 5 ? "stroke-recur" : stage >= 4 ? "stroke-proven" : "stroke-fg-3"}`} />
         </svg>
-        <div className="flex items-center justify-between gap-3 pt-1 text-[12.5px] text-fg-3">
-          <span>{stage >= 5 ? "Aftershock on PR #214" : stage >= 4 ? "Settled: INC-12 is guarded" : "INC-12 · live"}</span>
-          <span className="flex gap-1">
-            <button type="button" onClick={() => (stage >= LAST ? replay() : setPlaying((p) => !p))} className="min-h-9 cursor-pointer rounded-chip border border-rule bg-transparent px-3 text-[12.5px] font-semibold text-fg-2 hover:text-fg">
-              {stage >= LAST ? "Replay" : playing ? "Pause" : "Play"}
-            </button>
+        <div className="flex items-center justify-between gap-3 pt-1.5">
+          <span className="flex items-center gap-2 font-mono text-caption text-fg-3">
+            <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${stage >= 5 ? "bg-recur" : stage >= 4 ? "bg-proven" : "bg-fg-3"}`} />
+            {status}
           </span>
+          <button type="button" onClick={() => (stage >= LAST ? replay() : setPlaying((p) => !p))} className="inline-flex min-h-8 cursor-pointer items-center rounded-control border border-border-strong bg-s1 px-3 text-callout font-medium text-fg-2 transition-colors duration-150 hover:bg-s2 hover:text-fg">
+            {stage >= LAST ? "Replay" : playing ? "Pause" : "Play"}
+          </button>
         </div>
       </div>
       <ol className="m-0 list-none p-0">
         <Row at={0} stage={stage} label="Incident">
-          <span className="font-semibold text-fg">Payment retry charged a customer twice</span>
-          <span className="text-[13px] text-fg-3">GitHub issue #41</span>
+          <span className="font-medium text-fg">Payment retry charged a customer twice</span>
+          <span className="text-callout text-fg-3">GitHub issue #41</span>
         </Row>
         <Row at={1} stage={stage} label="Draft">
-          <pre tabIndex={0} className="m-0 w-full overflow-x-auto rounded-control bg-sunken px-3 py-2 font-code text-[12px] leading-[1.6] text-fg-2">
+          <pre tabIndex={0} aria-label="Drafted test" className="m-0 w-full overflow-x-auto rounded-control border border-border-soft bg-sunken px-3 py-2.5 font-mono text-caption leading-relaxed text-fg-2">
             {TEST.map((l, i) => (
-              <span key={i} className={`block whitespace-pre ${i < lines ? "" : "opacity-0"}`}>{l}</span>
+              <span key={i} className={`block whitespace-pre transition-opacity duration-200 ${i < lines ? "" : "opacity-0"}`}>{l}</span>
             ))}
           </pre>
-          <span className="inline-flex items-center gap-1.5 rounded-chip bg-raised-2 px-2 py-1 text-[12px] font-semibold text-violet"><span aria-hidden="true">✎</span>AI draft, not trusted yet</span>
+          {stage >= 1 ? <Verdict kind="drafted" size="sm" label="AI draft, not trusted yet" /> : <span className="inline-flex min-h-5 items-center rounded-chip bg-s2 px-1.5 text-caption font-medium text-fg-3">AI draft, not trusted yet</span>}
         </Row>
         <Row at={2} stage={stage} label="Before the fix">
-          <span className="font-code text-[13px] text-fg">3f2a1c9</span>
+          <span className="font-mono text-callout text-fg">3f2a1c9</span>
           <Cells kind="fail" on={stage >= 2} />
-          <span className="text-[13px] text-fg-2">fails 3 of 3: the bug reproduces</span>
+          <span className="text-callout text-fg-2">fails 3 of 3: the bug reproduces</span>
         </Row>
         <Row at={3} stage={stage} label="Time travel">
-          <span className="relative flex h-2 w-40 items-center rounded-full bg-raised-2" aria-hidden="true">
-            <m.span initial={false} animate={{ left: stage >= 3 ? "calc(100% - 10px)" : "0%" }} transition={{ duration: 0.8, ease: [0.65, 0, 0.35, 1] }} className="absolute h-2.5 w-2.5 rounded-full bg-fg" />
+          <span className="relative flex h-1.5 w-40 items-center rounded-full bg-s3" aria-hidden="true">
+            <m.span initial={false} animate={{ x: stage >= 3 ? 150 : 0 }} transition={{ duration: 0.8, ease: [0.65, 0, 0.35, 1] }} className="absolute left-0 h-2.5 w-2.5 rounded-full bg-fg shadow-e1" />
           </span>
-          <span className="font-code text-[13px] text-fg">aa86f56</span>
-          <span className="text-[13px] text-fg-2">fix: reject duplicate pending payment</span>
+          <span className="font-mono text-callout text-fg">aa86f56</span>
+          <span className="text-callout text-fg-2">fix: reject duplicate pending payment</span>
         </Row>
         <Row at={4} stage={stage} label="On the fix">
-          <span className="font-code text-[13px] text-fg">aa86f56</span>
+          <span className="font-mono text-callout text-fg">aa86f56</span>
           <Cells kind="pass" on={stage >= 4} />
-          <span className="text-[13px] font-semibold text-signal">proven</span>
+          {stage >= 4 ? <Verdict kind="proven" size="sm" /> : <span className="text-callout text-fg-3">proven</span>}
         </Row>
         <Row at={5} stage={stage} label="Pull request">
-          <span className="text-fg">#214 refactor payments</span>
-          <span className={`inline-flex items-center gap-1.5 rounded-chip px-2.5 py-1 text-[13px] font-semibold ${stage >= 5 ? "bg-quake-soft text-quake" : "bg-raised-2 text-fg-3"}`}><span aria-hidden="true">✕</span>Recur: INC-12 would ship again</span>
+          <span className="text-ui text-fg">#214 refactor payments</span>
+          <span className={`inline-flex min-h-6 items-center gap-1.5 rounded-chip px-2 text-callout font-medium transition-colors duration-300 ${stage >= 5 ? "bg-recur-soft text-recur" : "bg-s2 text-fg-3"}`}>
+            <Cross size={14} />
+            Recur: INC-12 would ship again
+          </span>
         </Row>
       </ol>
       <figcaption className="sr-only" aria-live="polite">{STAGES[stage]}</figcaption>

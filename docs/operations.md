@@ -41,6 +41,14 @@ With the `installCache` flag on, the first trusted run for a repository (time tr
 - **Retention**: run logs, webhook delivery records and finished notifications older than 30 days are cleared by the daily job, GitHub delivery ids after 7 days and expired sessions at once. Verdicts, proofs and evidence stay until deleted.
 - Deleting a repository or workspace also deletes its cached environments at the sandbox provider.
 
+## Audit log export
+
+`GET /api/v1/audit?format=csv` (default) or `?format=json` downloads the workspace's whole audit log, newest first. Only owners and admins (signed in) or a write token can call it; members and read tokens get 403. CSV cells are quoted where needed, and cells starting with `=`, `+`, `-` or `@` get a leading `'` so a spreadsheet never runs them as formulas. Each export is itself recorded as `audit.exported`.
+
+```bash
+curl -H "Authorization: Bearer $AFTERSHOCK_TOKEN" "https://aftershock-mk.vercel.app/api/v1/audit?format=csv" -o audit.csv
+```
+
 ## Notifications
 
 Activity with an event goes to the `notifications` outbox and the `notify` workflow delivers it (5 attempts over about 73 minutes). To see what is stuck: `select status, count(*) from notifications group by 1`. Rows left in `sending` for over 5 minutes are picked up again. A target switched off after repeated failures shows its reason in Settings → Notifications. See [Notifications](notifications.md).

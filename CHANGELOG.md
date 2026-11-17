@@ -2,6 +2,34 @@
 
 All notable changes to Aftershock are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] — 2026-11-17
+
+A new design system, Fault Line, and a rebuilt website and app on top of it. Plus faster lists, an audit log export and a stricter CI.
+
+### Design
+- **Fault Line:** quiet surfaces in three levels, Geist type, one interactive accent (signal blue) and colour kept for verdicts (proven, recur, safe, inconclusive, flaky). Every verdict has an icon, a word and a tint, and every text colour meets WCAG AA on every surface in light and dark. Spec in [docs/design-system.md](docs/design-system.md); every token and component on [/styleguide](https://aftershock-mk.vercel.app/styleguide).
+- **Website:** a seismic hero (a trace that spikes at the incident and settles green once the test is proven), a proof grid, a replayed real proof, and rebuilt product, agents, evidence, integrations, pricing, security, compare, changelog and docs pages. Effects are marketing-only and switch off for reduced motion.
+- **App:** a translucent sidebar that becomes an icon rail on tablets, a ⌘K palette across actions, pages, repositories and incidents, a proof timeline on every incident (the incident, the commit where the test fails, the fix where it passes), a pull request check card, a memory table, chart frames on Insights with data tables for screen readers, and settings split into tabs. Loading skeletons per page and a not-found page for unknown incidents and pull requests.
+- One set of components in `components/ui` replaces two older ones; no page uses raw colours, pixel font sizes or one-off radii.
+- **README** rebuilt around generated graphics (`.github/readme/build.py`) and real screenshots.
+
+### Performance
+- Incident, pull request, memory and audit lists are paged with stable cursors, and pick the latest attempt or check per item in SQL instead of loading everything.
+- Overview loads in one parallel batch; Insights and the sidebar counts run their queries in parallel, and the sidebar no longer holds up the page.
+
+### Product
+- **Audit log export** as CSV (safe to open in a spreadsheet) or JSON, at `GET /api/v1/audit` and from Settings → Audit log, for owners and admins.
+
+### Reliability and security
+- Every write from the app goes through the workspace scope, and a check override is recorded in one transaction.
+- Production builds start workflows through the Workflow SDK, which fixes backfill and other workflows on self-hosted `next start`.
+- Next.js 16.4.6 and the rest of the minor and patch updates; `diff` 9; the unused `lucide-react` is removed; Node is pinned to 22.
+
+### CI
+- End-to-end tests run against the production build, so the strict Content Security Policy is tested as shipped. Superseded runs on branches are cancelled, Playwright browsers are cached, traces are uploaded when a test fails, and dependencies are audited.
+- Dependabot groups production and development updates, keeps `@types/node` on the runtime's major and holds TypeScript below 7 until Next.js supports it.
+- Tests: 450 unit and integration tests (up from 405), including GitHub OAuth, retro-check, the safe runner, paging and the audit export.
+
 ## [0.2.1] — 2026-10-28
 
 A hardening release: sign-in, webhooks and data integrity, after a full architecture and security review. Everyone is asked to sign in once more after upgrading.
